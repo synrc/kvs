@@ -1,8 +1,10 @@
--record(acl, {id,
+-record(acl, {
+        id,
         resource,
         top}).
 
--record(acl_entry, {id,
+-record(acl_entry, {
+        id,
         entry_id,
         acl_id,
         accessor,

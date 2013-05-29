@@ -1,4 +1,4 @@
--module(store_sup).
+-module(kvs_sup).
 -behaviour(supervisor).
 -export([start_link/0, stop_riak/0]).
 -export([init/1]).
@@ -32,23 +32,23 @@ init([]) ->
     0 ->
 
     error_logger:info_msg("Waiting for Riak to Start...."),
-    store:start(),
+    kvs:start(),
     error_logger:info_msg("Waiting for Riak to Initialize...."),
     store_app:wait_vnodes();
     _ -> skip end,
 
-    store:initialize(),
+    kvs:initialize(),
 
  case nsx_opt:get_env(nsp_srv,riak_srv_node,0) of
     0 ->
 
-    store:init_indexes(),
+    kvs:init_indexes(),
     case nsx_opt:get_env(store,sync_nodes,false) of
          true -> [ error_logger:info_msg("Joined: ~p ~p~n", [N, riak_core:join(N)]) || N <- nsx_opt:get_env(store, nodes, []) -- [node()] ];
          false -> skip
     end,
     case  nsx_opt:get_env(store,pass_init_db, true) of 
-         false -> store:init_db();
+         false -> kvs:init_db();
          true -> pass
     end;
     _ -> skip

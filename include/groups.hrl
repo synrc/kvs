@@ -13,12 +13,13 @@
         entries_count = 0 :: integer()  
         }).
 
--record(group_subscriptions, {
+-record(group_subscription, {
+        key,
         user_id,
         group_id,
         user_type,
         user_posts_count = 0 :: integer() % we need this for sorting and counting is expensive
         }).
 
-define(GROUP_EXCHANGE(GroupId), list_to_binary("group_exchange."++GroupId++".fanout")).
+-define(GROUP_EXCHANGE(GroupId), list_to_binary("group_exchange."++GroupId++".fanout")).
 

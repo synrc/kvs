@@ -3,8 +3,7 @@
 
 -type username_type() :: string().
 -type id_type() :: integer().
--type user_state() :: 'ok' | 'not_verified' | 'banned'.
+-type user_state() :: ok | not_verified | banned.
 -type proplist() :: [proplists:property()].
-
 
 -endif.

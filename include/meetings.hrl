@@ -34,5 +34,6 @@
         game_id, % { game id that user played under that team }
         realname,
         points, % [{money,Point},{bonus,Points}]
+        quota,
         other }).
 

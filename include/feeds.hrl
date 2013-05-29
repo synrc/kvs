@@ -90,4 +90,4 @@
         user_id,    % user id
         entries = 0,    % number of entries
         comments = 0   % number of comments
-    }).
+        }).

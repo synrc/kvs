@@ -1,7 +1,7 @@
 -module(accounts).
--include("accounts.hrl").
--include("membership_packages.hrl").
--include("log.hrl").
+-include_lib("kvs/include/accounts.hrl").
+-include_lib("kvs/include/membership_packages.hrl").
+-include_lib("kvs/include/log.hrl").
 
 -export([debet/2, credit/2, balance/2, create_account/1, create_account/2]).
 -export([transaction/4, transaction/5]).
@@ -13,8 +13,8 @@ transaction(Account, Currency, 0, TransactionInfo) ->
     ?WARNING("zero transaction: Account=~p, Currency=~p,TransactionInfo=~p", [Account, Currency, TransactionInfo]), 
     ok;
 transaction(Account, Currency, Amount, TransactionInfo) when Amount /= 0->
-    {Remitter, Acceptor} = if Amount > 0 -> {?SYSTEM_ACCOUNT_ID, Account};
-                                    true -> {Account, ?SYSTEM_ACCOUNT_ID} end,
+    {Remitter, Acceptor} = if Amount > 0 -> {system, Account};
+                                    true -> {Account, system} end,
     transaction(Remitter, Acceptor, Currency, abs(Amount), TransactionInfo).
 
 %% @doc Add new transaction, will change state of accouts. All transactions
@@ -60,10 +60,10 @@ create_account(AccountId) ->
 
 %% @doc Create account for specified currency.
 create_account(AccountId, Currency) ->
-    Account = #account{id = ?ACC_ID(AccountId, Currency),
+    Account = #account{id = {AccountId, Currency},
                        credit = 0, debet = 0, last_change = 0},
 
-    case store:put(Account) of
+    case kvs:put(Account) of
          ok -> ok;
          Error -> ?ERROR("create_account: put to db error: ~p", [Error]),
                   {error, unable_to_store_account}
@@ -80,14 +80,14 @@ check_quota(User) ->
 -spec check_quota(User::string(), Amount::integer()) -> ok | {error, soft_limit} | {error, hard_limit}.
 
 check_quota(User, Amount) ->
-    SoftLimit = store:get_config("accounts/quota_limit/soft",  -20),
+    SoftLimit = kvs:get_config("accounts/quota_limit/soft",  -20),
     {ok, Balance} = balance(User, quota),
     BalanceAfterChange = Balance - Amount,
     if
         BalanceAfterChange > SoftLimit ->
             ok;
         true ->
-            HardLimit = store:get(config, "accounts/quota_limit/hard",  -100),
+            HardLimit = kvs:get(config, "accounts/quota_limit/hard",  -100),
             if
                 BalanceAfterChange =< HardLimit ->
                     {error, hard_limit};
@@ -100,15 +100,15 @@ commit_transaction(#transaction{remitter = R, acceptor = A,  currency = Currency
     case change_accounts(R, A, Currency, Amount) of
          ok -> nsx_msg:notify_transaction(R,TX),
                nsx_msg:notify_transaction(A,TX);
-         Error -> 
-            case TX#transaction.info of
-                #ti_game_event{} ->
-                    nsx_msg:notify_transaction(R,TX),
-                    nsx_msg:notify_transaction(A,TX);
-                _ ->
-                    ?ERROR("commit transaction error: change accounts ~p", [Error]),
-                    Error
-            end
+         Error ->  skip
+%            case TX#transaction.info of
+%                #tx_game_event{} ->
+%                    nsx_msg:notify_transaction(R,TX),
+%                    nsx_msg:notify_transaction(A,TX);
+%                _ ->
+%                    ?ERROR("commit transaction error: change accounts ~p", [Error]),
+%                    Error
+%            end
     end.
 
 change_accounts(Remitter, Acceptor, Currency, Amount) ->
@@ -124,7 +124,7 @@ change_accounts(Remitter, Acceptor, Currency, Amount) ->
                     %% increase debet of acceptor, last change is positive
                     AA1 = AA#account{debet = AA#account.debet + Amount,
                     last_change = Amount},
-                    store:put([AA1, RA1]);
+                    kvs:put([AA1, RA1]);
                 {error, Reason} ->
                     {error, {remitter_balance, Reason}}
                end;
@@ -136,20 +136,20 @@ change_accounts(Remitter, Acceptor, Currency, Amount) ->
             {error, both_accounts_unavailable}
     end.
 
-check_remitter_balance(#account{id = ?ACC_ID(?SYSTEM_ACCOUNT_ID, _)}, _) -> ok;
+check_remitter_balance(#account{id = {system, _}}, _) -> ok;
 check_remitter_balance(_Account, _Amount) -> ok.
 
 get_account(Account, Currency) ->
-    case store:get(account, ?ACC_ID(Account, Currency)) of
+    case kvs:get(account, {Account, Currency}) of
          {ok, #account{} = AR} -> AR;
          _ -> {error, account_not_found}
     end.
 
-get_currencies() -> [?CURRENCY_GAME_POINTS,
-                     ?CURRENCY_KAKUSH_CURRENCY,
-                     ?CURRENCY_KAKUSH,
-                     ?CURRENCY_QUOTA,
-                     ?CURRENCY_MONEY].
+get_currencies() -> [internal,
+                     currency,
+                     money,
+                     quota,
+                     points].
 
 generate_id() ->
     {MegSec, Sec, MicroSec} = now(),
@@ -157,7 +157,7 @@ generate_id() ->
     lists:concat([MegSec*1000000000000, Sec*1000000, MicroSec, "-", H]).
 
 user_paid(UId) ->
-    {_, UP} = store:get(user_purchase, UId),
+    {_, UP} = kvs:get(user_purchase, UId),
     case UP of
         notfound -> false;
         #user_purchase{top = undefined} -> false;

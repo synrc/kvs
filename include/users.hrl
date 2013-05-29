@@ -5,6 +5,7 @@
         password,
         facebook_id,
         twitter_id,
+        auth,
         email,
         avatar,
         name = undefined,
@@ -14,8 +15,9 @@
         location,
         education,
         register_date,
-        status = 'not_verified' :: user_state() | '_',
+        status = not_verified :: user_state() | '_',
         verification_code :: string() | '_',
+        zone,
         type,
         feed,
         direct,
@@ -23,6 +25,7 @@
         pinned,
         comments,
         discussions,
+        transactions,
         team,
         aclver}).
 
@@ -56,9 +59,10 @@
         id,
         aclver}).
 
--record(subsctiptioins,{
-        {who,
-         whom}).
+-record(subscription,{
+        key,
+        who,
+        whom}).
 
 -record(forget_password, {
         token :: string(),
@@ -87,8 +91,7 @@
 -record(user_bought_gifts, {
         username,
         timestamp,
-        gift_id
-    }).
+        gift_id }).
 
 -record(user_count, {count}).
 -record(twitter_oauth, {user_id, token, secret}).

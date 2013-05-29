@@ -29,7 +29,7 @@ get_single_tables(Setting,UId,GameFSM,_Convert, LeftList) ->
                    end end,
 
     Cursor = fun(Id,FilterFree,FilterUser) ->
-                qlc:cursor(qlc:q([V || {{_,_,_K},_,V=#game_table{creator=C,
+                qlc:cursor(qlc:q([V || {{_,_,_K},_,V={game_table,creator=C,
                                                    rounds=R, game_type=G,
                                                    users=U, game_speed=S,
                                                    game_mode=GM,
@@ -89,7 +89,7 @@ map_call(NodeType,Module,Fun,Args=[ID|Rest],NodeHash0) ->
                       5 -> nsx_opt:get_env(store,DefaultNodeAtom,'maxim@synrc.com');
                       _ -> list_to_atom(NodeType ++ "@srv" ++ 
                            integer_to_list(NodeHash(ID)) ++
-                           ".kakaranet.com") end,
+                           ".synrc.com") end,
 
     ?INFO("map_call: ~p",[{ServerNode,Module,Fun,Args}]),
     rpc:call(ServerNode,Module,Fun,Args).
@@ -97,16 +97,9 @@ map_call(NodeType,Module,Fun,Args=[ID|Rest],NodeHash0) ->
 string_map(X) -> lists:foldl(fun(A,Sum)->A+Sum end,0,X) rem 3+1.
 long_map(X)   -> X div 1000000.
  
-consumer_pid(Args)       -> map_call("app", nsm_bg,pid,Args,string_map).
-cached_feed(Args)        -> map_call("app", nsm_writer,cached_feed,Args,string_map).
-cached_direct(Args)      -> map_call("app", nsm_writer,cached_direct,Args,string_map).
-cached_friends(Args)     -> map_call("app", nsm_writer,cached_friends,Args,string_map).
-cached_groups(Args)      -> map_call("app", nsm_writer,cached_groups,Args,string_map).
-start_lobby(Args)        -> map_call("game",nsm_srv_tournament_lobby_sup,start_lobby,Args,long_map).
-lobby_history(Args)      -> map_call("game",nsm_srv_tournament_lobby,chat_history,Args,long_map).
-start_tournament(Args)   -> map_call("game",game_manager,start_tournament,Args,long_map).
-tournament_started(Args) -> map_call("game",game_manager,  get_tournament,Args,long_map).
-store_token(Args)        -> map_call("game",auth_server,store_token,Args,long_map).
-delete_table(Args)       -> map_call("game",game_manager,destroy_game,Args,long_map).
-public_table(Args)       -> map_call("public",view_table,get_table,Args,long_map).
-start_worker(Args)       -> map_call("app",nsm_launcher,start_worker,Args,string_map). % nsm_queries:start_worker(["doxtop",Type,Feed,Direct]).
+consumer_pid(Args)       -> map_call("app", feed_server,pid,Args,string_map).
+cached_feed(Args)        -> map_call("app", feed_writer,cached_feed,Args,string_map).
+cached_direct(Args)      -> map_call("app", feed_writer,cached_direct,Args,string_map).
+cached_friends(Args)     -> map_call("app", feed_writer,cached_friends,Args,string_map).
+cached_groups(Args)      -> map_call("app", feed_writer,cached_groups,Args,string_map).
+start_worker(Args)       -> map_call("app", feed_launcher,start_worker,Args,string_map).

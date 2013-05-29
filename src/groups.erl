@@ -1,13 +1,13 @@
 -module(groups).
 -compile(export_all).
--include("users.hrl").
--include("groups.hrl").
--include("feeds.hrl").
--include("log.hrl").
+-include_lib("kvs/include/users.hrl").
+-include_lib("kvs/include/groups.hrl").
+-include_lib("kvs/include/feeds.hrl").
+-include_lib("kvs/include/log.hrl").
 
 retrieve_groups(User) ->
     ?INFO("retrieve_groups: ~p",[User]),
-    case list_groups_per_user(User) of
+    case participate(User) of
          [] -> [];
          Gs -> UC_GId = lists:sublist(lists:reverse(
                               lists:sort([{group_members_count(GId), GId} || GId <- Gs])), 
@@ -18,9 +18,9 @@ retrieve_groups(User) ->
                [X||X<-Result,X/=undefined] end.
 
 create_group_directly_to_db(UId, GId, Name, Desc, Publicity) ->
-    FId = store:feed_create(),
+    FId = kvs:feed_create(),
     CTime = erlang:now(),
-    store:put(#group{username = GId,
+    kvs:put(#group{username = GId,
                       name = Name,
                       description = Desc,
                       publicity = Publicity,
@@ -35,10 +35,10 @@ create_group_directly_to_db(UId, GId, Name, Desc, Publicity) ->
 add_to_group(Who, GId, Type, Owner) -> nsx_msg:notify(["subscription", "user", Owner, "add_to_group"], {GId, Who, Type}).
 
 add_to_group_directly_to_db(UId, GId, Type) ->
-    store:put(#group_subs{user_id=UId, group_id=GId, user_type=Type}),
-    {ok, Group} = store:get(group, GId),
+    kvs:put(#group_subscription{key={UId,GId},user_id=UId, group_id=GId, user_type=Type}),
+    {ok, Group} = kvs:get(group, GId),
     GU = Group#group.users_count,
-    store:put(Group#group{users_count = GU+1}).
+    kvs:put(Group#group{users_count = GU+1}).
 
 delete_group(GId) ->
     {_, Group} = get_group(GId),
@@ -46,25 +46,25 @@ delete_group(GId) ->
         notfound -> ok;
         _ ->
             nsx_msg:notify([feed, delete, GId], empty),
-            store:delete_by_index(group_subs, <<"group_subs_group_id_bin">>, GId),         
-            store:delete(feed, Group#group.feed),
-            store:delete(group, GId),
+            kvs:delete_by_index(group_subscription, <<"group_subs_group_id_bin">>, GId),         
+            kvs:delete(feed, Group#group.feed),
+            kvs:delete(group, GId),
             % unbind exchange
-            {ok, Channel} = nsm_mq:open([]),
+            {ok, Channel} = mqs:open([]),
             Routes = users:rk_group_feed(GId),
-            nsm_users:unbind_group_exchange(Channel, GId, Routes),
-            nsm_mq_channel:close(Channel)
+            users:unbind_group_exchange(Channel, GId, Routes),
+            mqs_channel:close(Channel)
     end.
 
-list_groups_per_user(UId) -> [GId || #group_subs{group_id=GId} <- store:all_by_index(group_subs, <<"group_subs_user_id_bin">>, UId) ].
-list_group_members(GId) -> [UId || #group_subs{user_id=UId, user_type=UT} <- store:all_by_index(group_subs, <<"group_subs_group_id_bin">>, GId), UT == member ].
-list_group_members_by_type(GId, Type) -> [UId || #group_subs{user_id=UId, user_type=UT} <- store:all_by_index(group_subs, <<"group_subs_group_id_bin">>, GId), UT == Type ].
-list_group_members_with_types(GId) -> [{UId, UType} || #group_subs{user_id=UId, user_type=UType} <- store:all_by_index(group_subs, <<"group_subs_group_id_bin">>, list_to_binary(GId)) ].
+participate(UId) -> [GId || #group_subscription{group_id=GId} <- kvs:all_by_index(group_subs, <<"group_subs_user_id_bin">>, UId) ].
+members(GId) -> [UId || #group_subscription{user_id=UId, user_type=UT} <- kvs:all_by_index(group_subs, <<"group_subs_group_id_bin">>, GId), UT == member ].
+members_by_type(GId, Type) -> [UId || #group_subscription{user_id=UId, user_type=UT} <- kvs:all_by_index(group_subs, <<"group_subs_group_id_bin">>, GId), UT == Type ].
+members_with_types(GId) -> [{UId, UType} || #group_subscription{user_id=UId, user_type=UType} <- kvs:all_by_index(group_subs, <<"group_subs_group_id_bin">>, list_to_binary(GId)) ].
 
-get_group(GId) -> store:get(group, GId).
+get_group(GId) -> kvs:get(group, GId).
 
 user_is_owner(UId, GId) ->
-    {R, Group} = store:get(group, GId),
+    {R, Group} = kvs:get(group, GId),
     case R of
         ok -> case Group#group.owner of
                 UId -> true;
@@ -74,21 +74,17 @@ user_is_owner(UId, GId) ->
     end.
 
 user_in_group(UId, GId) ->
-    case store:get(group_subs, {UId, GId}) of
+    case kvs:get(group_subs, {UId, GId}) of
         {error, notfound} -> false;
         _ -> true
     end.
 
 group_user_type(UId, GId) ->
-    case store:get(group_subs, {UId, GId}) of
+    case kvs:get(group_subs, {UId, GId}) of
         {error, notfound} -> not_in_group;
-        {ok, #group_subs{user_type=Type}} -> Type
+        {ok, #group_subscription{user_type=Type}} -> Type
     end.
 
-get_all_groups() -> store:all(group).
-get_popular_groups() -> ["kakaranet", "yeniler"].   % :-)
-
-%% join if group public, or send join request to group
 join_group(GId, User) ->
     {ok, Group} = get_group(GId),
     case Group of

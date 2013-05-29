@@ -15,7 +15,7 @@ add_package(#membership_package{}=Package)->
 
 -spec get_package(any())-> {ok, #membership_package{}} | {error, Reason::any()}.
 get_package(PackageId)->
-    case store:get(membership_package, PackageId) of
+    case kvs:get(membership_package, PackageId) of
         {ok, #membership_package{} = Package}->
             {ok, Package};
         {error, Reason}->
@@ -33,7 +33,7 @@ list_packages(Options) ->
 
 -spec list_packages()->[#membership_package{}].
 list_packages()->
-     store:all(membership_package).
+     kvs:all(membership_package).
 
 -spec available_for_sale(package_id(), boolean()) -> ok | {error, any()}.
 available_for_sale(PackageId, State) ->
@@ -56,7 +56,7 @@ add_purchase(#membership_purchase{} = MP) ->
 
 -spec add_purchase(#membership_purchase{}, purchase_state(), StateInfo::any()) -> {ok, PurchaseId::string()}.
 add_purchase(#membership_purchase{} = MP, State0, Info) ->
-    case store:get(membership_purchase, MP#membership_purchase.id) of
+    case kvs:get(membership_purchase, MP#membership_purchase.id) of
         {ok, _} -> {error, already_bought_that_one};
         {error, notfound} ->
             %% fill needed fields
@@ -85,12 +85,12 @@ add_purchase(#membership_purchase{} = MP, State0, Info) ->
 
             ?INFO("Purchase added ~p ~p",[Purchase#membership_purchase.user_id, Purchase]),
 
-            nsm_riak:add_purchase_to_user(Purchase#membership_purchase.user_id, Purchase)
+            store_riak:add_purchase_to_user(Purchase#membership_purchase.user_id, Purchase)
     end.
 
 -spec get_purchase(string())-> {ok, #membership_purchase{}} | {error, Reason::any()}.
 get_purchase(PurchaseId)->
-    case store:get(membership_purchase, PurchaseId) of
+    case kvs:get(membership_purchase, PurchaseId) of
         {ok, #membership_purchase{} = Package}->
             {ok, Package};
         {error, Reason}->
@@ -99,7 +99,7 @@ get_purchase(PurchaseId)->
 
 -spec set_purchase_state(term(), purchase_state(), term()) -> ok.
 set_purchase_state(MPId, NewState, Info) ->
-    case store:get(membership_purchase, MPId) of 
+    case kvs:get(membership_purchase, MPId) of 
       {ok, MP} ->
 
     Time = now(),
@@ -122,12 +122,12 @@ set_purchase_state(MPId, NewState, Info) ->
     NewMP=MP#membership_purchase{state = NewState,
                                          end_time = EndTime,
                                          state_log = NewStateLog},
-    store:put(NewMP),
+    kvs:put(NewMP),
 
     if
         NewState == ?MP_STATE_DONE ->
-            charge_user_account(MP),
-            nsm_affiliates:purchase_hook(NewMP);
+            charge_user_account(MP);
+%            affiliates:purchase_hook(NewMP);
         true ->
             ok
     end,
@@ -139,31 +139,31 @@ set_purchase_state(MPId, NewState, Info) ->
 
 -spec set_purchase_info(term(), term()) -> ok | {error, not_found}.
 set_purchase_info(MPId, Info) ->
-    {ok, MP} = store:get(membership_purchase, MPId),
-    store:put(MP#membership_purchase{info = Info}).
+    {ok, MP} = kvs:get(membership_purchase, MPId),
+    kvs:put(MP#membership_purchase{info = Info}).
 
 set_purchase_external_id(MPId, ExternalId) ->
-    {ok, MP} = store:get(membership_purchase, MPId),
+    {ok, MP} = kvs:get(membership_purchase, MPId),
     case MP#membership_purchase.external_id of
         ExternalId ->
             ok;
         _ ->
-            store:put(MP#membership_purchase{external_id = ExternalId})
+            kvs:put(MP#membership_purchase{external_id = ExternalId})
     end.
 
 -spec create_storage()-> ok.
 create_storage()->
     %% FIXME: usage of direct mnesia calls
-    ok = nsm_mnesia:create_table(membership_package,
+    ok = store_mnesia:create_table(membership_package,
                                     record_info(fields, membership_package),
                                     [{storage, permanent}]),
-    ok = nsm_mnesia:create_table(membership_purchase,
+    ok = store_mnesia:create_table(membership_purchase,
                                     record_info(fields, membership_purchase),
                                     [{storage, permanent}]).
 
 -spec list_purchases() -> list(#membership_purchase{}).
 list_purchases() ->
-    store:all(membership_purchase).
+    kvs:all(membership_purchase).
 
 -spec list_purchases(SelectOptions::list()) -> list(#membership_purchase{}).
 list_purchases(SelectOptions) ->
@@ -177,7 +177,7 @@ list_purchases(SelectOptions) ->
 -spec purchase_id() -> string().
 purchase_id() ->
     %% get next generated id for membership purchase
-    NextId = store:next_id("membership_purchase"),
+    NextId = kvs:next_id("membership_purchase"),
     lists:concat([timestamp(), "_", NextId]).
 
 
@@ -243,10 +243,10 @@ add_sample_data()->
     Enabled = [P#membership_package{available_for_sale = true} ||
                   P <- WithPaymentTypes],
 
-    store:put(Enabled).
+    kvs:put(Enabled).
 
 generate_id()->
-    Id = store:next_id("membership_package"),
+    Id = kvs:next_id("membership_package"),
     integer_to_list(Id).
 
 %% return default value if value match Undefined spec
@@ -267,14 +267,14 @@ charge_user_account(MP) ->
     Quota = Package#membership_package.quota,
     UserId = MP#membership_purchase.user_id,
 
-    PaymentTransactionInfo = #ti_payment{id=MP#membership_purchase.id},
+    PaymentTransactionInfo = #tx_payment{id=MP#membership_purchase.id},
 
     try
         ?INFO("charge user account. OrderId: ~p, User: ~p, Kakush:~p, Quota:~p",
               [OrderId, UserId, Kakush, Quota]),
 
-        nsm_accounts:transaction(UserId, ?CURRENCY_KAKUSH, Kakush, PaymentTransactionInfo),
-        nsm_accounts:transaction(UserId, ?CURRENCY_QUOTA, Quota, PaymentTransactionInfo)
+        accounts:transaction(UserId, internal, Kakush, PaymentTransactionInfo),
+        accounts:transaction(UserId, quota, Quota, PaymentTransactionInfo)
     catch
         _:E ->
             ?ERROR("unable to charge user account. User=~p, OrderId=~p. Error: ~p",
@@ -285,12 +285,12 @@ charge_user_account(MP) ->
 %% get all records from database, filter them with predicate.
 %% FIXME: temporary hack to provide mnesias select functionality with riak
 select(RecordType, Predicate) ->
-    All = store:all(RecordType),
+    All = kvs:all(RecordType),
 	lists:filter(Predicate, All).
 
 
 save_package(Package) ->
-    case store:put([Package]) of
+    case kvs:put([Package]) of
         ok ->
             {ok, Package#membership_package.id};
         {error, Reason}->
@@ -317,20 +317,7 @@ check_conditions([], _, true) -> true.
 
 %% @private
 delete_package(PackageId) ->
-    store:delete(membership_package, PackageId).
-
-%%
-%% Tests
-%%
-%-ifdef(TEST).
-
-packages_test_()->
-    {setup, fun setup/0, fun cleanup/1,
-     {with, [fun list_/1,
-             fun get_/1,
-             fun change_availability_/1]}
-    }.
-
+    kvs:delete(membership_package, PackageId).
 
 setup() ->
     % Uncomment to run tests with dbg:
@@ -367,40 +354,19 @@ setup() ->
 cleanup(Ids) ->
     [ok = delete_package(PackageId) || PackageId <- Ids].
 
-list_(_Packages)->
-    ?assertMatch([#membership_package{no=1}], ?MODULE:list_packages([{payment_type, test_payment_x}])),
-
-    ?assertEqual([], ?MODULE:list_packages([{payment_type, test_payment_y},
-                                            {available_for_sale, true}])),
-    YPaymentTypePackages = ?MODULE:list_packages([{payment_type, test_payment_y}]),
-    YPaymentTypePackagesNumbers = lists:sort([No || #membership_package{no=No} <- YPaymentTypePackages]),
-    ?assertMatch([2,3], YPaymentTypePackagesNumbers).
-
-get_([Id|_])->
-    ?assertMatch({ok, #membership_package{id=Id}}, ?MODULE:get_package(Id)),
-    ?assertMatch({error, _}, ?MODULE:get_package(-1)).
-
-change_availability_([Id | _]) ->
-    [begin
-         ?assertEqual(ok, ?MODULE:available_for_sale(Id, State)),
-         ?assertMatch({ok, #membership_package{id=Id, available_for_sale = State}},
-                      ?MODULE:get_package(Id))
-     end || State <- [true, false]].
-
-
 get_monthly_purchase_limit() ->
-    MostExpencivePackageWorth = lists:max([P#membership_package.amount || P <- store:all(membership_package), P#membership_package.available_for_sale]),
+    MostExpencivePackageWorth = lists:max([P#membership_package.amount || P <- kvs:all(membership_package), P#membership_package.available_for_sale]),
     ?MP_MONTHLY_LIMIT_MULTIPLIER * MostExpencivePackageWorth.
 
 check_limit_over(UId, PackageId) ->
     Limit = ?MP_MONTHLY_LIMIT_MULTIPLIER, %get_monthly_purchase_limit(),
-    {ok, Package} = nsm_membership_packages:get_package(PackageId),
+    {ok, Package} = membership_packages:get_package(PackageId),
     PackagePrice = Package#membership_package.amount,
     {{CurYear, CurMonth, _}, _} = calendar:now_to_datetime(now()),
     UserMonthlyPurchases = [begin
         {{Year, Month, _}, _} = calendar:now_to_datetime(P#membership_purchase.start_time),
         {Year, Month, P}
-    end || P <- store:purchases(UId)],
+    end || P <- kvs:purchases(UId)],
     ThisMonthPurchases = [P || {Y, M, P} <- UserMonthlyPurchases, Y == CurYear, M == CurMonth],
     ThisMonthTotal = lists:sum([(P#membership_purchase.membership_package)#membership_package.amount || P <- ThisMonthPurchases]),
     (ThisMonthTotal + PackagePrice) > Limit.

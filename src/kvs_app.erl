@@ -1,9 +1,9 @@
--module(store_app).
+-module(kvs_app).
 -behaviour(application).
 -export([start/2, stop/1, wait_vnodes/0]).
 
 wait_riak() ->
-    case nsm_db:put({test,ok}) of
+    case kvs:put({test,ok}) of
          ok -> stop;
          _ -> wait_riak()
     end.
@@ -18,7 +18,7 @@ wait_vnodes() ->
     _ -> error end.
 
 start(_StartType, _StartArgs) ->
-    nsm_db_sup:start_link().
+    kvs_sup:start_link().
 
 stop(_State) ->
     ok.

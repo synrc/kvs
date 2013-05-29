@@ -1,9 +1,9 @@
-{application, store,
+{application, kvs,
  [
   {description, "Distributed Persistance"},
   {vsn, "1"},
   {registered, []},
   {applications, [kernel,stdlib,riak_kv,mqs]},
-  {mod, { store_app, []}},
+  {mod, { kvs_app, []}},
   {env, []}
  ]}.
