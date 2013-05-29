@@ -306,17 +306,13 @@ list_to_term(String) ->
             Error
     end.
 
-list_buckets() ->
-    [list_to_term(B) || B <- store_riak:dir()].
-
 save_db(Path) ->
     Data = lists:append([all(B) || B <- list_buckets()]),
-    salode:save(Path, Data).
+    kvs:save(Path, Data).
 
 load_db(Path) ->
-    sore_riak:clean(),
     add_seq_ids(),
-    AllEntries = salode:load(Path),
+    AllEntries = kvs:load(Path),
     [{_,_,{_,Handler}}] = ets:lookup(config, "riak_client"),
     [case is_tuple(E) of
         false -> skip;
@@ -325,3 +321,12 @@ load_db(Path) ->
 
 make_paid_fake(UId) ->
     put({user_purchase, UId, "fake_purchase"}).
+
+save(Key, Value) ->
+    Dir = ling:trim_from_last(Key, "/"),
+    filelib:ensure_dir(Dir),
+    file:write_file(Key, term_to_binary(Value)).
+
+load(Key) ->
+    {ok, Bin} = file:read_file(Key),
+    binary_to_term(Bin).
