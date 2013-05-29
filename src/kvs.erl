@@ -35,17 +35,12 @@ init_db() ->
             add_sample_users(),
             add_sample_packages(),
             add_translations(),
-            pointing_rules:setup(),
-            add_configs(),
             case is_production() of
                 false ->
-%                    add_affiliates(),
-%                    add_contracts(),
                     add_purchases();
                 true ->
                     do_nothing
             end;
-            %gifts_tools:import_all();
        {ok,_} -> ignore
     end.
 
@@ -56,20 +51,17 @@ is_production() ->
     end.
 
 add_purchases() ->
-%    ?INFO("~w:add_purchases/0 Started", [?MODULE]),
     {ok, Pkg1} = membership_packages:get_package(1),
     {ok, Pkg2} = membership_packages:get_package(2),
     {ok, Pkg3} = membership_packages:get_package(3),
     {ok, Pkg4} = membership_packages:get_package(4),
     PList = [{"doxtop", Pkg1},{"maxim", Pkg2},{"maxim",Pkg4}, {"kate", Pkg3} ],
     [ok = add_purchase(U, P) || {U, P} <- PList],
-%    ?INFO("~w:add_purchases/0 Finished", [?MODULE]),
     ok.
 
 add_purchase(UserId, Package) ->
     {ok, MPId} = membership_packages:add_purchase(
                          #membership_purchase{user_id=UserId, membership_package=Package }),
-%    ?INFO("Purchase Added: ~p",[MPId]),
     membership_packages:set_purchase_state(MPId, ?MP_STATE_DONE, undefined).
 
 
@@ -84,9 +76,7 @@ add_seq_ids() ->
     Init("meeting"),
     Init("user_transaction"),
     Init("transaction"),
-    Init("team"),
     Init("membership_purchase"),
-    Init("table"),
     Init("acl"),
     Init("acl_entry"),
     Init("feed"),
@@ -128,10 +118,8 @@ add_sample_users() ->
 
     ?INFO("creating groups"),
 
-    users:init_mq("ahmettez", ["kakaranet", "yeniler"]),
-
-    GId1  = groups:create_group_directly_to_db("ahmettez", "kakaranet", "Kakaranet", "Kakaranet'e Hoşgeldiniz", public),
-    GId2  = groups:create_group_directly_to_db("ahmettez", "yeniler", "Yeniler", "So, you must be new here.", public),
+    GId1  = groups:create_group_directly_to_db("maxim", "kakaranet", "Kakaranet", "Kakaranet'e Hoşgeldiniz", public),
+    GId2  = groups:create_group_directly_to_db("maxim", "yeniler", "Yeniler", "So, you must be new here.", public),
 
     ?INFO("adding users accounts"),
     [ begin
@@ -170,82 +158,49 @@ is_user_blocked(Who, Whom) -> DBA=?DBA, DBA:is_user_blocked(Who, Whom).
 
 add_configs() ->
     %% smtp
-    kvs:put(#config{key="smtp/user",     value="noreply@kakaranet.com"}),
-    kvs:put(#config{key="smtp/password", value="kakam41l"}),
-    kvs:put(#config{key="smtp/host",     value="posta.kakaranet.com"}),
+    kvs:put(#config{key="smtp/user",     value="noreply@synrc.com"}),
+    kvs:put(#config{key="smtp/password", value="maxim@synrc.com"}),
+    kvs:put(#config{key="smtp/host",     value="mail.synrc.com"}),
     kvs:put(#config{key="smtp/port",     value=465}),
     kvs:put(#config{key="smtp/with_ssl", value=true}),
-
-    %% accounts
     kvs:put(#config{key="accounts/default_quota", value=2000}),
     kvs:put(#config{key="accounts/quota_limit/soft",  value=-30}),
     kvs:put(#config{key="accounts/quota_limit/hard",  value=-100}),
+    kvs:put(#config{key="purchase/notifications/email",  value=["maxim@synrc.com"]}),
+    kvs:put(#config{key="delivery/notifications/email",  value=["maxim@synrc.com"]}).
 
-    %%  purchases
-    kvs:put(#config{key= "purchase/notifications/email",  value=["maxim@synrc.com"]}),
-
-    %%  delivery
-    kvs:put(#config{key= "delivery/notifications/email",  value=["maxim@synrc.com"]}),
-
-    %% tournament, elimination, Tour time limit
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/1", value = 30*60*1000}),
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/2", value = 30*60*1000}),
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/3", value = 30*60*1000}),
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/4", value = 25*60*1000}),
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/5", value = 25*60*1000}),
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/6", value = 25*60*1000}),
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/7", value = 20*60*1000}),
-    kvs:put(#config{key= "games/okey/trn/elim/tour_time_limit/8", value = 20*60*1000}).
-
-% put
-
--spec put(tuple() | [tuple()]) -> ok.
 put(Record) ->
-%    ?INFO("db:put ~p",[Record]),
     DBA=?DBA,
     DBA:put(Record).
 
-
 put_if_none_match(Record) ->
-%    ?INFO("db:put_if_none_match ~p",[Record]),
     DBA=?DBA,
     DBA:put_if_none_match(Record).
 
-% update
-
 update(Record, Meta) ->
-%    ?INFO("db:update ~p",[Record]),
     DBA=?DBA,
     DBA:update(Record, Meta).
 
-% get
-
--spec get(atom(), term()) -> {ok, tuple()} | {error, not_found | duplicated}.
 get(RecordName, Key) ->
     DBA=?DBA,
     case C = DBA:get(RecordName, Key) of
-    {ok,_R} ->
-%        ?INFO("db:get ~p,", [{RecordName, Key}]),
-        C;
-    A -> A
-    end.
+        {ok,_R} -> C;
+        A -> A end.
 
 get_for_update(RecordName, Key) ->
-%    ?INFO("db:get_for_update ~p,", [{RecordName, Key}]),
     DBA=?DBA,
     DBA:get_for_update(RecordName, Key).
 
 get(RecordName, Key, Default) ->
     DBA=?DBA,
     case DBA:get(RecordName, Key) of
-	{ok,{RecordName,Key,Value}} ->
-	    ?INFO("db:get config value ~p,", [{RecordName, Key, Value}]),
-	    {ok,Value};
-	{error, _B} ->
-	    ?INFO("db:get new config value ~p,", [{RecordName, Key, Default}]),
-	    DBA:put({RecordName,Key,Default}),
-	    {ok,Default}
-    end.
+        {ok,{RecordName,Key,Value}} ->
+            ?INFO("db:get config value ~p,", [{RecordName, Key, Value}]),
+            {ok,Value};
+        {error, _B} ->
+            ?INFO("db:get new config value ~p,", [{RecordName, Key, Default}]),
+            DBA:put({RecordName,Key,Default}),
+            {ok,Default} end.
 
 get_config(Key, Default) -> {ok, Value} = get(config, Key, Default), Value.
 get_word(Word) -> get(ut_word,Word).
@@ -319,11 +274,6 @@ add_transaction_to_user(User, Tx) -> DBA=?DBA, DBA:add_transaction_to_user(User,
 get_purchases_by_user(User, Count, States) -> DBA=?DBA, DBA:get_purchases_by_user(User, Count, States).
 get_purchases_by_user(User, StartFromPurchase, Count, States) -> DBA=?DBA, DBA:get_purchases_by_user(User, StartFromPurchase, Count, States).
 
-fast_timeouts() ->
-    kvs:put({config,"games/okey/robot_delay_normal",100}),
-    kvs:put({config,"games/okey/challenge_timeout_normal",5000}),
-    kvs:put({config,"games/okey/turn_timeout_normal",200}).
-
 make_admin(User) ->
     {ok,U} = kvs:get(user, User),
     kvs:put(U#user{type = admin}),
@@ -346,7 +296,6 @@ create_team(Name) ->
     TID = kvs:next_id("team",1),
     ok = kvs:put(Team = #team{id=TID,name=Name}),
     TID.
-
 
 list_to_term(String) ->
     {ok, T, _} = erl_scan:string(String++"."),
@@ -376,5 +325,3 @@ load_db(Path) ->
 
 make_paid_fake(UId) ->
     put({user_purchase, UId, "fake_purchase"}).
-
-
