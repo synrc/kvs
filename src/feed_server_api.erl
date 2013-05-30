@@ -126,7 +126,7 @@ handle_notice(["feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Route,
         {_, [EntryOwner|_]} ->
             ?INFO("feed(~p): remove entry: Owner=~p, Route=~p, Message=~p",
                   [self(), Owner, Route, Message]),
-            feeds:remove_entry(Feed, EntryId);
+            feeds:remove_entry(Feed, EntryId),
             feeds:remove_entry(Direct, EntryId);
         %% we are owner of the entry - delete it
         {Owner, _} ->
