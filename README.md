@@ -16,6 +16,10 @@ and provides high-level rich API to stored and extend following data:
 * Meetings
 * Payments
 
+This Framework provides also a Plugin for Feed Server for sequential consostency.
+All write requests with given object keys are handled by single processes in Feed Server
+so you may not worry about concurrent changes of user feeds.
+
 Store Backends
 --------------
 
