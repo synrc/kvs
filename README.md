@@ -1,5 +1,5 @@
-KVS: Data Model Framework for Social Networks on DHT
-====================================================
+KVS: Erlang Data Framework for KV databases
+===========================================
 
 Overview
 --------
