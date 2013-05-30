@@ -1,5 +1,5 @@
-KVS Framework
-=============
+KVS: Data Model Framework for Social Networks on DHT
+====================================================
 
 Overview
 --------
@@ -15,6 +15,7 @@ and provides high-level rich API to stored and extend following data:
 * Accounts
 * Meetings
 * Payments
+* Purchases
 
 This Framework provides also a Plugin for Feed Server for sequential consostency.
 All write requests with given object keys are handled by single processes in Feed Server
