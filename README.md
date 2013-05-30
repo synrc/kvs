@@ -1,5 +1,5 @@
-KVS: Erlang Data Framework for KV databases
-===========================================
+KVS: Data Framework for KV databases
+====================================
 
 Overview
 --------
