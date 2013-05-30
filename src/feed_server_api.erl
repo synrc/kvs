@@ -6,6 +6,8 @@
 -include_lib("kvs/include/log.hrl").
 -include_lib("feed_server/include/feed_server.hrl").
 
+-record(state, {owner = "feed_owner", feed, direct, type, cached_feed,cached_direct,cached_friends,cached_groups }).
+
 handle_notice(["feed", "delete", Owner] = Route, Message,
               #state{owner = Owner} = State) ->
     ?INFO("feed(~p): notification received: User=~p, Route=~p, Message=~p",
@@ -120,7 +122,7 @@ handle_notice(["feed", "group", _Group, "entry", EntryId, "delete"] = Route,
 
 handle_notice(["feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Route,
               Message,
-              #state{owner = Owner, feed=Feed, direcct=Direct} = State) ->
+              #state{owner = Owner, feed=Feed, direct=Direct} = State) ->
     case {EntryOwner, Message} of
         %% owner of the antry has deleted entry, we will delete it too
         {_, [EntryOwner|_]} ->
@@ -132,7 +134,7 @@ handle_notice(["feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Route,
         {Owner, _} ->
             ?INFO("feed(~p): remove entry: Owner=~p, Route=~p, Message=~p",
                   [self(), Owner, Route, Message]),
-            feeds:remove_entry(Feed, EntryId);
+            feeds:remove_entry(Feed, EntryId),
             feeds:remove_entry(Direct, EntryId);
         %% one of the friends has deleted some entry from his feed. Ignore
         _ ->

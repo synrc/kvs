@@ -307,7 +307,7 @@ list_to_term(String) ->
     end.
 
 save_db(Path) ->
-    Data = lists:append([all(B) || B <- list_buckets()]),
+    Data = lists:append([all(B) || B <- [list_to_term(B) || B <- store_riak:dir()] ]),
     kvs:save(Path, Data).
 
 load_db(Path) ->
