@@ -17,42 +17,34 @@ stop_riak() ->
     application:stop(bitcask).
 
 init([]) ->
-
   RestartStrategy = one_for_one,
-    MaxRestarts = 1000,
-    MaxSecondsBetweenRestarts = 3600,
+  MaxRestarts = 1000,
+  MaxSecondsBetweenRestarts = 3600,
 
-    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
+  SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    Restart = permanent,
-    Shutdown = 2000,
-    Type = worker,
+  Restart = permanent,
+  Shutdown = 2000,
+  Type = worker,
 
- case nsx_opt:get_env(nsp_srv,riak_srv_node,0) of
-    0 ->
+  case application:get_env(kvs, riak_srv_node) of
+    undefined ->
+      error_logger:info_msg("Waiting for Riak to Start...."),
+      kvs:start(),
+      error_logger:info_msg("Waiting for Riak to Initialize....");
+    {ok, _Value} -> skip end,
 
-    error_logger:info_msg("Waiting for Riak to Start...."),
-    kvs:start(),
-    error_logger:info_msg("Waiting for Riak to Initialize...."),
-    store_app:wait_vnodes();
+  kvs:initialize(),
+
+  case application:get_env(kvs, riak_srv_node) of
+    undefined ->
+      kvs:init_indexes(),
+
+      case application:get_env(kvs, sync_nodes) of
+         true -> [error_logger:info_msg("Joined: ~p ~p~n", [N, riak_core:join(N)]) || N <- application:get_env(kvs, nodes) -- [node()] ];
+         _ -> skip end,
+      case application:get_env(kvs, pass_init_db) of true -> pass; _ -> kvs:init_db() end;
     _ -> skip end,
 
-    kvs:initialize(),
-
- case nsx_opt:get_env(nsp_srv,riak_srv_node,0) of
-    0 ->
-
-    kvs:init_indexes(),
-    case nsx_opt:get_env(store,sync_nodes,false) of
-         true -> [ error_logger:info_msg("Joined: ~p ~p~n", [N, riak_core:join(N)]) || N <- nsx_opt:get_env(store, nodes, []) -- [node()] ];
-         false -> skip
-    end,
-    case  nsx_opt:get_env(store,pass_init_db, true) of 
-         false -> kvs:init_db();
-         true -> pass
-    end;
-    _ -> skip
-          end,
-
-    {ok, { {one_for_one, 5, 10}, []} }.
+  {ok, { {one_for_one, 5, 10}, []} }.
 
