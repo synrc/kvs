@@ -1,4 +1,4 @@
--module(meetings).
+-module(kvs_meeting).
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/meetings.hrl").
 -include_lib("kvs/include/feed_state.hrl").
@@ -48,7 +48,6 @@ join(UID, TID) -> kvs:join_tournament(UID, TID).
 remove(UID, TID) -> kvs:leave_tournament(UID, TID).
 waiting_player(TID) -> kvs:tournament_pop_waiting_player(TID).
 joined_users(TID) -> kvs:tournament_waiting_queue(TID).
-user_tournaments(UID) -> kvs:user_tournaments(UID).
 user_joined(TID, UID) -> 
     AllJoined = [UId || #play_record{who = UId} <- joined_users(TID)],
     lists:member(UID, AllJoined).
@@ -59,7 +58,7 @@ destroy(TID) -> kvs:delete_by_index(play_record, <<"play_record_tournament_bin">
                           kvs:delete(tournament,TID).
 clear() -> [destroy(T#meeting.id) || T <- kvs:all(meeting)].
 lost() -> lists:usort([erlang:element(3, I) || I <- kvs:all(play_record)]).
-fake_join(TID) -> [meetings:join(auth:ima_gio2(X),TID)||X<-lists:seq(1,30)].
+fake_join(TID) -> [kvs_meeting:join(auth:ima_gio2(X),TID)||X<-lists:seq(1,30)].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -67,7 +66,7 @@ handle_notice(["tournaments", "user", UId, "create"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): create: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
-    case meetings:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
+    case kvs_meeting:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
         {error,X} -> 
             ?ERROR("Error creating tournament: ~p", X);
         TId -> skip
@@ -78,11 +77,11 @@ handle_notice(["tournaments", "user", UId, "create_and_join"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): create_and_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
-    case meetings:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
+    case kvs_meeting:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
         {error,X} -> 
             ?ERROR("Error creating tournament: ~p", X);
         TId -> 
-            meetings:join(UId, TId)
+            kvs_meeting:join(UId, TId)
     end,
     {noreply, State};
 
@@ -90,15 +89,54 @@ handle_notice(["system", "tournament_join"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): tournament_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UId, TId} = Message,
-    meetings:join(UId, TId),
+    kvs_meeting:join(UId, TId),
     {noreply, State};
 
 handle_notice(["system", "tournament_remove"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): tournament_remove: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UId, TId} = Message,
-    meetings:remove(UId, TId),
+    kvs_meeting:remove(UId, TId),
     {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown MEETINGS notice").
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+join_tournament(UserId, TournamentId) ->
+    case kvs:get(user, UserId) of
+        {ok, User} ->
+            GP = case kvs_account:balance(UserId, points) of
+                     {ok, AS1} -> AS1;
+                     {error, _} -> 0 end,
+            Q = case kvs_account:balance(UserId,  quota) of
+                     {ok, AS4} -> AS4;
+                     {error, _} -> 0 end,
+            RN = kvs_users:user_realname(UserId),
+            kvs:put(#play_record{
+                 who = UserId,
+                 tournament = TournamentId,
+                 team = User#user.team,
+                 game_id = undefined, 
+		 other = now(),
+                 realname = RN,
+                 points = GP,
+                 quota = Q});
+        _ ->
+            ?INFO(" User ~p not found for joining tournament ~p", [UserId, TournamentId])
+    end.
+
+leave_tournament(UserId, TournamentId) ->
+    case kvs:get(play_record, {UserId, TournamentId}) of
+        {ok, _} -> 
+            kvs:delete(play_record, {UserId, TournamentId}),
+            leave_tournament(UserId, TournamentId); % due to WTF error with old records
+        _ -> ok
+    end.
+
+user_tournaments(UId) -> 
+    kvs:all_by_index(play_record, <<"play_record_who_bin">>, list_to_binary(UId)).
+
+tournament_waiting_queue(TId) ->
+    kvs:all_by_index(play_record, <<"play_record_tournament_bin">>, list_to_binary(integer_to_list(TId))).

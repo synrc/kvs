@@ -1,4 +1,4 @@
--module(groups).
+-module(kvs_group).
 -compile(export_all).
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
@@ -6,7 +6,7 @@
 -include_lib("kvs/include/log.hrl").
 
 retrieve_groups(User) ->
-    ?INFO("retrieve_groups: ~p",[User]),
+    ?INFO("retrieve group for user: ~p",[User]),
     case participate(User) of
          [] -> [];
          Gs -> UC_GId = lists:sublist(lists:reverse(

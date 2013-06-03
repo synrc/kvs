@@ -26,14 +26,26 @@ initialize() -> DBA = ?DBA, DBA:initialize().
 delete() -> DBA = ?DBA, DBA:delete().
 init_indexes() -> DBA = ?DBA, DBA:init_indexes().
 
+traversal( _, _, undefined, _) -> [];
+traversal(_, _, _, 0) -> [];
+traversal(RecordType, PrevPos, Next, Count)->
+    case kvs:get(RecordType, Next) of
+        {error,_} -> [];
+        {ok, R} ->
+            Prev = element(PrevPos, R),
+            Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
+            [R | traversal(RecordType, PrevPos, Prev, Count1)]
+    end.
+
+
 init_db() ->
     case kvs:get(user,"alice") of
        {error,_} ->
 %            DBA = ?DBA,
 %            DBA:init_db(),
-%            membership_packages:add_sample_data(),
+%            kvs_membership:add_sample_data(),
             add_seq_ids(),
-            accounts:create_account(system),
+            kvs_account:create_account(system),
             add_sample_users(),
             add_sample_packages(),
             add_translations();
@@ -53,20 +65,17 @@ is_production() ->
     end.
 
 add_purchases() ->
-    {ok, Pkg1} = membership_packages:get_package(1),
-    {ok, Pkg2} = membership_packages:get_package(2),
-    {ok, Pkg3} = membership_packages:get_package(3),
-    {ok, Pkg4} = membership_packages:get_package(4),
+    {ok, Pkg1} = kvs_membership:get_package(1),
+    {ok, Pkg2} = kvs_membership:get_package(2),
+    {ok, Pkg3} = kvs_membership:get_package(3),
+    {ok, Pkg4} = kvs_membership:get_package(4),
     PList = [{"doxtop", Pkg1},{"maxim", Pkg2},{"maxim",Pkg4}, {"kate", Pkg3} ],
     [ok = add_purchase(U, P) || {U, P} <- PList],
     ok.
 
 add_purchase(UserId, Package) ->
-    {ok, MPId} = membership_packages:add_purchase(
-                         #membership_purchase{user_id=UserId, membership_package=Package }),
-    membership_packages:set_purchase_state(MPId, ?MP_STATE_DONE, undefined).
-
-
+    {ok, MPId} = kvs_membership:add_purchase(#membership_purchase{user_id=UserId, membership_package=Package}),
+    kvs_membership:set_purchase_state(MPId, ?MP_STATE_DONE, undefined).
 
 add_seq_ids() ->
     Init = fun(Key) ->
@@ -120,13 +129,13 @@ add_sample_users() ->
 
     ?INFO("creating groups"),
 
-%    GId1  = groups:create_group_directly_to_db("maxim", "kakaranet", "Kakaranet", "Kakaranet'e Hoşgeldiniz", public),
-%    GId2  = groups:create_group_directly_to_db("maxim", "yeniler", "Yeniler", "So, you must be new here.", public),
+%    GId1  = kvs_group:create_group_directly_to_db("maxim", "kakaranet", "Kakaranet", "Kakaranet'e Hoşgeldiniz", public),
+%    GId2  = kvs_group:create_group_directly_to_db("maxim", "yeniler", "Yeniler", "So, you must be new here.", public),
 
     ?INFO("adding users accounts"),
     [ begin
-          accounts:create_account(Me#user.username),
-          accounts:transaction(Me#user.username, quota, kvs:get_config("accounts/default_quota", 300), #tx_default_assignment{}),
+          kvs_account:create_account(Me#user.username),
+          kvs_account:transaction(Me#user.username, quota, kvs:get_config("accounts/default_quota", 300), #tx_default_assignment{}),
           kvs:put(Me#user{password = kvs:sha(Me#user.password),
                                 starred = feed_create(),
                                 pinned = feed_create()})
@@ -135,18 +144,18 @@ add_sample_users() ->
     [ begin
         ok
 %          kvs_users:init_mq(Me#user.username, [GId1, GId2]),
-%          groups:add_to_group_directly_to_db(Me#user.username, GId1, member),
-%          groups:add_to_group_directly_to_db(Me#user.username, GId2, member)
+%          kvs_group:add_to_group_directly_to_db(Me#user.username, GId1, member),
+%          kvs_group:add_to_group_directly_to_db(Me#user.username, GId2, member)
       end || Me <- UserList ],
-    acls:define_access({user, "maxim"},    {feature, admin}, allow),
-    acls:define_access({user_type, admin}, {feature, admin}, allow),
+    kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
+    kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
     ?INFO("making all users each other friends").
 %    [[case Me == Her of
 %        true -> ok;
 %        false -> kvs_users:subscribe(Me#user.username, Her#user.username)
 %    end || Her <- UserList] || Me <- UserList].
 
-add_sample_packages() -> membership_packages:add_sample_data().
+add_sample_packages() -> kvs_membership:add_sample_data().
 version() -> ?INFO("version: ~p", [1]).
 
 % blocking
@@ -186,9 +195,7 @@ update(Record, Meta) ->
 
 get(RecordName, Key) ->
     DBA=?DBA,
-    case C = DBA:get(RecordName, Key) of
-        {ok,_R} -> C;
-        A -> A end.
+    DBA:get(RecordName, Key).
 
 get_for_update(RecordName, Key) ->
     DBA=?DBA,
@@ -280,15 +287,15 @@ get_purchases_by_user(User, StartFromPurchase, Count, States) -> DBA=?DBA, DBA:g
 make_admin(User) ->
     {ok,U} = kvs:get(user, User),
     kvs:put(U#user{type = admin}),
-    acls:define_access({user, U#user.username}, {feature, admin}, allow),
-    acls:define_access({user_type, admin}, {feature, admin}, allow),
+    kvs_acl:define_access({user, U#user.username}, {feature, admin}, allow),
+    kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
     ok.
 
 make_rich(User) -> 
     Q = kvs:get_config("accounts/default_quota",  300),
-    accounts:transaction(User, quota, Q * 100, #tx_default_assignment{}),
-    accounts:transaction(User, internal, Q, #tx_default_assignment{}),
-    accounts:transaction(User, currency, Q * 2, #tx_default_assignment{}).
+    kvs_account:transaction(User, quota, Q * 100, #tx_default_assignment{}),
+    kvs_account:transaction(User, internal, Q, #tx_default_assignment{}),
+    kvs_account:transaction(User, currency, Q * 2, #tx_default_assignment{}).
 
 feed_create() ->
     FId = kvs:next_id("feed", 1),

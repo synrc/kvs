@@ -1,4 +1,4 @@
--module(feeds).
+-module(kvs_feed).
 -compile(export_all).
 -include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/users.hrl").
@@ -67,19 +67,13 @@ add_like(Fid, Eid, Uid) ->
 
 get_entries_count(Uid) ->
     case kvs:get(user_etries_count, Uid) of
-        {ok, UEC} -> 
-            UEC#user_etries_count.entries;
-        {error, notfound} ->
-            0
-    end.
+        {ok, UEC} -> UEC#user_etries_count.entries;
+        {error, notfound} -> 0 end.
 
 get_comments_count(Uid) ->
     case kvs:get(user_etries_count, Uid) of
-        {ok, UEC} -> 
-            UEC#user_etries_count.comments;
-        {error, notfound} ->
-            0
-    end.
+        {ok, UEC} -> UEC#user_etries_count.comments;
+        {error, notfound} -> 0 end.
 
 get_feed(FId) -> kvs:get(feed, FId).
 get_entries_in_feed(FId) -> kvs:entries_in_feed(FId).
@@ -348,14 +342,14 @@ handle_notice(["feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Route,
         {_, [EntryOwner|_]} ->
             ?INFO("feed(~p): remove entry: Owner=~p, Route=~p, Message=~p",
                   [self(), Owner, Route, Message]),
-            feeds:remove_entry(Feed, EntryId),
-            feeds:remove_entry(Direct, EntryId);
+            kvs_feed:remove_entry(Feed, EntryId),
+            kvs_feed:remove_entry(Direct, EntryId);
         %% we are owner of the entry - delete it
         {Owner, _} ->
             ?INFO("feed(~p): remove entry: Owner=~p, Route=~p, Message=~p",
                   [self(), Owner, Route, Message]),
-            feeds:remove_entry(Feed, EntryId),
-            feeds:remove_entry(Direct, EntryId);
+            kvs_feed:remove_entry(Feed, EntryId),
+            kvs_feed:remove_entry(Direct, EntryId);
         %% one of the friends has deleted some entry from his feed. Ignore
         _ ->
             ok
@@ -371,7 +365,7 @@ handle_notice(["feed", _Type, _EntryOwner, "entry", EntryId, "edit"] = Route,
           [self(), Owner, Route, Message]),
 
     %% edit entry in all feeds
-    feeds:edit_entry(Feed, EntryId, NewDescription),
+    kvs_feed:edit_entry(Feed, EntryId, NewDescription),
 
     {noreply, State};
 
@@ -382,7 +376,7 @@ handle_notice(["feed", _Type, _EntryOwner, "comment", CommentId, "add"] = Route,
 
     ?INFO("feed(~p): add comment: Owner=~p, Route=~p, Message=~p",
           [self(), Owner, Route, Message]),
-    feeds:entry_add_comment(Feed, From, EntryId, ParentComment, CommentId, Content, Medias),
+    kvs_feed:entry_add_comment(Feed, From, EntryId, ParentComment, CommentId, Content, Medias),
     {noreply, State};
 
 handle_notice(["feed", "user", UId, "count_entry_in_statistics"] = Route, 
@@ -428,3 +422,112 @@ handle_notice(["likes", _, _, "add_like"] = Route,  % _, _ is here beacause of t
     {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown FEEDS notice").
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+feed_add_direct_message(FId,User,To,EntryId,Desc,Medias) -> feed_add_entry(FId,User,To,EntryId,Desc,Medias,{user,direct},"").
+feed_add_entry(FId,From,EntryId,Desc,Medias) -> feed_add_entry(FId,From,undefined,EntryId,Desc,Medias,{user,normal},"").
+feed_add_entry(FId, User, To, EntryId,Desc,Medias,Type,SharedBy) ->
+    %% prevent adding of duplicate records to feed
+    case kvs:entry_by_id({EntryId, FId}) of
+        {ok, _} -> ok;
+        _ -> do_feed_add_entry(FId, User, To, EntryId, Desc, Medias, Type, SharedBy)
+    end.
+
+do_feed_add_entry(FId, User, To, EntryId, Desc, Medias, Type, SharedBy) ->
+    {ok,Feed} = kvs:get(feed,erlang:integer_to_list(FId)),
+    Id = {EntryId, FId},
+    Next = undefined,
+    Prev = case Feed#feed.top of
+               undefined ->
+                   undefined;
+               X ->
+                   case kvs:get(entry, X) of
+                       {ok, TopEntry} ->
+                           EditedEntry = TopEntry#entry{next = Id},
+                           % update prev entry
+                           kvs:put(EditedEntry),
+                           TopEntry#entry.id;
+                       {error,notfound} ->
+                           undefined
+                   end
+           end,
+
+    kvs:put(#feed{id = FId, top = {EntryId, FId}}), % update feed top with current
+
+    Entry  = #entry{id = {EntryId, FId},
+                    entry_id = EntryId,
+                    feed_id = FId,
+                    from = User,
+                    to = To,
+                    type = Type,
+                    media = Medias,
+                    created_time = now(),
+                    description = Desc,
+                    raw_description = Desc,
+                    shared = SharedBy,
+                    next = Next,
+                    prev = Prev},
+
+    ModEntry = case catch feedformat:format(Entry) of
+                   {_, Reason} ->
+                       ?ERROR("feedformat error: ~p", [Reason]),
+                       Entry;
+                   #entry{} = ME ->
+                       ME
+               end,
+
+    kvs:put(ModEntry),
+    {ok, ModEntry}.
+
+
+
+
+
+% @spec entry_by_id(term()) -> {ok, #entry{}} | {error, not_found}.
+entry_by_id(EntryId) -> kvs:get(entry, EntryId).
+
+
+purge_feed(FeedId) ->
+    {ok,Feed} = kvs:get(feed,FeedId),
+    Removal = riak_entry_traversal(Feed#feed.top, -1),
+    [kvs:delete(entry,Id)||#entry{id=Id}<-Removal],
+    kvs:put(Feed#feed{top=undefined}).
+
+purge_unverified_feeds() ->
+    [purge_feed(FeedId) || #user{feed=FeedId,status=S,email=E} <- kvs:all(user),E==undefined].
+
+riak_entry_traversal(undefined, _) -> [];
+riak_entry_traversal(_, 0) -> [];
+riak_entry_traversal(Next, Count)->
+    case store_riak:get(entry, Next) of
+        {error,notfound} -> [];
+        {ok, R} ->
+            Prev = element(#entry.prev, R),
+            Count1 = case Count of 
+                C when is_integer(C) -> case R#entry.type of
+                    {_, system} -> C;   % temporal entries are entries too, but they shouldn't be counted
+                    {_, system_note} -> C;
+                    _ -> C - 1
+                end;
+                _-> Count 
+            end,
+            [R | riak_entry_traversal(Prev, Count1)]
+    end.
+
+entries_in_feed(FeedId, undefined, PageAmount) ->
+    case kvs:get(feed, FeedId) of
+        {ok, O} -> riak_entry_traversal(O#feed.top, PageAmount);
+        {error, notfound} -> []
+    end;
+entries_in_feed(FeedId, StartFrom, PageAmount) ->
+    %% construct entry unic id
+    case kvs:get(entry,{StartFrom, FeedId}) of
+        {ok, #entry{prev = Prev}} -> riak_entry_traversal(Prev, PageAmount);
+        _ -> []
+    end.
+
+feed_direct_messages(_FId, Page, PageAmount, CurrentUser, CurrentFId) ->
+    Page, PageAmount, CurrentUser, CurrentFId,
+    [].
+

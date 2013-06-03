@@ -1,4 +1,4 @@
--module(kvs_users).
+-module(kvs_user).
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
@@ -15,7 +15,7 @@ register(#user{username=U, email=Email, facebook_id = FbId} = RegisterData0) ->
             {ok, _} -> {error, email_taken} end end,
 
     FindUser2 = case FindUser of
-        {ok, UserName} -> case groups:get(UserName) of
+        {ok, UserName} -> case kvs_group:get(UserName) of
             {error, _} -> {ok, UserName};
             _ -> {error, username_taken} end;
         A -> A end,
@@ -37,9 +37,9 @@ process_register(#user{username=U} = RegisterData0) ->
         password = HashedPassword },
 
     kvs:put(RegisterData),
-    accounts:create_account(U),
+    kvs_account:create_account(U),
     {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
-    accounts:transaction(U, quota, DefaultQuota, #tx_default_assignment{}),
+    kvs_account:transaction(U, quota, DefaultQuota, #tx_default_assignment{}),
     init_mq(U),
     {ok, U}.
 
@@ -51,7 +51,7 @@ check_username(Name, FbId) ->
 
 delete(UserName) ->
     case kvs_users:get(UserName) of
-        {ok, User} -> GIds = groups:list_groups_per_user(UserName),
+        {ok, User} -> GIds = kvs_group:list_groups_per_user(UserName),
                       [mqs:notify(["subscription", "user", UserName, "remove_from_group"], {GId}) || GId <- GIds],
                       F2U = [ {MeId, FrId} || #subscription{who = MeId, whom = FrId} <- subscriptions(User) ],
                       [ unsubscribe(MeId, FrId) || {MeId, FrId} <- F2U ],
@@ -110,7 +110,7 @@ subscription_mq(Type, Action, MeId, ToId) ->
     mqs_channel:close(Channel).
 
 init_mq(User=#user{}) ->
-    Groups = groups:list_groups_per_user(User),
+    Groups = kvs_group:list_groups_per_user(User),
     ?INFO("~p init mq. users: ~p", [User, Groups]),
     UserExchange = ?USER_EXCHANGE(User#user.username),
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
@@ -185,7 +185,7 @@ rk(List) -> mqs_lib:list_to_key(List).
 retrieve_connections(Id,Type) ->
     Friends = case Type of 
                   user -> kvs_users:list_subscr_usernames(Id);
-                     _ -> groups:list_group_members(Id) end,
+                     _ -> kvs_group:list_group_members(Id) end,
     case Friends of
 	[] -> [];
 	Full -> Sub = lists:sublist(Full, 10),
@@ -193,7 +193,7 @@ retrieve_connections(Id,Type) ->
                      [] -> [];
                       _ -> Data = [begin case kvs:get(user,Who) of
                                        {ok,User} -> RealName = kvs_users:user_realname_user(User),
-                                                    Paid = accounts:user_paid(Who),
+                                                    Paid = kvs_account:user_paid(Who),
                                                     {Who,Paid,RealName};
 				               _ -> undefined end end || Who <- Sub],
 			   [X||X<-Data, X/=undefined] end end.
@@ -225,7 +225,7 @@ handle_notice(["system", "create_group"] = Route,
 handle_notice(["db", "group", GId, "remove_group"] = Route, 
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): remove_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    {_, Group} = groups:get_group(GId),
+    {_, Group} = kvs_group:get_group(GId),
     case Group of 
         notfound -> ok;
         _ ->
@@ -294,7 +294,7 @@ handle_notice(["subscription", "user", UId, "leave_group"] = Route,
         ok ->
             case Group#group.owner of
                 UId -> % User is owner, transfer ownership to someone else
-                    Members = groups:list_group_members(GId),
+                    Members = kvs_group:list_group_members(GId),
                     case Members of
                         [ FirstOne | _ ] ->
                             ok = kvs:put(Group#group{owner = FirstOne}),
@@ -356,15 +356,35 @@ handle_notice(["gifts", "user", UId, "mark_gift_as_deliving"] = Route,
 handle_notice(["login", "user", UId, "update_after_login"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): update_after_login: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
-    Update =
-        case kvs_users:user_status(UId) of
-            {error, status_info_not_found} ->
-                #user_status{username = UId,
-                             last_login = erlang:now()};
-            {ok, UserStatus} ->
-                UserStatus#user_status{last_login = erlang:now()}
-        end,
+    Update = case kvs_users:user_status(UId) of
+        {error, status_info_not_found} -> #user_status{username = UId, last_login = erlang:now()};
+        {ok, UserStatus} -> UserStatus#user_status{last_login = erlang:now()} end,
     kvs:put(Update),
     {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown USERS notice").
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+
+% user backlinks
+
+user_by_verification_code(Code) ->
+    case kvs:get(code,Code) of
+        {ok,{_,User,_}} -> kvs:get(user,User);
+        Else -> Else end.
+
+user_by_facebook_id(FBId) ->
+    case kvs:get(facebook,FBId) of
+        {ok,{_,User,_}} -> kvs:get(user,User);
+        Else -> Else end.
+
+user_by_email(Email) ->
+    case kvs:get(email,Email) of
+        {ok,{_,User,_}} -> kvs:get(user,User);
+        Else -> Else end.
+
+user_by_username(Name) ->
+    case X = kvs:get(user,Name) of
+        {ok,_Res} -> X;
+        Else -> Else end.

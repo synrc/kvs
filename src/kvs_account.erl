@@ -1,4 +1,4 @@
--module(accounts).
+-module(kvs_account).
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/membership_packages.hrl").
 -include_lib("kvs/include/log.hrl").
@@ -165,6 +165,18 @@ user_paid(UId) ->
         #user_purchase{top = undefined} -> false;
         _ -> true
     end.
+
+transactions(UserId) -> tx_list(UserId, undefined, 10000).
+
+tx_list(UserId, undefined, PageAmount) ->
+    case kvs:get(user_transaction, UserId) of
+        {ok, O} when O#user_transaction.top =/= undefined -> tx_list(UserId, O#user_transaction.top, PageAmount);
+        {error, notfound} -> [] end;
+tx_list(UserId, StartFrom, Limit) ->
+    case kvs:get(transaction,StartFrom) of
+        {ok, #transaction{next = N}=P} -> [ P | kvs:traversal(transaction, #transaction.next, N, Limit)];
+        X -> [] end.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 handle_notice(["transaction", "user", User, "add_transaction"] = Route,
@@ -175,3 +187,50 @@ handle_notice(["transaction", "user", User, "add_transaction"] = Route,
     {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown ACCOUNTS notice").
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+add_transaction_to_user(UserId,Purchase) ->
+    {ok,Team} = case kvs:get(user_transaction, UserId) of
+                     {ok,T} -> {ok,T};
+                     _ -> ?INFO("user_transaction not found"),
+                          Head = #user_transaction{ user = UserId, top = undefined},
+                          {kvs:put(Head),Head}
+                end,
+
+    EntryId = Purchase#transaction.id, %kvs:next_id("membership_purchase",1),
+    Prev = undefined,
+    case Team#user_transaction.top of
+        undefined -> Next = undefined;
+        X -> case kvs:get(transaction, X) of
+                 {ok, TopEntry} ->
+                     Next = TopEntry#transaction.id,
+                     EditedEntry = #transaction {
+                           commit_time = TopEntry#transaction.commit_time,
+                           amount = TopEntry#transaction.amount,
+                           remitter = TopEntry#transaction.remitter,
+                           acceptor = TopEntry#transaction.acceptor,
+                           currency = TopEntry#transaction.currency,
+                           info = TopEntry#transaction.info,
+                           id = TopEntry#transaction.id,
+                           next = TopEntry#transaction.next,
+                           prev = EntryId },
+                    kvs:put(EditedEntry); % update prev entry
+                 {error,notfound} -> Next = undefined
+             end
+    end,
+
+    Entry  = #transaction{id = EntryId,
+                           commit_time = Purchase#transaction.commit_time,
+                           amount = Purchase#transaction.amount,
+                           remitter = Purchase#transaction.remitter,
+                           acceptor = Purchase#transaction.acceptor,
+                           currency = Purchase#transaction.currency,
+                           info = Purchase#transaction.info,
+                           next = Next,
+                           prev = Prev},
+
+    case kvs:put(Entry) of ok -> kvs:put(#user_transaction{ user = UserId, top = EntryId}), {ok, EntryId};
+                              Error -> ?INFO("Cant write transaction"), {failure,Error} end.
