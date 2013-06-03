@@ -54,8 +54,8 @@ make_object(T) ->
     Bucket = element(1,T),
     Key = element(2,T),
     Obj1 = riak_object:new(key_to_bin(Bucket), key_to_bin(Key), T),
-    Indices = [<<"index">>|make_indices(T)], %% Usefull only for level_db buckets
-    Meta = dict:store("index", Indices, dict:new()),
+    Indices = make_indices(T),
+    Meta = dict:store(<<"index">>, Indices, dict:new()),
     Obj2 = riak_object:update_metadata(Obj1, Meta),
     error_logger:info_msg("RIAK PUT IDX ~p",[Indices]),
     Obj2.
