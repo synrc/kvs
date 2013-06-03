@@ -35,6 +35,7 @@ init([]) ->
     {ok, _Value} -> skip end,
 
   kvs:initialize(),
+  kvs:init_indexes(),
 
   case application:get_env(kvs, riak_srv_node) of
     undefined ->

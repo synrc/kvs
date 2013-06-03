@@ -29,19 +29,20 @@ init_indexes() -> DBA = ?DBA, DBA:init_indexes().
 init_db() ->
     case kvs:get(user,"alice") of
        {error,_} ->
-            DBA = ?DBA,
-            DBA:init_db(),
+%            DBA = ?DBA,
+%            DBA:init_db(),
+%            membership_packages:add_sample_data(),
             add_seq_ids(),
             accounts:create_account(system),
             add_sample_users(),
             add_sample_packages(),
-            add_translations(),
-            case is_production() of
-                false ->
-                    add_purchases();
-                true ->
-                    do_nothing
-            end;
+            add_translations();
+%            case is_production() of
+%                false ->
+%                    add_purchases();
+%                true ->
+%                    do_nothing
+%            end;
        {ok,_} -> ignore
     end.
 
@@ -119,30 +120,31 @@ add_sample_users() ->
 
     ?INFO("creating groups"),
 
-    GId1  = groups:create_group_directly_to_db("maxim", "kakaranet", "Kakaranet", "Kakaranet'e Hoşgeldiniz", public),
-    GId2  = groups:create_group_directly_to_db("maxim", "yeniler", "Yeniler", "So, you must be new here.", public),
+%    GId1  = groups:create_group_directly_to_db("maxim", "kakaranet", "Kakaranet", "Kakaranet'e Hoşgeldiniz", public),
+%    GId2  = groups:create_group_directly_to_db("maxim", "yeniler", "Yeniler", "So, you must be new here.", public),
 
     ?INFO("adding users accounts"),
     [ begin
           accounts:create_account(Me#user.username),
           accounts:transaction(Me#user.username, quota, kvs:get_config("accounts/default_quota", 300), #tx_default_assignment{}),
-          kvs:put(Me#user{password = utils:sha(Me#user.password),
+          kvs:put(Me#user{password = kvs:sha(Me#user.password),
                                 starred = feed_create(),
                                 pinned = feed_create()})
       end || Me <- UserList],
     ?INFO("adding users to groups"),
     [ begin
-          kvs_users:init_mq(Me#user.username, [GId1, GId2]),
-          groups:add_to_group_directly_to_db(Me#user.username, GId1, member),
-          groups:add_to_group_directly_to_db(Me#user.username, GId2, member)
+        ok
+%          kvs_users:init_mq(Me#user.username, [GId1, GId2]),
+%          groups:add_to_group_directly_to_db(Me#user.username, GId1, member),
+%          groups:add_to_group_directly_to_db(Me#user.username, GId2, member)
       end || Me <- UserList ],
     acls:define_access({user, "maxim"},    {feature, admin}, allow),
     acls:define_access({user_type, admin}, {feature, admin}, allow),
-    ?INFO("making all users each other friends"),
-    [[case Me == Her of
-        true -> ok;
-        false -> kvs_users:subscr_user(Me#user.username, Her#user.username)
-    end || Her <- UserList] || Me <- UserList].
+    ?INFO("making all users each other friends").
+%    [[case Me == Her of
+%        true -> ok;
+%        false -> kvs_users:subscribe(Me#user.username, Her#user.username)
+%    end || Her <- UserList] || Me <- UserList].
 
 add_sample_packages() -> membership_packages:add_sample_data().
 version() -> ?INFO("version: ~p", [1]).
@@ -387,3 +389,11 @@ handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown KVS notic
 
 coalesce(undefined, B) -> B;
 coalesce(A, _) -> A.
+
+sha(Raw) ->
+    lists:flatten(
+      [io_lib:format("~2.16.0b", [N]) || <<N>> <= crypto:sha(Raw)]).
+
+sha_upper(Raw) ->
+    SHA = sha(Raw),
+    string:to_upper(SHA).

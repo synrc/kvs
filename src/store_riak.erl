@@ -13,15 +13,12 @@
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
 
--define(BUCKET_INDEX, "bucket_bin").
--define(MD_INDEX, <<"index">>).
-
 delete() -> ok.
 start() -> ok.
 stop() -> stopped.
 
 initialize() ->
-    C = riak:client_connect("n2o@127.0.0.1"),
+    C = riak:client_connect(node()),
     ets:new(config, [named_table,{keypos,#config.key}]),
     ets:insert(config, #config{ key = "riak_client", value = C}),
     ok.
@@ -57,16 +54,17 @@ make_object(T) ->
     Bucket = element(1,T),
     Key = element(2,T),
     Obj1 = riak_object:new(key_to_bin(Bucket), key_to_bin(Key), T),
-    Indices = [{?BUCKET_INDEX, Bucket} | make_indices(T)], %% Usefull only for level_db buckets
-    Meta = dict:store(?MD_INDEX, Indices, dict:new()),
+    Indices = [<<"index">>|make_indices(T)], %% Usefull only for level_db buckets
+    Meta = dict:store("index", Indices, dict:new()),
     Obj2 = riak_object:update_metadata(Obj1, Meta),
+    error_logger:info_msg("RIAK PUT IDX ~p",[Indices]),
     Obj2.
 
 make_indices(#subscription{who=Who, whom=Whom}) -> [{<<"subs_who_bin">>, key_to_bin(Who)}, {<<"subs_whom_bin">>, key_to_bin(Whom)}];
 make_indices(#group_subscription{user_id=UId, group_id=GId}) -> [{<<"group_subs_user_bin">>, key_to_bin(UId)}, {<<"group_subs_group_bin">>, key_to_bin(GId)}];
 make_indices(#user_bought_gifts{username=UId}) -> [{<<"user_bought_gifts_username_bin">>, key_to_bin(UId)}];
-make_indices(#user{username=UId,zone=Zone}) -> [{<<"user_bin">>, key_to_bin(UId)},{<<"user_zone_bin">>, key_to_bin(Zone)}];
-make_indices(_Record) -> [].
+make_indices(#user{username=UId,zone=Zone}) -> [{<<"user_bin">>, key_to_bin(UId)}];
+make_indices(Record) -> [{key_to_bin(atom_to_list(element(1,Record))++"_bin"),key_to_bin(element(2,Record))}].
 
 riak_client() -> [{_,_,{_,C}}] = ets:lookup(config, "riak_client"), C.
 
@@ -76,7 +74,8 @@ put(Record) -> store_riak:put([Record]).
 riak_put(Record) ->
     Object = make_object(Record),
     Riak = riak_client(),
-    Result = Riak:put(Object, [{allow_mult,false},{last_write_wins,true}]),
+    Result = Riak:put(Object),
+    error_logger:info_msg("RIAK PUT RES ~p",[Result]),
     post_write_hooks(Record, Riak),
     Result.
 

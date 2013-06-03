@@ -99,13 +99,14 @@ check_quota(User, Amount) ->
 
 commit_transaction(#transaction{remitter = R, acceptor = A,  currency = Currency, amount = Amount} = TX) ->
     case change_accounts(R, A, Currency, Amount) of
-         ok -> nsx_msg:notify_transaction(R,TX),
-               nsx_msg:notify_transaction(A,TX);
+         ok -> skip;
+              %mqs:notify([transaction, user, R, add_transaction], TX),% notify_transaction(R,TX),
+              %mqs:notify([transaction, user, A, add_transaction], TX);%notify_transaction(A,TX);
          Error ->  skip
 %            case TX#transaction.info of
 %                #tx_game_event{} ->
-%                    nsx_msg:notify_transaction(R,TX),
-%                    nsx_msg:notify_transaction(A,TX);
+%                    mqs:notify_transaction(R,TX),
+%                    mqs:notify_transaction(A,TX);
 %                _ ->
 %                    ?ERROR("commit transaction error: change accounts ~p", [Error]),
 %                    Error

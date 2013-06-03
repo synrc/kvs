@@ -20,19 +20,20 @@ retrieve_groups(User) ->
 create_group_directly_to_db(UId, GId, Name, Desc, Publicity) ->
     FId = kvs:feed_create(),
     CTime = erlang:now(),
-    kvs:put(#group{username = GId,
+    Group = #group{username = GId,
                       name = Name,
                       description = Desc,
                       publicity = Publicity,
                       creator = UId,
                       created = CTime,
                       owner = UId,
-                     feed = FId}),
-    kvs_users:init_mq_for_group(GId),
+                     feed = FId},
+    kvs:put(Group),
+    kvs_users:init_mq(Group),
     add_to_group_directly_to_db(UId, GId, member),
     GId.
 
-add_to_group(Who, GId, Type, Owner) -> nsx_msg:notify(["subscription", "user", Owner, "add_to_group"], {GId, Who, Type}).
+add_to_group(Who, GId, Type, Owner) -> mqs:notify(["subscription", "user", Owner, "add_to_group"], {GId, Who, Type}).
 
 add_to_group_directly_to_db(UId, GId, Type) ->
     kvs:put(#group_subscription{key={UId,GId},user_id=UId, group_id=GId, user_type=Type}),
@@ -45,7 +46,7 @@ delete_group(GId) ->
     case Group of 
         notfound -> ok;
         _ ->
-            nsx_msg:notify([feed, delete, GId], empty),
+            mqs:notify([feed, delete, GId], empty),
             kvs:delete_by_index(group_subscription, <<"group_subs_group_id_bin">>, GId),         
             kvs:delete(feed, Group#group.feed),
             kvs:delete(group, GId),
@@ -105,7 +106,7 @@ join_group(GId, User) ->
 
 approve_request(UId, GId, Owner) -> add_to_group(UId, GId, member, Owner).
 reject_request(UId, GId, Owner) -> add_to_group(UId, GId, reqrejected, Owner).
-change_group_user_type(UId, GId, Type) -> nsx_msg:notify(["subscription", "user", UId, "add_to_group"], {GId, UId, Type}).
+change_group_user_type(UId, GId, Type) -> mqs:notify(["subscription", "user", UId, "add_to_group"], {GId, UId, Type}).
 
 group_exists(GId) ->
     {R, _} = get_group(GId),

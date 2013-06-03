@@ -59,7 +59,7 @@ add_purchase(#membership_purchase{} = MP, State0, Info) ->
                                               state_log = StateLog},
 
             %% notify about purchase added
-%            nsx_msg:notify_purchase(Purchase),
+%            mqs:notify_purchase(Purchase),
 
             ?INFO("Purchase added ~p ~p",[Purchase#membership_purchase.user_id, Purchase]),
 
@@ -91,7 +91,7 @@ set_purchase_state(MPId, NewState, Info) ->
                                       state_log = NewStateLog},
 
     %% notify aboput state change
-%    nsx_msg:notify_purchase(Purchase),
+%    mqs:notify_purchase(Purchase),
     NewMP=MP#membership_purchase{state = NewState,
                                          end_time = EndTime,
                                          state_log = NewStateLog},

@@ -52,7 +52,7 @@ check_username(Name, FbId) ->
 delete(UserName) ->
     case kvs_users:get(UserName) of
         {ok, User} -> GIds = groups:list_groups_per_user(UserName),
-                      [nsx_msg:notify(["subscription", "user", UserName, "remove_from_group"], {GId}) || GId <- GIds],
+                      [mqs:notify(["subscription", "user", UserName, "remove_from_group"], {GId}) || GId <- GIds],
                       F2U = [ {MeId, FrId} || #subscription{who = MeId, whom = FrId} <- subscriptions(User) ],
                       [ unsubscribe(MeId, FrId) || {MeId, FrId} <- F2U ],
                       [ unsubscribe(FrId, MeId) || {MeId, FrId} <- F2U ],
@@ -112,7 +112,7 @@ subscription_mq(Type, Action, MeId, ToId) ->
 init_mq(User=#user{}) ->
     Groups = groups:list_groups_per_user(User),
     ?INFO("~p init mq. users: ~p", [User, Groups]),
-    UserExchange = ?USER_EXCHANGE(User),
+    UserExchange = ?USER_EXCHANGE(User#user.username),
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
     {ok, Channel} = mqs:open([]),
     ?INFO("Cration Exchange: ~p,",[{Channel,UserExchange,ExchangeOptions}]),
@@ -122,7 +122,7 @@ init_mq(User=#user{}) ->
     mqs_channel:close(Channel);
 
 init_mq(Group=#group{}) ->
-    GroupExchange = ?GROUP_EXCHANGE(Group),
+    GroupExchange = ?GROUP_EXCHANGE(Group#group.username),
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
     {ok, Channel} = mqs:open([]),
     ok = mqs_channel:create_exchange(Channel, GroupExchange, ExchangeOptions),
