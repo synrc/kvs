@@ -3,6 +3,7 @@
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
+-include_lib("kvs/include/feed_state.hrl").
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
@@ -196,3 +197,174 @@ retrieve_connections(Id,Type) ->
                                                     {Who,Paid,RealName};
 				               _ -> undefined end end || Who <- Sub],
 			   [X||X<-Data, X/=undefined] end end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+handle_notice(["system", "create_group"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): create_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {UId, GId, Name, Desc, Publicity} = Message,
+    FId = kvs:feed_create(),
+    CTime = erlang:now(),
+
+    Group =#group{username = GId,
+                              name = Name,
+                              description = Desc,
+                              publicity = Publicity,
+                              creator = UId,
+                              created = CTime,
+                              owner = UId,
+                              feed = FId},
+    kvs:put(Group),
+    mqs:notify([group, init], {GId, FId}),
+    kvs_users:init_mq(Group),
+
+
+    {noreply, State};
+
+handle_notice(["db", "group", GId, "remove_group"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): remove_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {_, Group} = groups:get_group(GId),
+    case Group of 
+        notfound -> ok;
+        _ ->
+            mqs:notify([feed, delete, GId], empty),
+            kvs:delete_by_index(group_subs, <<"group_subs_group_id_bin">>, GId),         
+            kvs:delete(feed, Group#group.feed),
+            kvs:delete(group, GId),
+            % unbind exchange
+            {ok, Channel} = mqs:open([]),
+            Routes = kvs_users:rk_group_feed(GId),
+            kvs_users:unbind_group_exchange(Channel, GId, Routes),
+            mqs_channel:close(Channel)
+    end,
+    {noreply, State};
+
+handle_notice(["subscription", "user", UId, "add_to_group"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): add_to_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {GId, Who, UType} = Message,
+
+    case kvs:get(group_subs, {UId, GId}) of
+        {error, notfound} ->
+            {R, Group} = kvs:get(group, GId),
+            case R of 
+                error -> ?INFO("Add to group failed reading group");
+                _ ->
+                    GU = Group#group.users_count,
+                    kvs:put(Group#group{users_count = GU+1})
+            end;
+        _ ->
+            ok
+    end,
+
+    OK = kvs:put({group_subs,UId,GId,Type,0}),
+
+%    add_to_group(Who, GId, UType),
+    ?INFO("add ~p to group ~p with Type ~p by ~p", [Who, GId,UType,UId]),
+    kvs_users:subscribemq(group, add, Who, GId),
+    {noreply, State};
+
+handle_notice(["subscription", "user", UId, "remove_from_group"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): remove_from_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
+    {GId} = Message,
+    ?INFO("remove ~p from group ~p", [UId, GId]),
+    kvs_users:remove_subscription_mq(group, UId, GId),
+
+    kvs:delete(group_subs, {UId, GId}),
+    {R, Group} = kvs:get(group, GId),
+    case R of
+        error -> ?INFO("Remove ~p from group failed reading group ~p", [UId, GId]);
+        _ ->
+            GU = Group#group.users_count,
+            kvs:put(Group#group{users_count = GU-1})
+    end,
+
+    {noreply, State};
+
+handle_notice(["subscription", "user", UId, "leave_group"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): leave_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {GId} = Message,
+    {R, Group} = kvs:get(group, GId),
+    case R of 
+        error -> ?ERROR(" Error reading group ~p for leave_group", [GId]);
+        ok ->
+            case Group#group.owner of
+                UId -> % User is owner, transfer ownership to someone else
+                    Members = groups:list_group_members(GId),
+                    case Members of
+                        [ FirstOne | _ ] ->
+                            ok = kvs:put(Group#group{owner = FirstOne}),
+                            mqs:notify(["subscription", "user", UId, "remove_from_group"], {GId});
+                        [] ->
+                            % Nobody left in group, remove group at all
+                            mqs:notify([db, group, GId, remove_group], [])
+                    end;
+                _ -> % Plain user removes -- just remove it
+                    mqs:notify(["subscription", "user", UId, "remove_from_group"], {GId})
+            end;
+        _ -> % user is just someone, remove it
+            mqs:notify(["subscription", "user", UId, "remove_from_group"], {GId})
+    end,
+    {noreply, State};
+
+handle_notice(["subscription", "user", UId, "subscribe"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): subscribe_user: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {Whom} = Message,
+    kvs_users:subscribe(UId, Whom),
+    {noreply, State};
+
+handle_notice(["subscription", "user", UId, "unsubscribe"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): remove_subscribe: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {Whom} = Message,
+    kvs_users:unsubscribe(UId, Whom),
+    {noreply, State};
+
+handle_notice(["subscription", "user", _UId, "update"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): update_user: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {NewUser} = Message,
+    kvs_users:update_user(NewUser),
+    {noreply, State};
+
+handle_notice(["gifts", "user", UId, "buy_gift"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): buy_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {GId} = Message,
+    kvs_users:buy_gift(UId, GId),
+    {noreply, State};
+
+handle_notice(["gifts", "user", UId, "give_gift"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): give_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {GId} = Message,
+    kvs_users:give_gift(UId, GId),
+    {noreply, State};
+
+handle_notice(["gifts", "user", UId, "mark_gift_as_deliving"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): mark_gift_as_deliving: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {GId, GTimestamp} = Message,
+    kvs_users:mark_gift_as_deliving(UId, GId, GTimestamp),
+    {noreply, State};
+
+handle_notice(["login", "user", UId, "update_after_login"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): update_after_login: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
+    Update =
+        case kvs_users:user_status(UId) of
+            {error, status_info_not_found} ->
+                #user_status{username = UId,
+                             last_login = erlang:now()};
+            {ok, UserStatus} ->
+                UserStatus#user_status{last_login = erlang:now()}
+        end,
+    kvs:put(Update),
+    {noreply, State};
+
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown USERS notice").

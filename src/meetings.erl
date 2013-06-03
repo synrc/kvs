@@ -1,6 +1,8 @@
 -module(meetings).
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/meetings.hrl").
+-include_lib("kvs/include/feed_state.hrl").
+-include_lib("kvs/include/log.hrl").
 -compile(export_all).
 
 create_team(Name) ->
@@ -58,3 +60,45 @@ destroy(TID) -> kvs:delete_by_index(play_record, <<"play_record_tournament_bin">
 clear() -> [destroy(T#meeting.id) || T <- kvs:all(meeting)].
 lost() -> lists:usort([erlang:element(3, I) || I <- kvs:all(play_record)]).
 fake_join(TID) -> [meetings:join(auth:ima_gio2(X),TID)||X<-lists:seq(1,30)].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+handle_notice(["tournaments", "user", UId, "create"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): create: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
+    case meetings:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
+        {error,X} -> 
+            ?ERROR("Error creating tournament: ~p", X);
+        TId -> skip
+    end,
+    {noreply, State};
+
+handle_notice(["tournaments", "user", UId, "create_and_join"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): create_and_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
+    case meetings:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
+        {error,X} -> 
+            ?ERROR("Error creating tournament: ~p", X);
+        TId -> 
+            meetings:join(UId, TId)
+    end,
+    {noreply, State};
+
+handle_notice(["system", "tournament_join"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): tournament_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {UId, TId} = Message,
+    meetings:join(UId, TId),
+    {noreply, State};
+
+handle_notice(["system", "tournament_remove"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): tournament_remove: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {UId, TId} = Message,
+    meetings:remove(UId, TId),
+    {noreply, State};
+
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown MEETINGS notice").
+

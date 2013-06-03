@@ -3,6 +3,7 @@
 -include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
+-include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/log.hrl").
 
 create() ->
@@ -224,3 +225,206 @@ test_likes() ->
         get_user_likes("derp", {1, 2}),
         get_user_likes_count("derp") == 4
     ].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+handle_notice(["feed", "delete", Owner] = Route, Message,
+              #state{owner = Owner} = State) ->
+    ?INFO("feed(~p): notification received: User=~p, Route=~p, Message=~p",
+          [self(), Owner, Route, Message]),
+    {stop, normal, State};
+
+handle_notice(["feed", "group", GroupId, "entry", EntryId, "add"] = Route,
+              [From|_] = Message,
+              #state{owner = Owner, feed = Feed} = State) ->
+    ?INFO("feed(~p): group message: Owner=~p, Route=~p, Message=~p",
+          [self(), Owner, Route, Message]),
+    [From, _Destinations, Desc, Medias] = Message,
+    feed:add_group_entry(Feed, From, [{GroupId, group}], EntryId,
+                         Desc, Medias, {group, direct}),
+    % statistics
+    case Owner == GroupId of
+        false -> ok;
+        true ->
+            {ok, Group} = kvs:get(group, GroupId),
+            GE = Group#group.entries_count,
+            kvs:put(Group#group{entries_count = GE+1}),
+            {ok, Subs} = kvs:get(group_subs, {From, GroupId}),
+            SE = Subs#group_subscription.user_posts_count,
+            kvs:put(Subs#group_subscription{user_posts_count = SE+1})
+    end,    
+
+    self() ! {feed_refresh,Feed,20},
+    {noreply, State};
+
+handle_notice(["feed", "user", FeedOwner, "entry", EntryId, "add"] = Route,
+              [From|_] = Message,
+              #state{owner = WorkerOwner, feed = Feed, direct = Direct} = State) ->
+    ?INFO("feed(~p): message: Owner=~p, Route=~p, Message=~p",
+          [self(), WorkerOwner, Route, Message]),
+    [From, Destinations, Desc, Medias] = Message,
+
+    if
+        %% user added message to own feed
+        FeedOwner == From andalso FeedOwner == WorkerOwner->
+            FilteredDst = [D || {_, group} = D <- Destinations],
+            feed:add_entry(Feed, From, FilteredDst, EntryId, Desc, Medias,
+                           {user, normal}), self() ! {feed_refresh,Feed,20};
+
+        %% friend added message to public feed
+        FeedOwner == From ->
+            feed:add_entry(Feed, From, [], EntryId, Desc, Medias,
+                           {user, normal}), self() ! {feed_refresh,Feed,20};
+
+        %% direct message to worker owner
+        FeedOwner == WorkerOwner ->
+            feed:add_direct_message(Direct, From, [{FeedOwner, user}],
+                                    EntryId, Desc, Medias), self() ! {direct_refresh,Direct,20};
+
+        %% user sent direct message to friend, add copy to his direct feed
+        From == WorkerOwner ->
+            feed:add_direct_message(Direct, WorkerOwner, Destinations,
+                                    EntryId, Desc, Medias), self() ! {direct_refresh,Direct,20};
+        true ->
+            ?INFO("not matched case in entry->add")
+    end,
+    
+    {noreply, State};
+
+% add/delete system message
+handle_notice(["feed", "user", _FeedOwner, "entry", EntryId, "add_system"] = Route, 
+              [From|_] = Message,
+              #state{owner = WorkerOwner, feed = Feed, direct = _Direct} = State) ->
+    ?INFO("feed(~p): system message: Owner=~p, Route=~p, Message=~p",
+          [self(), WorkerOwner, Route, Message]),
+    [From, _Destinations, Desc, Medias] = Message,
+
+    feed:add_entry(Feed, From, [], EntryId, Desc, Medias, {user, system}),
+    {noreply, State};
+
+handle_notice(["feed", "group", GroupId, "entry", EntryId, "add_system"] = Route,
+              [From|_] = Message,
+              #state{owner = Owner, feed = Feed} = State) ->
+    ?INFO("feed(~p): group system message: Owner=~p, Route=~p, Message=~p",
+          [self(), Owner, Route, Message]),
+    [From, _Destinations, Desc, Medias] = Message,
+    feed:add_group_entry(Feed, From, [{GroupId, group}], EntryId,
+                         Desc, Medias, {group, system}),
+    {noreply, State};
+
+handle_notice(["feed", "user", UId, "post_note"] = Route, Message, 
+        #state{owner = Owner, feed = Feed} = State) ->
+    ?INFO("feed(~p): post_note: Owner=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
+    Note = Message,
+    Id = utils:uuid_ex(),
+    feed:add_entry(Feed, UId, [], Id, Note, [], {user, system_note}),
+    {noreply, State};
+
+handle_notice(["feed", _, WhoShares, "entry", NewEntryId, "share"],
+              #entry{entry_id = _EntryId, raw_description = Desc, media = Medias,
+                     to = Destinations, from = From} = E,
+              #state{feed = Feed, type = user} = State) ->
+    %% FIXME: sharing is like posting to the wall
+    ?INFO("share: ~p, WhoShares: ~p", [E, WhoShares]),
+%    NewEntryId = utils:uuid_ex(),
+    feed:add_shared_entry(Feed, From, Destinations, NewEntryId, Desc, Medias, {user, normal}, WhoShares),
+    {noreply, State};
+
+handle_notice(["feed", "group", _Group, "entry", EntryId, "delete"] = Route,
+              Message,
+              #state{owner = Owner, feed = Feed} = State) ->
+    ?INFO("feed(~p): remove entry: Owner=~p, Route=~p, Message=~p",
+          [self(), Owner, Route, Message]),
+    %% all group subscribers shold delete entry from their feeds
+    feed:remove_entry(Feed, EntryId),
+    self() ! {feed_refresh,Feed,20},
+    {noreply, State};
+
+handle_notice(["feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Route,
+              Message,
+              #state{owner = Owner, feed=Feed, direct=Direct} = State) ->
+    case {EntryOwner, Message} of
+        %% owner of the antry has deleted entry, we will delete it too
+        {_, [EntryOwner|_]} ->
+            ?INFO("feed(~p): remove entry: Owner=~p, Route=~p, Message=~p",
+                  [self(), Owner, Route, Message]),
+            feeds:remove_entry(Feed, EntryId),
+            feeds:remove_entry(Direct, EntryId);
+        %% we are owner of the entry - delete it
+        {Owner, _} ->
+            ?INFO("feed(~p): remove entry: Owner=~p, Route=~p, Message=~p",
+                  [self(), Owner, Route, Message]),
+            feeds:remove_entry(Feed, EntryId),
+            feeds:remove_entry(Direct, EntryId);
+        %% one of the friends has deleted some entry from his feed. Ignore
+        _ ->
+            ok
+    end,
+    self() ! {feed_refresh, State#state.feed,20},
+    {noreply, State};
+
+handle_notice(["feed", _Type, _EntryOwner, "entry", EntryId, "edit"] = Route,
+              Message,
+              #state{owner = Owner, feed=Feed} = State) ->
+    [NewDescription|_] = Message,
+    ?INFO("feed(~p): edit: Owner=~p, Route=~p, Message=~p",
+          [self(), Owner, Route, Message]),
+
+    %% edit entry in all feeds
+    feeds:edit_entry(Feed, EntryId, NewDescription),
+
+    {noreply, State};
+
+handle_notice(["feed", _Type, _EntryOwner, "comment", CommentId, "add"] = Route,
+              Message,
+              #state{owner = Owner, feed=Feed} = State) ->
+    [From, EntryId, ParentComment, Content, Medias] = Message,
+
+    ?INFO("feed(~p): add comment: Owner=~p, Route=~p, Message=~p",
+          [self(), Owner, Route, Message]),
+    feeds:entry_add_comment(Feed, From, EntryId, ParentComment, CommentId, Content, Medias),
+    {noreply, State};
+
+handle_notice(["feed", "user", UId, "count_entry_in_statistics"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): count_entry_in_statistics: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    case kvs:get(user_etries_count, UId) of
+        {ok, UEC} -> 
+            kvs:put(UEC#user_etries_count{
+                entries = UEC#user_etries_count.entries+1
+            }),
+            kvs_users:attempt_active_user_top(UId, UEC#user_etries_count.entries+1);
+        {error, notfound} ->
+            kvs:put(#user_etries_count{
+                user_id = UId,
+                entries = 1
+            }),
+            kvs_users:attempt_active_user_top(UId, 1)
+    end,
+    {noreply, State};
+
+handle_notice(["feed", "user", UId, "count_comment_in_statistics"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): count_comment_in_statistics: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    case kvs:get(user_etries_count, UId) of
+        {ok, UEC} -> 
+            kvs:put(UEC#user_etries_count{
+                comments = UEC#user_etries_count.comments+1
+            });
+        {error, notfound} ->
+            kvs:put(#user_etries_count{
+                user_id = UId,
+                comments = 1
+            })
+    end,
+    {noreply, State};
+
+handle_notice(["likes", _, _, "add_like"] = Route,  % _, _ is here beacause of the same message used for comet update
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): add_like: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {UId, E} = Message,
+    {EId, FId} = E#entry.id,
+    feed:add_like(FId, EId, UId),
+    {noreply, State};
+
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown FEEDS notice").

@@ -12,6 +12,7 @@
 -include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/membership_packages.hrl").
 -include_lib("stdlib/include/qlc.hrl").
+-include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
 
 -define(DBA, store_riak).
@@ -330,3 +331,59 @@ save(Key, Value) ->
 load(Key) ->
     {ok, Bin} = file:read_file(Key),
     binary_to_term(Bin).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+handle_notice(["kvs", "group", Owner, "put"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): group put: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    kvs:put(Message),
+    {noreply, State};
+
+handle_notice(["kvs", "user", Owner, "put"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): user put: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    kvs:put(Message),
+    {noreply, State};
+
+handle_notice(["kvs","system", "put"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): system put: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    kvs:put(Message),
+    {noreply, State};
+
+handle_notice(["kvs","system", "delete"] = Route, 
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): system delete: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {Where, What} = Message,
+    kvs:delete(Where, What),
+    {noreply, State};
+
+handle_notice(["db", "group", GroupId, "update_group"] = Route, 
+    Message, #state{owner=ThisGroupOwner, type=Type} = State) ->
+    ?INFO("queue_action(~p): update_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, ThisGroupOwner}, Route, Message]),    
+    {_UId, _GroupUsername, Name, Description, Owner, Publicity} = Message,
+    SanePublicity = case Publicity of
+        "public" -> public;
+        "moderated" -> moderated;
+        "private" -> private;
+        _ -> undefined
+    end,
+    SaneOwner = case kvs:get(user, Owner) of
+        {ok, _} -> Owner;
+        _ -> undefined
+    end,
+    {ok, #group{}=Group} = kvs:get(group, GroupId),
+    NewGroup = Group#group{
+                   name = coalesce(Name,Group#group.name),
+                   description = coalesce(Description,Group#group.description),
+                   publicity = coalesce(SanePublicity,Group#group.publicity),
+                   owner = coalesce(SaneOwner,Group#group.owner)},
+    kvs:put(NewGroup),
+    {noreply, State};
+
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown KVS notice").
+
+coalesce(undefined, B) -> B;
+coalesce(A, _) -> A.

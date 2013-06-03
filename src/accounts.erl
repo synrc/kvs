@@ -2,6 +2,7 @@
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/membership_packages.hrl").
 -include_lib("kvs/include/log.hrl").
+-include_lib("kvs/include/feed_state.hrl").
 
 -export([debet/2, credit/2, balance/2, create_account/1, create_account/2]).
 -export([transaction/4, transaction/5]).
@@ -163,3 +164,13 @@ user_paid(UId) ->
         #user_purchase{top = undefined} -> false;
         _ -> true
     end.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+handle_notice(["transaction", "user", User, "add_transaction"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): add_transaction: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
+    MP = Message,
+    kvs:add_transaction_to_user(User,MP),
+    {noreply, State};
+
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown ACCOUNTS notice").

@@ -3,6 +3,7 @@
 -include_lib("kvs/include/membership_packages.hrl").
 -include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/accounts.hrl").
+-include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
 
 -type package_id() :: integer().
@@ -196,3 +197,50 @@ check_conditions([], _, true) -> true.
 
 delete_package(PackageId) -> kvs:delete(membership_package, PackageId).
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+handle_notice(["system", "add_package"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): add_package: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {MP} = Message,
+    case membership_packages:add_package(MP) of
+        {ok, _} ->
+            ok;
+        {error, Reason} ->
+            ?ERROR("Unable to add membership package: ~p, Reason ~p", [MP, Reason])
+    end,
+    {noreply, State};
+
+handle_notice(["purchase", "user", _, "set_purchase_state"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): set_purchase_state: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),  
+    {MPId, NewState, Info} = Message,
+    membership_packages:set_purchase_state(MPId, NewState, Info),
+    {noreply, State};
+
+handle_notice(["purchase", "user", _, "add_purchase"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): add_purchase: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
+    {MP} = Message,
+    membership_packages:add_purchase(MP),
+    {noreply, State};
+
+handle_notice(["purchase", "user", _, "set_purchase_external_id"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): set_purchase_external_id: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {PurchaseId, TxnId} = Message,
+    membership_packages:set_purchase_external_id(PurchaseId, TxnId),
+    {noreply, State};
+
+handle_notice(["purchase", "user", _, "set_purchase_info"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO("queue_action(~p): set_purchase_info: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {OrderId, Info} = Message,
+    membership_packages:set_purchase_info(OrderId, Info),
+    {noreply, State};
+
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown PAYMENTS notice").
+
+coalesce(undefined, B) -> B;
+coalesce(A, _) -> A.
