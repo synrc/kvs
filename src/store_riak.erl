@@ -126,9 +126,9 @@ get(Tab, Key) ->
     IntKey = key_to_bin(Key),
     riak_get(Bucket, IntKey).
 
-riak_get(Bucket,Key) -> %% TODO: add state monad here for conflict resolution when not last_win strategy used
+riak_get(Bucket,Key) ->
     C = riak_client(),
-    RiakAnswer = C:get(Bucket,Key,[{last_write_wins,true},{allow_mult,false}]),
+    RiakAnswer = C:get(Bucket,Key),
     case RiakAnswer of
         {ok, O} -> {ok,riak_object:get_value(O)};
         X -> X
