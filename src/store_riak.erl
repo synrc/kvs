@@ -21,7 +21,7 @@ start() -> ok.
 stop() -> stopped.
 
 initialize() ->
-    C = riak:client_connect('node_runner@127.0.0.1'),
+    C = riak:client_connect("n2o@127.0.0.1"),
     ets:new(config, [named_table,{keypos,#config.key}]),
     ets:insert(config, #config{ key = "riak_client", value = C}),
     ok.
@@ -525,7 +525,7 @@ join_tournament(UserId, TournamentId) ->
             Q = case accounts:balance(UserId,  quota) of
                      {ok, AS4} -> AS4;
                      {error, _} -> 0 end,
-            RN = users:user_realname(UserId),
+            RN = kvs_users:user_realname(UserId),
             kvs:put(#play_record{
                  who = UserId,
                  tournament = TournamentId,

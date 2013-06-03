@@ -173,13 +173,13 @@ handle_notice(["feed", "user", UId, "count_entry_in_statistics"] = Route,
             kvs:put(UEC#user_etries_count{
                 entries = UEC#user_etries_count.entries+1
             }),
-            users:attempt_active_user_top(UId, UEC#user_etries_count.entries+1);
+            kvs_users:attempt_active_user_top(UId, UEC#user_etries_count.entries+1);
         {error, notfound} ->
             kvs:put(#user_etries_count{
                 user_id = UId,
                 entries = 1
             }),
-            users:attempt_active_user_top(UId, 1)
+            kvs_users:attempt_active_user_top(UId, 1)
     end,
     {noreply, State};
 
@@ -242,7 +242,7 @@ handle_notice(["system", "create_group"] = Route,
                               feed = FId},
     kvs:put(Group),
     mqs:notify([group, init], {GId, FId}),
-    users:init_mq(Group),
+    kvs_users:init_mq(Group),
 
 
     {noreply, State};
@@ -283,8 +283,8 @@ handle_notice(["db", "group", GId, "remove_group"] = Route,
             kvs:delete(group, GId),
             % unbind exchange
             {ok, Channel} = mqs:open([]),
-            Routes = users:rk_group_feed(GId),
-            users:unbind_group_exchange(Channel, GId, Routes),
+            Routes = kvs_users:rk_group_feed(GId),
+            kvs_users:unbind_group_exchange(Channel, GId, Routes),
             mqs_channel:close(Channel)
     end,
     {noreply, State};
@@ -311,7 +311,7 @@ handle_notice(["subscription", "user", UId, "add_to_group"] = Route,
 
 %    add_to_group(Who, GId, UType),
     ?INFO("add ~p to group ~p with Type ~p by ~p", [Who, GId,UType,UId]),
-    users:subscribemq(group, add, Who, GId),
+    kvs_users:subscribemq(group, add, Who, GId),
     {noreply, State};
 
 handle_notice(["subscription", "user", UId, "remove_from_group"] = Route,
@@ -319,7 +319,7 @@ handle_notice(["subscription", "user", UId, "remove_from_group"] = Route,
     ?INFO("queue_action(~p): remove_from_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
     {GId} = Message,
     ?INFO("remove ~p from group ~p", [UId, GId]),
-    users:remove_subscription_mq(group, UId, GId),
+    kvs_users:remove_subscription_mq(group, UId, GId),
 
     kvs:delete(group_subs, {UId, GId}),
     {R, Group} = kvs:get(group, GId),
@@ -363,42 +363,42 @@ handle_notice(["subscription", "user", UId, "subscribe"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO(" queue_action(~p): subscribe_user: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {Whom} = Message,
-    users:subscribe(UId, Whom),
+    kvs_users:subscribe(UId, Whom),
     {noreply, State};
 
 handle_notice(["subscription", "user", UId, "unsubscribe"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO(" queue_action(~p): remove_subscribe: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {Whom} = Message,
-    users:unsubscribe(UId, Whom),
+    kvs_users:unsubscribe(UId, Whom),
     {noreply, State};
 
 handle_notice(["subscription", "user", _UId, "update"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO(" queue_action(~p): update_user: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {NewUser} = Message,
-    users:update_user(NewUser),
+    kvs_users:update_user(NewUser),
     {noreply, State};
 
 handle_notice(["gifts", "user", UId, "buy_gift"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO(" queue_action(~p): buy_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {GId} = Message,
-    users:buy_gift(UId, GId),
+    kvs_users:buy_gift(UId, GId),
     {noreply, State};
 
 handle_notice(["gifts", "user", UId, "give_gift"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO(" queue_action(~p): give_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {GId} = Message,
-    users:give_gift(UId, GId),
+    kvs_users:give_gift(UId, GId),
     {noreply, State};
 
 handle_notice(["gifts", "user", UId, "mark_gift_as_deliving"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO(" queue_action(~p): mark_gift_as_deliving: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {GId, GTimestamp} = Message,
-    users:mark_gift_as_deliving(UId, GId, GTimestamp),
+    kvs_users:mark_gift_as_deliving(UId, GId, GTimestamp),
     {noreply, State};
 
 
@@ -406,7 +406,7 @@ handle_notice(["login", "user", UId, "update_after_login"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): update_after_login: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
     Update =
-        case users:user_status(UId) of
+        case kvs_users:user_status(UId) of
             {error, status_info_not_found} ->
                 #user_status{username = UId,
                              last_login = erlang:now()};

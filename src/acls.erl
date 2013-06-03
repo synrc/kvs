@@ -60,7 +60,7 @@ check_access(#user{username = AId, type = AType}, {feature, _Feature} = R) ->
     check(Query);
 
 check_access(UId, {feature, _Feature} = Resource) ->
-    case users:get_user(UId) of
+    case kvs_users:get_user(UId) of
         {ok, User} -> check_access(User, Resource);
         E -> E
     end.

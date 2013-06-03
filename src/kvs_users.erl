@@ -1,4 +1,4 @@
--module(users).
+-module(kvs_users).
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
@@ -9,7 +9,7 @@
 register(#user{username=U, email=Email, facebook_id = FbId} = RegisterData0) ->
     FindUser = case check_username(U, FbId) of
         {error, E} -> {error, E};
-        {ok, NewName} -> case users:get({email, Email}) of
+        {ok, NewName} -> case kvs_users:get({email, Email}) of
             {error, _} -> {ok, NewName};
             {ok, _} -> {error, email_taken} end end,
 
@@ -43,13 +43,13 @@ process_register(#user{username=U} = RegisterData0) ->
     {ok, U}.
 
 check_username(Name, FbId) ->
-    case users:get(Name) of
+    case kvs_users:get(Name) of
         {error, notfound} -> {ok, Name};
         {ok, User} when FbId =/= undefined -> check_username(User#user.username  ++ integer_to_list(crypto:rand_uniform(0,10)), FbId);
         {ok, _}-> {error, username_taken} end.
 
 delete(UserName) ->
-    case users:get(UserName) of
+    case kvs_users:get(UserName) of
         {ok, User} -> GIds = groups:list_groups_per_user(UserName),
                       [nsx_msg:notify(["subscription", "user", UserName, "remove_from_group"], {GId}) || GId <- GIds],
                       F2U = [ {MeId, FrId} || #subscription{who = MeId, whom = FrId} <- subscriptions(User) ],
@@ -183,7 +183,7 @@ rk(List) -> mqs_lib:list_to_key(List).
 
 retrieve_connections(Id,Type) ->
     Friends = case Type of 
-                  user -> users:list_subscr_usernames(Id);
+                  user -> kvs_users:list_subscr_usernames(Id);
                      _ -> groups:list_group_members(Id) end,
     case Friends of
 	[] -> [];
@@ -191,7 +191,7 @@ retrieve_connections(Id,Type) ->
                 case Sub of
                      [] -> [];
                       _ -> Data = [begin case kvs:get(user,Who) of
-                                       {ok,User} -> RealName = users:user_realname_user(User),
+                                       {ok,User} -> RealName = kvs_users:user_realname_user(User),
                                                     Paid = accounts:user_paid(Who),
                                                     {Who,Paid,RealName};
 				               _ -> undefined end end || Who <- Sub],

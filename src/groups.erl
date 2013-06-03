@@ -28,7 +28,7 @@ create_group_directly_to_db(UId, GId, Name, Desc, Publicity) ->
                       created = CTime,
                       owner = UId,
                      feed = FId}),
-    users:init_mq_for_group(GId),
+    kvs_users:init_mq_for_group(GId),
     add_to_group_directly_to_db(UId, GId, member),
     GId.
 
@@ -51,8 +51,8 @@ delete_group(GId) ->
             kvs:delete(group, GId),
             % unbind exchange
             {ok, Channel} = mqs:open([]),
-            Routes = users:rk_group_feed(GId),
-            users:unbind_group_exchange(Channel, GId, Routes),
+            Routes = kvs_users:rk_group_feed(GId),
+            kvs_users:unbind_group_exchange(Channel, GId, Routes),
             mqs_channel:close(Channel)
     end.
 

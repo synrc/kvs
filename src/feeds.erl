@@ -188,9 +188,9 @@ get_user_likes(UserId, {Page, PageAmount}) ->
     end.
 
 % we have same in user? Why?
-is_subscribed_user(UserUidWho, UserUidWhom) -> users:is_user_subscr(UserUidWho, UserUidWhom).
-user_subscription_count(UserUid) -> length(users:list_subscr(UserUid)).
-user_friends_count(UserUid) -> length(users:list_subscr_me(UserUid)).
+is_subscribed_user(UserUidWho, UserUidWhom) -> kvs_users:is_user_subscr(UserUidWho, UserUidWhom).
+user_subscription_count(UserUid) -> length(kvs_users:list_subscr(UserUid)).
+user_friends_count(UserUid) -> length(kvs_users:list_subscr_me(UserUid)).
 
 get_comments_entries(UserUid, _, _Page, _PageAmount) ->
     Pids = [Eid || #comment{entry_id=Eid} <- kvs:select(comment,

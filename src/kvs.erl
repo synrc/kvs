@@ -131,7 +131,7 @@ add_sample_users() ->
       end || Me <- UserList],
     ?INFO("adding users to groups"),
     [ begin
-          users:init_mq(Me#user.username, [GId1, GId2]),
+          kvs_users:init_mq(Me#user.username, [GId1, GId2]),
           groups:add_to_group_directly_to_db(Me#user.username, GId1, member),
           groups:add_to_group_directly_to_db(Me#user.username, GId2, member)
       end || Me <- UserList ],
@@ -140,7 +140,7 @@ add_sample_users() ->
     ?INFO("making all users each other friends"),
     [[case Me == Her of
         true -> ok;
-        false -> userss:subscr_user(Me#user.username, Her#user.username)
+        false -> kvs_users:subscr_user(Me#user.username, Her#user.username)
     end || Her <- UserList] || Me <- UserList].
 
 add_sample_packages() -> membership_packages:add_sample_data().
