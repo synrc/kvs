@@ -1,20 +1,11 @@
 -module(kvs_sup).
 -behaviour(supervisor).
--export([start_link/0, stop_riak/0]).
+-export([start_link/0]).
 -export([init/1]).
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-
-stop_riak() ->
-    application:stop(riak_kv), 
-    application:stop(riak_pipe),
-    application:stop(eleveldb),
-    application:stop(erlang_js),
-    application:stop(webmachine),
-    application:stop(mochiweb),
-    application:stop(bitcask).
 
 init([]) ->
   RestartStrategy = one_for_one,
@@ -35,12 +26,9 @@ init([]) ->
     {ok, _Value} -> skip end,
 
   kvs:initialize(),
-  kvs:init_indexes(),
 
   case application:get_env(kvs, riak_srv_node) of
     undefined ->
-      kvs:init_indexes(),
-
       case application:get_env(kvs, sync_nodes) of
          true -> [error_logger:info_msg("Joined: ~p ~p~n", [N, riak_core:join(N)]) || N <- application:get_env(kvs, nodes) -- [node()] ];
          _ -> skip end,

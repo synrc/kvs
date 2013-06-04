@@ -24,18 +24,6 @@ initialize() ->
     ets:insert(config, #config{ key = "riak_client", value = C}),
     ok.
 
-init_indexes() ->
-    C = riak_client(),
-    C:set_bucket(key_to_bin(id_seq), [{backend, leveldb_backend}]),
-    C:set_bucket(key_to_bin(subscription), [{backend, leveldb_backend}]),
-    C:set_bucket(key_to_bin(user), [{backend, leveldb_backend}]),
-    C:set_bucket(key_to_bin(group), [{backend, leveldb_backend}]),
-    C:set_bucket(key_to_bin(translation), [{backend, leveldb_backend}]),
-    C:set_bucket(key_to_bin(group_subscription), [{backend, leveldb_backend}]),
-    C:set_bucket(key_to_bin(user_bought_gifts), [{backend, leveldb_backend}]),
-    C:set_bucket(key_to_bin(play_record), [{backend, leveldb_backend}]),
-    ok.
-
 dir() ->
     C = riak_client(),
     {ok,Buckets} = C:list_buckets(),
@@ -61,11 +49,34 @@ make_object(T) ->
     error_logger:info_msg("RIAK PUT IDX ~p",[Indices]),
     Obj2.
 
-make_indices(#subscription{who=Who, whom=Whom}) -> [{<<"subs_who_bin">>, key_to_bin(Who)}, {<<"subs_whom_bin">>, key_to_bin(Whom)}];
-make_indices(#group_subscription{user_id=UId, group_id=GId}) -> [{<<"group_subs_user_bin">>, key_to_bin(UId)}, {<<"group_subs_group_bin">>, key_to_bin(GId)}];
-make_indices(#user_bought_gifts{username=UId}) -> [{<<"user_bought_gifts_username_bin">>, key_to_bin(UId)}];
-make_indices(#user{username=UId,zone=Zone}) -> [{<<"user_bin">>, key_to_bin(UId)}];
-make_indices(Record) -> [{key_to_bin(atom_to_list(element(1,Record))++"_bin"),key_to_bin(element(2,Record))}].
+make_indices(#subscription{who=Who, whom=Whom}) -> [
+    {<<"who_bin">>, key_to_bin(Who)},
+    {<<"whom_bin">>, key_to_bin(Whom)}];
+
+make_indices(#group_subscription{user_id=UId, group_id=GId}) -> [
+    {<<"who_bin">>, key_to_bin(UId)},
+    {<<"where_bin">>, key_to_bin(GId)}];
+
+make_indices(#user_bought_gifts{username=UId}) -> [
+    {<<"user_bought_gifts_username_bin">>, key_to_bin(UId)}];
+
+make_indices(#user{username=UId,zone=Zone}) -> [
+    {<<"user_bin">>, key_to_bin(UId)},
+    {<<"zone_bin">>, key_to_bin(Zone)}];
+
+make_indices(#comment{id={CID,EID},author_id=Who}) -> [
+    {<<"comment_bin">>, key_to_bin({CID,EID})},
+    {<<"author_bin">>, key_to_bin(Who)}];
+
+make_indices(#entry{id={EID,FID},entry_id=EntryId,feed_id=Feed,from=From,to=To}) -> [
+    {<<"entry_feed_bin">>, key_to_bin({EID,FID})},
+    {<<"entry_bin">>, key_to_bin(EntryId)},
+    {<<"from_bin">>, key_to_bin(From)},
+    {<<"to_bin">>, key_to_bin(To)},
+    {<<"feed_bin">>, key_to_bin(Feed)}];
+
+make_indices(Record) -> [
+    {key_to_bin(atom_to_list(element(1,Record))++"_bin"),key_to_bin(element(2,Record))}].
 
 riak_client() -> [{_,_,{_,C}}] = ets:lookup(config, "riak_client"), C.
 

@@ -1,4 +1,7 @@
 -module(kvs_feed).
+-author('Maxim Sokhatsky').
+-author('Andrii Zadorozhnii').
+-author('Alexander Kalenuk').
 -copyright('Synrc Research Center, s.r.o.').
 -compile(export_all).
 -include_lib("kvs/include/feeds.hrl").
@@ -151,15 +154,6 @@ edit_entry(FeedId, EId, NewDescription) ->
             kvs:put(NewEntry);
         {error, notfound}-> {error, notfound} end.
 
-remove_entry_comments(FId, EId) ->
-    AllComments = kvs:comments_by_entry(FId, EId),
-    [begin kvs:delete(comment, ID) end || #comment{id = ID, media = M} <- AllComments].
-
-entry_add_comment(FId, User, EntryId, ParentComment, CommentId, Content, Medias) ->
-     case kvs:get(entry,{EntryId, FId}) of
-         {ok, _E} -> kvs_comment:add(FId, User, EntryId, ParentComment, CommentId, Content, Medias);
-         _ -> ok end.
-
 like_list(undefined) -> [];
 like_list(Id) -> {ok, OneLike} = kvs:get(one_like, Id), [OneLike] ++ like_list(OneLike#one_like.next).
 like_list(undefined, _) -> [];
@@ -168,7 +162,7 @@ like_list(Id, N) -> {ok, OneLike} = kvs:get(one_like, Id), [OneLike] ++ like_lis
 
 entry_likes(Entry_id) ->
     case kvs:get(entry_likes, Entry_id) of
-        {ok, Likes} -> get_one_like_list(Likes#entry_likes.one_like_head);
+        {ok, Likes} -> like_list(Likes#entry_likes.one_like_head);
         {error, notfound} -> [] end.
 
 entry_likes_count(Entry_id) ->
@@ -183,27 +177,13 @@ user_likes_count(UserId) ->
 
 user_likes(UserId) ->
     case kvs:get(user_likes, UserId) of
-        {ok, Likes} -> get_one_like_list(Likes#user_likes.one_like_head);
+        {ok, Likes} -> like_list(Likes#user_likes.one_like_head);
         {error, notfound} -> [] end.
-
 
 user_likes(UserId, {Page, PageAmount}) ->
     case kvs:get(user_likes, UserId) of
-        {ok, Likes} -> lists:nthtail((Page-1)*PageAmount, get_one_like_list(Likes#user_likes.one_like_head, PageAmount*Page));
+        {ok, Likes} -> lists:nthtail((Page-1)*PageAmount, like_list(Likes#user_likes.one_like_head, PageAmount*Page));
         {error, notfound} -> [] end.
-
-comments_entries(UserUid, _, Page, PageAmount) ->
-    Pids = [Eid || #comment{entry_id=Eid} <- kvs:select(comment,
-        fun(#comment{author_id=Who}) when Who=:=UserUid ->true;(_)->false end)],
-    lists:flatten([kvs:select(entry,[{where, fun(#entry{entry_id=ID})-> ID=:=Pid end},
-        {order, {1, descending}},{limit, {1,1}}]) || Pid <- Pids]).
-
-get_my_discussions(FId, Page, PageAmount, UserUid) ->
-    Offset = case (Page-1)*PageAmount of 0 -> 1; M-> M  end,
-    Pids = [Eid || #comment{entry_id=Eid} <- kvs:select(comment,
-        fun(#comment{author_id=Who}) when Who=:=UserUid ->true;(_)->false end)],
-    lists:flatten([kvs:select(entry,[{where, fun(#entry{entry_id=ID})-> ID=:=Pid end},
-        {order, {1, descending}},{limit, {1,1}}]) || Pid <- Pids]).
 
 purge_feed(FeedId) ->
     {ok,Feed} = kvs:get(feed,FeedId),
@@ -212,7 +192,7 @@ purge_feed(FeedId) ->
     kvs:put(Feed#feed{top=undefined}).
 
 purge_unverified_feeds() ->
-    [purge_feed(FeedId) || #user{feed=FeedId,status=S,email=E} <- kvs:all(user),E==undefined].
+    [purge_feed(FeedId) || #user{feed=FeedId,status=S,email=E} <- kvs:all(user), E==undefined].
 
 %% MQ API
 

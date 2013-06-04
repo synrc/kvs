@@ -1,4 +1,5 @@
 -module(map_reduce).
+-author('Maxim Sokhatsky').
 -include_lib("log.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
