@@ -10,7 +10,8 @@
 -include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
--include_lib("kvs/include/membership_packages.hrl").
+-include_lib("kvs/include/membership.hrl").
+-include_lib("kvs/include/payments.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
@@ -74,8 +75,8 @@ add_purchases() ->
     ok.
 
 add_purchase(UserId, Package) ->
-    {ok, MPId} = kvs_membership:add_purchase(#membership_purchase{user_id=UserId, membership_package=Package}),
-    kvs_membership:set_purchase_state(MPId, ?MP_STATE_DONE, undefined).
+    {ok, MPId} = kvs_payment:add_payment(#payment{user_id=UserId, membership=Package}),
+    kvs_payment:set_payment_state(MPId, ?MP_STATE_DONE, undefined).
 
 add_seq_ids() ->
     Init = fun(Key) ->
@@ -87,7 +88,8 @@ add_seq_ids() ->
     Init("meeting"),
     Init("user_transaction"),
     Init("transaction"),
-    Init("membership_purchase"),
+    Init("membership"),
+    Init("payment"),
     Init("acl"),
     Init("acl_entry"),
     Init("feed"),

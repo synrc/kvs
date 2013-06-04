@@ -8,15 +8,15 @@
 -include_lib("kvs/include/acls.hrl").
 -include_lib("kvs/include/invites.hrl").
 -include_lib("kvs/include/meetings.hrl").
--include_lib("kvs/include/membership_packages.hrl").
+-include_lib("kvs/include/membership.hrl").
+-include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
 
-delete() -> ok.
 start() -> ok.
-stop() -> stopped.
+stop() -> ok.
 
 initialize() ->
     C = riak:client_connect(node()),
@@ -57,9 +57,6 @@ make_indices(#group_subscription{user_id=UId, group_id=GId}) -> [
     {<<"who_bin">>, key_to_bin(UId)},
     {<<"where_bin">>, key_to_bin(GId)}];
 
-make_indices(#user_bought_gifts{username=UId}) -> [
-    {<<"user_bought_gifts_username_bin">>, key_to_bin(UId)}];
-
 make_indices(#user{username=UId,zone=Zone}) -> [
     {<<"user_bin">>, key_to_bin(UId)},
     {<<"zone_bin">>, key_to_bin(Zone)}];
@@ -81,13 +78,12 @@ make_indices(Record) -> [
 riak_client() -> [{_,_,{_,C}}] = ets:lookup(config, "riak_client"), C.
 
 put(Records) when is_list(Records) -> lists:foreach(fun riak_put/1, Records);
-put(Record) -> store_riak:put([Record]).
+put(Record) -> riak_put(Record).
 
 riak_put(Record) ->
     Object = make_object(Record),
     Riak = riak_client(),
     Result = Riak:put(Object),
-    error_logger:info_msg("RIAK PUT RES ~p",[Result]),
     post_write_hooks(Record, Riak),
     Result.
 
@@ -95,12 +91,8 @@ put_if_none_match(Record) ->
     Object = make_object(Record),
     Riak = riak_client(),
     case Riak:put(Object, [if_none_match]) of
-        ok ->
-            post_write_hooks(Record, Riak),
-            ok;
-        Error ->
-            Error
-    end.
+        ok -> post_write_hooks(Record, Riak), ok;
+        Error -> Error end.
 
 update(Record, Object) ->
     NewObject = make_object(Record),

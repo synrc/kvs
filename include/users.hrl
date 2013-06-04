@@ -88,11 +88,6 @@
 -record(user_ignores, {who, whom}).
 -record(user_ignores_rev, {whom, who}).
 
--record(user_bought_gifts, {
-        username,
-        timestamp,
-        gift_id }).
-
 -record(user_count, {count}).
 -record(twitter_oauth, {user_id, token, secret}).
 -record(facebook_oauth, {user_id, access_token}).
