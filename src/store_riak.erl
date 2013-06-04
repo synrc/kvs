@@ -129,8 +129,7 @@ post_write_hooks(R,C) ->
                 case R#user.facebook_id of
                   undefined -> nothing;
                   _ -> C:put(make_object({facebook, R#user.username, R#user.facebook_id})) end;
-        _ -> continue
-    end.
+        _ -> continue end.
 
 get(Tab, Key) ->
     Bucket = key_to_bin(Tab),
@@ -141,22 +140,14 @@ riak_get(Bucket,Key) ->
     C = riak_client(),
     RiakAnswer = C:get(Bucket,Key),
     case RiakAnswer of
-        {ok, O} -> {ok,riak_object:get_value(O)};
-        X -> X
-    end.
+        {ok, O} -> {ok, riak_object:get_value(O)};
+        X -> X end.
 
 get_for_update(Tab, Key) ->
     C = riak_client(),
-    case C:get(key_to_bin(Tab), key_to_bin(Key), [{last_write_wins,true},{allow_mult,false}]) of
+    case C:get(key_to_bin(Tab), key_to_bin(Key)) of
         {ok, O} -> {ok, riak_object:get_value(O), O};
-        Error -> Error
-    end.
-
-get_word(Word) -> store_riak:get(ut_word,Word).
-get_translation({Lang, Word}) -> store_riak:get(ut_translation, Lang ++ "_" ++ Word).
-
-delete(Keys) when is_list(Keys) -> lists:foreach(fun mnesia:delete_object/1, Keys); % TODO
-delete(Keys) -> delete([Keys]).
+        Error -> Error end.
 
 delete(Tab, Key) ->
     C = riak_client(),
@@ -179,28 +170,11 @@ key_to_bin(Key) ->
        true ->  [ListKey] = io_lib:format("~p", [Key]), erlang:list_to_binary(ListKey)
     end.
 
-select(RecordName, Pred) when is_function(Pred) ->
-    All = all(RecordName),
-    lists:filter(Pred, All);
-
-select(RecordName, Select) when is_list(Select) ->
-    Where = proplists:get_value(where, Select, fun(_)->true end),
-    {Position, _Order} = proplists:get_value(order, Select, {1, descending}),
-    Limit = proplists:get_value(limit, Select, all),
-    Selected = select(RecordName, Where),
-    Sorted = lists:keysort(Position, Selected),
-    case Limit of
-        all -> Sorted;
-        {Offset, Amoumt} -> lists:sublist(Sorted, Offset, Amoumt) end.
-
-count(_RecordName) -> erlang:length(all(_RecordName)).
-
 all(RecordName) ->
     Riak = riak_client(),
-    [RecordStr] = io_lib:format("~p",[RecordName]),
-    RecordBin = erlang:list_to_binary(RecordStr),
+    RecordBin = key_to_bin(RecordName),
     {ok,Keys} = Riak:list_keys(RecordBin),
-    Results = [ get_record_from_table({RecordBin, Key, Riak}) || Key <- Keys ],
+    Results = [ riak_get_raw({RecordBin, Key, Riak}) || Key <- Keys ],
     [ Object || Object <- Results, Object =/= failure ].
 
 all_by_index(Tab, IndexId, IndexVal) ->
@@ -213,7 +187,7 @@ all_by_index(Tab, IndexId, IndexVal) ->
                     {error, notfound} -> Acc end end,
     lists:foldl(F, [], Keys).
 
-get_record_from_table({RecordBin, Key, Riak}) ->
+riak_get_raw({RecordBin, Key, Riak}) ->
     case Riak:get(RecordBin, Key) of
         {ok,O} -> riak_object:get_value(O);
         X -> failure end.

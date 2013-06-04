@@ -1,5 +1,5 @@
-KVS: Data Framework for KV databases
-====================================
+KVS: Data Framework for KV Stores
+=================================
 
 Overview
 --------

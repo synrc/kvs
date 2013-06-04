@@ -228,19 +228,23 @@ handle_notice(["kvs_feed", "user", FeedOwner, "entry", EntryId, "add"] = Route,
         %% user added message to own feed
         FeedOwner == From andalso FeedOwner == WorkerOwner->
             FilteredDst = [D || {_, group} = D <- Destinations],
-            kvs_feed:add_entry(Feed, From, FilteredDst, EntryId, Desc, Medias, {user, normal},""), self() ! {feed_refresh,Feed,20};
+            kvs_feed:add_entry(Feed, From, FilteredDst, EntryId, Desc, Medias, {user, normal},""),
+            self() ! {feed_refresh,Feed,20};
 
         %% friend added message to public feed
         FeedOwner == From -> 
-            kvs_feed:add_entry(Feed, From, [], EntryId, Desc, Medias, {user, normal},""), self() ! {feed_refresh,Feed,20};
+            kvs_feed:add_entry(Feed, From, [], EntryId, Desc, Medias, {user, normal},""),
+            self() ! {feed_refresh,Feed,20};
 
         %% direct message to worker owner
         FeedOwner == WorkerOwner -> 
-            kvs_feed:add_entry(Direct, From, [{FeedOwner, user}], EntryId, Desc, Medias, {user,direct}, ""), self() ! {direct_refresh,Direct,20};
+            kvs_feed:add_entry(Direct, From, [{FeedOwner, user}], EntryId, Desc, Medias, {user,direct}, ""),
+            self() ! {direct_refresh,Direct,20};
 
         %% user sent direct message to friend, add copy to his direct feed
         From == WorkerOwner ->
-            kvs_feed:add_entry(Direct, WorkerOwner, Destinations, EntryId, Desc, Medias, {user, direct}, ""), self() ! {direct_refresh,Direct,20};
+            kvs_feed:add_entry(Direct, WorkerOwner, Destinations, EntryId, Desc, Medias, {user, direct}, ""),
+            self() ! {direct_refresh,Direct,20};
 
         true -> ?INFO("not matched case in entry->add")
     end,
