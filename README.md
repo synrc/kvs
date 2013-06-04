@@ -11,10 +11,13 @@ and provides high-level rich API to stored and extend following data:
 * Users
 * Groups
 * Subscriptions
-* Feeds and Comments
+* Feeds
+* Comments
 * Meetings
-* Accounts and Payments
-* Products and Purchases
+* Accounts
+* Payments
+* Products
+* Purchases
 
 This Framework provides also a Plugin for Feed Server for sequential consistency.
 All write requests with given object keys will be handled by single processes
