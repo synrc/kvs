@@ -1,4 +1,4 @@
--record(user_products, {
+-record(user_product, {
         username,
         timestamp,
         product_id }).

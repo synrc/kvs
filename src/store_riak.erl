@@ -10,6 +10,7 @@
 -include_lib("kvs/include/meetings.hrl").
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
+-include_lib("kvs/include/purchases.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
 -include_lib("stdlib/include/qlc.hrl").
@@ -60,6 +61,10 @@ make_indices(#group_subscription{user_id=UId, group_id=GId}) -> [
 make_indices(#user{username=UId,zone=Zone}) -> [
     {<<"user_bin">>, key_to_bin(UId)},
     {<<"zone_bin">>, key_to_bin(Zone)}];
+
+make_indices(#user_product{username=UId,product_id=PId}) -> [
+    {<<"user_bin">>, key_to_bin(UId)},
+    {<<"product_id">>, key_to_bin(PId)}];
 
 make_indices(#comment{id={CID,EID},author_id=Who}) -> [
     {<<"comment_bin">>, key_to_bin({CID,EID})},
