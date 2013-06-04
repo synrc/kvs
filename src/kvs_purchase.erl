@@ -21,3 +21,19 @@ give(UId, PId) ->
 
 products(UId) ->
     kvs:all_by_index(user_product, <<"user_bin">>, list_to_binary(UId)).
+
+handle_notice(["kvs_purchase", "user", UId, "buy"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): buy_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {GId} = Message,
+    buy(UId, GId),
+    {noreply, State};
+
+handle_notice(["kvs_purchase", "user", UId, "give"] = Route,
+    Message, #state{owner = Owner, type =Type} = State) ->
+    ?INFO(" queue_action(~p): give_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    {GId} = Message,
+    give(UId, GId),
+    {noreply, State};
+
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown PURCHASE notice").

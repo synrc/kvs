@@ -220,7 +220,6 @@ handle_notice(["system", "create_group"] = Route,
     mqs:notify([group, init], {GId, FId}),
     kvs_users:init_mq(Group),
 
-
     {noreply, State};
 
 handle_notice(["db", "group", GId, "remove_group"] = Route, 
@@ -331,27 +330,6 @@ handle_notice(["subscription", "user", _UId, "update"] = Route,
     ?INFO(" queue_action(~p): update_user: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {NewUser} = Message,
     kvs_users:update_user(NewUser),
-    {noreply, State};
-
-handle_notice(["gifts", "user", UId, "buy_gift"] = Route,
-    Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO(" queue_action(~p): buy_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    {GId} = Message,
-    kvs_users:buy_gift(UId, GId),
-    {noreply, State};
-
-handle_notice(["gifts", "user", UId, "give_gift"] = Route,
-    Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO(" queue_action(~p): give_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    {GId} = Message,
-    kvs_users:give_gift(UId, GId),
-    {noreply, State};
-
-handle_notice(["gifts", "user", UId, "mark_gift_as_deliving"] = Route,
-    Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO(" queue_action(~p): mark_gift_as_deliving: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    {GId, GTimestamp} = Message,
-    kvs_users:mark_gift_as_deliving(UId, GId, GTimestamp),
     {noreply, State};
 
 handle_notice(["login", "user", UId, "update_after_login"] = Route,
