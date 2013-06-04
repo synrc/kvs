@@ -12,7 +12,7 @@ define_access({user, _Username} = Accessor, Resource, Action) -> do_define_acces
 define_access({user_type, _Usertype} = Accessor, Resource, Action) -> do_define_access(Accessor, Resource, Action);
 define_access({ip, _Ip} = Accessor, Resource, Action) -> do_define_access(Accessor, Resource, Action).
 
-do_define_access(Accessor, Resource, Action) -> kvs:acl_add_entry(select_type(Resource), Accessor, Action).
+do_define_access(Accessor, Resource, Action) -> acl_add_entry(select_type(Resource), Accessor, Action).
 
 check(Keys) ->
     Acls = [Acl || {ok, Acl = #acl_entry{}} <- [kvs:get(acl_entry, Key) || Key <- Keys]],

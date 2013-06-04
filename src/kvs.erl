@@ -108,6 +108,11 @@ add_translations() ->
     end, ?URL_DICTIONARY).
 
 add_sample_users() ->
+
+    Groups = [ #group{username="Clojure"},
+               #group{username="Haskell"},
+               #group{username="Erlang"} ],
+
     UserList = [
                      #user{username = "maxim", password="kaka15ra",
                            name = "Maxim", surname = "Sokhatsky", feed = feed_create(),
@@ -128,34 +133,21 @@ add_sample_users() ->
                      } 
          ],
 
+    kvs:put(Groups),
 
-    ?INFO("creating groups"),
-
-%    GId1  = kvs_group:create_group_directly_to_db("maxim", "kakaranet", "Kakaranet", "Kakaranet'e Hoşgeldiniz", public),
-%    GId2  = kvs_group:create_group_directly_to_db("maxim", "yeniler", "Yeniler", "So, you must be new here.", public),
-
-    ?INFO("adding users accounts"),
     [ begin
           kvs_account:create_account(Me#user.username),
           kvs_account:transaction(Me#user.username, quota, kvs:get_config("accounts/default_quota", 300), #tx_default_assignment{}),
-          kvs:put(Me#user{password = kvs:sha(Me#user.password),
-                                starred = feed_create(),
-                                pinned = feed_create()})
+          kvs:put(Me#user{password = kvs:sha(Me#user.password), starred = feed_create(), pinned = feed_create()})
       end || Me <- UserList],
-    ?INFO("adding users to groups"),
-    [ begin
-        ok
-%          kvs_users:init_mq(Me#user.username, [GId1, GId2]),
-%          kvs_group:add_to_group_directly_to_db(Me#user.username, GId1, member),
-%          kvs_group:add_to_group_directly_to_db(Me#user.username, GId2, member)
-      end || Me <- UserList ],
+
     kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
     kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
-    ?INFO("making all users each other friends").
-%    [[case Me == Her of
-%        true -> ok;
-%        false -> kvs_users:subscribe(Me#user.username, Her#user.username)
-%    end || Her <- UserList] || Me <- UserList].
+
+    [ kvs_user:subscribe(Me#user.username, Her#user.username) || Her <- UserList, Me <- UserList, Her /= Me ],
+    [ kvs_user:init_mq(U) || U <- UserList ],
+
+    ok.
 
 add_sample_packages() -> kvs_membership:add_sample_data().
 version() -> ?INFO("version: ~p", [1]).
