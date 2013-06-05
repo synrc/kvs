@@ -115,18 +115,16 @@ tx_list(UserId, StartFrom, Limit) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-handle_notice(["transaction", "user", User, "add_transaction"] = Route,
+handle_notice(["kvs_account", "user", User, "transaction"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): add_transaction: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
     MP = Message,
-    kvs:add_transaction_to_user(User,MP),
+    add_transaction_to_user(User,MP),
     {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown ACCOUNTS notice").
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 add_transaction_to_user(UserId,Purchase) ->
     {ok,Team} = case kvs:get(user_transaction, UserId) of

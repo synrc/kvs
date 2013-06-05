@@ -132,28 +132,28 @@ payment_id() ->
     NextId = kvs:next_id("payment"),
     lists:concat([kvs_membership:timestamp(), "_", NextId]).
 
-handle_notice(["kvs_payment", "user", _, "set_purchase_state"] = Route,
+handle_notice(["kvs_payment", "user", _, "set_state"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): set_purchase_state: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),  
     {MPId, NewState, Info} = Message,
     set_payment_state(MPId, NewState, Info),
     {noreply, State};
 
-handle_notice(["kvs_payment", "user", _, "add_purchase"] = Route,
+handle_notice(["kvs_payment", "user", _, "add"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): add_purchase: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
     {MP} = Message,
     add_payment(MP),
     {noreply, State};
 
-handle_notice(["kvs_payment", "user", _, "set_purchase_external_id"] = Route,
+handle_notice(["kvs_payment", "user", _, "set_external_id"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): set_purchase_external_id: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {PurchaseId, TxnId} = Message,
     set_payment_external_id(PurchaseId, TxnId),
     {noreply, State};
 
-handle_notice(["kvs_payment", "user", _, "set_purchase_info"] = Route,
+handle_notice(["kvs_payment", "user", _, "set_info"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): set_purchase_info: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {OrderId, Info} = Message,

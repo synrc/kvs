@@ -14,26 +14,11 @@ create(UID, Name) -> create(UID, Name, "", date(), time(), 100, 100, undefined, 
 create(UID, Name, Desc, Date, Time, Players, Quota, Awards, Type, Game, Mode, Tours, Speed) ->
     NodeAtom = nsx_opt:get_env(store,game_srv_node,'game@doxtop.cc'),
     TID = rpc:call(NodeAtom, game_manager, gen_game_id, []),
-
     CTime = erlang:now(),
-    ok = kvs:put(#meeting{name = Name,
-                                   id = TID,
-                                   description = Desc,
-                                   quota = Quota,
-                                   players_count = Players,
-                                   start_date = Date,
-                                   awards = Awards,
-                                   creator = UID,
-                                   created = CTime,
-                                   game_type = Game,
-                                   game_mode = Mode,
-                                   type = Type,
-                                   tours = Tours,
-                                   speed = Speed,
-                                   start_time = Time,
-                                   status = created,
-                                   owner = UID}),
-
+    kvs:put(#meeting{name = Name, id = TID, description = Desc, quota = Quota,
+        players_count = Players, start_date = Date, awards = Awards,
+        creator = UID, created = CTime, game_type = Game, game_mode = Mode,
+        type = Type, tours = Tours, speed = Speed, start_time = Time, status = created, owner = UID}),
     TID.
 
 get(TID) ->
@@ -60,39 +45,34 @@ clear() -> [destroy(T#meeting.id) || T <- kvs:all(meeting)].
 lost() -> lists:usort([erlang:element(3, I) || I <- kvs:all(play_record)]).
 fake_join(TID) -> [kvs_meeting:join(auth:ima_gio2(X),TID)||X<-lists:seq(1,30)].
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-handle_notice(["tournaments", "user", UId, "create"] = Route,
+handle_notice(["kvs_meeting", "user", UId, "create"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): create: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
     case kvs_meeting:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
         {error,X} -> 
             ?ERROR("Error creating tournament: ~p", X);
-        TId -> skip
-    end,
+        TId -> skip end,
     {noreply, State};
 
-handle_notice(["tournaments", "user", UId, "create_and_join"] = Route,
+handle_notice(["kvs_meeting", "user", UId, "create_and_join"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): create_and_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
     case kvs_meeting:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
         {error,X} -> 
             ?ERROR("Error creating tournament: ~p", X);
-        TId -> 
-            kvs_meeting:join(UId, TId)
-    end,
+        TId -> kvs_meeting:join(UId, TId) end,
     {noreply, State};
 
-handle_notice(["system", "tournament_join"] = Route,
+handle_notice(["kvs_meeting", "user", UId, "join"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): tournament_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UId, TId} = Message,
     kvs_meeting:join(UId, TId),
     {noreply, State};
 
-handle_notice(["system", "tournament_remove"] = Route,
+handle_notice(["kvs_meeting", "user", UId, "leave"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): tournament_remove: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UId, TId} = Message,
@@ -100,9 +80,6 @@ handle_notice(["system", "tournament_remove"] = Route,
     {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown MEETINGS notice").
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 join_tournament(UserId, TournamentId) ->
     case kvs:get(user, UserId) of

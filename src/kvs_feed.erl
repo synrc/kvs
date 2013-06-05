@@ -196,11 +196,6 @@ purge_unverified_feeds() ->
 
 %% MQ API
 
-handle_notice(["kvs_feed", "delete", Owner] = Route,
-    Message, #state{owner = Owner} = State) ->
-    ?INFO("feed(~p): notification received: User=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
-    {stop, normal, State};
-
 handle_notice(["kvs_feed", "group", GroupId, "entry", EntryId, "add"] = Route, [From|_] = Message, #state{owner = Owner, feed = Feed} = State) ->
     ?INFO("feed(~p): group message: Owner=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
     [From, _Destinations, Desc, Medias] = Message,
@@ -211,7 +206,7 @@ handle_notice(["kvs_feed", "group", GroupId, "entry", EntryId, "add"] = Route, [
             {ok, Group} = kvs:get(group, GroupId),
             GE = Group#group.entries_count,
             kvs:put(Group#group{entries_count = GE+1}),
-            {ok, Subs} = kvs:get(group_subs, {From, GroupId}),
+            {ok, Subs} = kvs:get(group_subscription, {From, GroupId}),
             SE = Subs#group_subscription.user_posts_count,
             kvs:put(Subs#group_subscription{user_posts_count = SE+1})
     end,
@@ -274,7 +269,7 @@ handle_notice(["feed", "user", UId, "post_note"] = Route,
     kvs_feed:add_entry(Feed, UId, [], Id, Note, [], {user, system_note}, ""),
     {noreply, State};
 
-handle_notice(["kvs_feed", _, WhoShares, "entry", NewEntryId, "share"],
+handle_notice(["kvs_feed", _, WhoShares, "entry", NewEntryId, "share"] = Route,
                 #entry{entry_id = _EntryId, raw_description = Desc, media = Medias, to = Destinations,
                 from = From} = E, #state{feed = Feed, type = user} = State) ->
     %% FIXME: sharing is like posting to the wall

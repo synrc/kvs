@@ -363,28 +363,6 @@ handle_notice(["kvs","system", "delete"] = Route,
     kvs:delete(Where, What),
     {noreply, State};
 
-handle_notice(["db", "group", GroupId, "update_group"] = Route, 
-    Message, #state{owner=ThisGroupOwner, type=Type} = State) ->
-    ?INFO("queue_action(~p): update_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, ThisGroupOwner}, Route, Message]),    
-    {_UId, _GroupUsername, Name, Description, Owner, Publicity} = Message,
-    SanePublicity = case Publicity of
-        "public" -> public;
-        "moderated" -> moderated;
-        "private" -> private;
-        _ -> undefined
-    end,
-    SaneOwner = case kvs:get(user, Owner) of
-        {ok, _} -> Owner;
-        _ -> undefined
-    end,
-    {ok, #group{}=Group} = kvs:get(group, GroupId),
-    NewGroup = Group#group{
-                   name = coalesce(Name,Group#group.name),
-                   description = coalesce(Description,Group#group.description),
-                   publicity = coalesce(SanePublicity,Group#group.publicity),
-                   owner = coalesce(SaneOwner,Group#group.owner)},
-    kvs:put(NewGroup),
-    {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown KVS notice").
 
