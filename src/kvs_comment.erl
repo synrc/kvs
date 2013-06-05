@@ -1,7 +1,7 @@
 -module(kvs_comment).
 -copyright('Synrc Research Center s.r.o.').
 -author('Alexander Kalenuk').
--include("feeds.hrl").
+-include_lib("kvs/include/feeds.hrl").
 -compile(export_all).
 
 add(FId, User, EntryId, ParentComment, CommentId, Content, Medias) ->
