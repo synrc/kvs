@@ -167,14 +167,14 @@ handle_notice(["kvs_group", "leave", GroupName] = Route,
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown GROUP notice").
 
 build_group_relations(Group) -> [
-    msq:key( [kvs_group, create] ),
-    msq:key( [kvs_group, update, Group] ),
-    msq:key( [kvs_group, remove, Group] ),
-    msq:key( [kvs_group, join, Group] ),
-    msq:key( [kvs_group, leave, Group] ),
-    msq:key( [kvs_group, like, Group]),   % for comet mostly
-    msq:key( [kvs_feed, delete, Group] ),
-    msq:key( [kvs_feed, group, Group, '*', '*', '*'] )
+    mqs:key( [kvs_group, create] ),
+    mqs:key( [kvs_group, update, Group] ),
+    mqs:key( [kvs_group, remove, Group] ),
+    mqs:key( [kvs_group, join, Group] ),
+    mqs:key( [kvs_group, leave, Group] ),
+    mqs:key( [kvs_group, like, Group]),   % for comet mostly
+    mqs:key( [kvs_feed, delete, Group] ),
+    mqs:key( [kvs_feed, group, Group, '*', '*', '*'] )
     ].
 
 init_mq(Group=#group{}) ->
