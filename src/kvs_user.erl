@@ -110,14 +110,14 @@ init_mq(User=#user{}) ->
         {error,Reason} -> ?ERROR("init_mq error: ~p",[Reason]) end.
 
 build_user_relations(User, Groups) -> [
-    msq:key( [kvs_user, '*', User]),
-    msq:key( [kvs_feed, user, User, '*', '*', '*']),
-    msq:key( [kvs_feed, user, User, '*'] ),
-    msq:key( [kvs_payment, user, User, '*']),
-    msq:key( [kvs_payment, user, User, '*']),
-    msq:key( [kvs_account, user, User, '*']),
-    msq:key( [kvs_meeting, user, User, '*']),
-    msq:key( [kvs_purchase, user, User, '*']) |
+    mqs:key( [kvs_user, '*', User]),
+    mqs:key( [kvs_feed, user, User, '*', '*', '*']),
+    mqs:key( [kvs_feed, user, User, '*'] ),
+    mqs:key( [kvs_payment, user, User, '*']),
+    mqs:key( [kvs_payment, user, User, '*']),
+    mqs:key( [kvs_account, user, User, '*']),
+    mqs:key( [kvs_meeting, user, User, '*']),
+    mqs:key( [kvs_purchase, user, User, '*']) |
   [ mqs:key( [kvs_feed, group, G, '*', '*', '*']) || G <- Groups ]
     ].
 
