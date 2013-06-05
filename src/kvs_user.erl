@@ -114,7 +114,6 @@ build_user_relations(User, Groups) -> [
     mqs:key( [kvs_feed, user, User, '*', '*', '*']),
     mqs:key( [kvs_feed, user, User, '*'] ),
     mqs:key( [kvs_payment, user, User, '*']),
-    mqs:key( [kvs_payment, user, User, '*']),
     mqs:key( [kvs_account, user, User, '*']),
     mqs:key( [kvs_meeting, user, User, '*']),
     mqs:key( [kvs_purchase, user, User, '*']) |
