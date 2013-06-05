@@ -33,19 +33,10 @@ add_entry(FId, User, To, EntryId, Desc, Medias, Type, SharedBy, _) ->
 
     kvs:put(#feed{id = FId, top = {EntryId, FId}}), % update feed top with current
 
-    Entry  = #entry{id = {EntryId, FId},
-                    entry_id = EntryId,
-                    feed_id = FId,
-                    from = User,
-                    to = To,
-                    type = Type,
-                    media = Medias,
-                    created_time = now(),
-                    description = Desc,
-                    raw_description = Desc,
-                    shared = SharedBy,
-                    next = Next,
-                    prev = Prev},
+    Entry  = #entry{id = {EntryId, FId}, entry_id = EntryId, feed_id = FId, from = User,
+                    to = To, type = Type, media = Medias, created_time = now(),
+                    description = Desc, raw_description = Desc, shared = SharedBy,
+                    next = Next, prev = Prev},
 
     ModEntry = case catch feedformat:format(Entry) of
                    {_, Reason} -> ?ERROR("feedformat error: ~p", [Reason]), Entry;

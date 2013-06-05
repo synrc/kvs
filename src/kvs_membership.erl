@@ -42,7 +42,7 @@ add_sample_data()->
     #membership{no = 7, amount = 50,  currency = 0,  quota = 90,  fee = 50},
     #membership{no = 8, amount = 100, currency = 40, quota = 120, fee = 60}],
     WithPaymentTypes = [
-        Package#membership{id = generate_id(), payment_type=Payment} ||
+        Package#membership{id = Package#membership.no, payment_type=Payment} ||
             Payment <- [facebook, credit_card, wire_transfer, paypal, mobile],
             Package <- SamplePackages],
     Enabled = [P#membership{available_for_sale = true} || P <- WithPaymentTypes],

@@ -93,7 +93,7 @@ acl_add_entry(Resource, Accessor, Action) ->
               {ok, A} ->
                   A;
               %% if acl record wasn't created already
-              {error, notfound} ->
+              {error, _} ->
                   A = #acl{id = Resource, resource=Resource},
                   kvs:put(A),
                   A
@@ -103,7 +103,7 @@ acl_add_entry(Resource, Accessor, Action) ->
 
     case kvs:get(acl_entry, EntryId) of
         %% there is no entries for specified Acl and Accessor, we have to add it
-        {error, notfound} ->
+        {error, _} ->
             Next = undefined,
             Prev = case Acl#acl.top of
                        undefined ->
@@ -116,7 +116,7 @@ acl_add_entry(Resource, Accessor, Action) ->
                                    kvs:put(EditedEntry), % update prev entry
                                    TopEntry#acl_entry.id;
 
-                               {error, notfound} ->
+                               {error, _} ->
                                    undefined
                            end
                    end,

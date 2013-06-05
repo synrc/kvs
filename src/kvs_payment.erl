@@ -43,7 +43,7 @@ add_payment(#payment{} = MP) -> add_payment(#payment{} = MP, undefined, undefine
 add_payment(#payment{} = MP, State0, Info) ->
     case kvs:get(payment, MP#payment.id) of
         {ok, _} -> {error, already_bought_that_one};
-        {error, notfound} ->
+        {error, _} ->
             Start = now(),
             State = default_if_undefined(State0, undefined, ?MP_STATE_ADDED),
             StateLog = case Info of
@@ -59,8 +59,8 @@ add_payment(#payment{} = MP, State0, Info) ->
 
 add_to_user(UserId,Payment) ->
     {ok,Team} = case kvs:get(user_payment, UserId) of
-                     {ok,T} -> ?ERROR("user_payment found"), {ok,T};
-                     _ -> ?ERROR("user_payment not found"),
+                     {ok,T} -> {ok,T};
+                     _ -> ?INFO("user_payment not found ~p. create top",[UserId]),
                           Head = #user_payment{ user = UserId, top = undefined},
                           {kvs:put(Head),Head}
                 end,

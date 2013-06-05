@@ -28,7 +28,7 @@ initialize() ->
 dir() ->
     C = riak_client(),
     {ok,Buckets} = C:list_buckets(),
-    [binary_to_list(X)||X<-Buckets].
+    [{table,binary_to_list(X)}||X<-Buckets].
 
 riak_clean(Table) when is_list(Table)->
     C = riak_client(),
@@ -64,7 +64,11 @@ make_indices(#user{username=UId,zone=Zone}) -> [
 
 make_indices(#user_product{username=UId,product_id=PId}) -> [
     {<<"user_bin">>, key_to_bin(UId)},
-    {<<"product_id">>, key_to_bin(PId)}];
+    {<<"product_bin">>, key_to_bin(PId)}];
+
+make_indices(#payment{id=Id,user_id=UId}) -> [
+    {<<"payment_bin">>, key_to_bin(Id)},
+    {<<"user_bin">>, key_to_bin(UId)}];
 
 make_indices(#comment{id={CID,EID},author_id=Who}) -> [
     {<<"comment_bin">>, key_to_bin({CID,EID})},
