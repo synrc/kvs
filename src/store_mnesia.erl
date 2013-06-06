@@ -18,7 +18,7 @@
 -compile(export_all).
 -define(CREATE_TAB(T), create_table(T, record_info(fields, T), [{storage, permanent}]) ).
 
-start() -> mnesia:change_table_copy_type(schema, node(), disc_copies).
+start() -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies).
 stop() -> mnesia:stop().
 delete() -> mnesia:delete_schema([node()]).
 version() -> {version,"KVS MNESIA Embedded"}.
@@ -46,6 +46,8 @@ initialize() ->
     ok = add_table_index(comment, entry_id),
     ok = add_table_index(subscription, who),
     ok = add_table_index(subscription, whom),
+    ok = add_table_index(group_subscription, who),
+    ok = add_table_index(group_subscription, where),
     ok = add_table_index(entry, feed_id),
     ok = add_table_index(entry, entry_id),
     ok = add_table_index(entry, from),
@@ -95,9 +97,7 @@ all(RecordName) -> flatten(fun() -> Lists = mnesia:all_keys(RecordName), [ mnesi
 all_by_index(RecordName,Key,Value) -> flatten(fun() -> mnesia:index_read(RecordName,Value,Key) end).
 
 next_id(RecordName) -> next_id(RecordName, 1).
-next_id(RecordName, Incr) ->
-%    [RecordStr] = io_lib:format("~p",[RecordName]),
-    mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
+next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
 
 just_one(Fun) ->
     case mnesia:transaction(Fun) of

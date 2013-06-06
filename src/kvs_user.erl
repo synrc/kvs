@@ -46,7 +46,7 @@ process_register(#user{username=U} = RegisterData0) ->
 
 check_username(Name, FbId) ->
     case kvs_users:get(Name) of
-        {error, notfound} -> {ok, Name};
+        {error, _} -> {ok, Name};
         {ok, User} when FbId =/= undefined -> check_username(User#user.username  ++ integer_to_list(crypto:rand_uniform(0,10)), FbId);
         {ok, _}-> {error, username_taken} end.
 
@@ -97,7 +97,7 @@ subscription_mq(Type, Action, MeId, ToId) ->
 
 init_mq(User=#user{}) ->
     Groups = kvs_group:participate(User),
-    ?INFO("~p init mq. users: ~p", [User, Groups]),
+%    ?INFO("~p init mq. users: ~p", [User, Groups]),
     UserExchange = ?USER_EXCHANGE(User#user.username),
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
     case mqs:open([]) of

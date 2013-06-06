@@ -7,12 +7,10 @@
 -compile(export_all).
 
 user_paid(UId) ->
-    {_, UP} = kvs:get(user_payment, UId),
-    case UP of
-        notfound -> false;
-        #user_payment{top = undefined} -> false;
-        _ -> true
-    end.
+    case kvs:get(user_payment, UId) of
+        {error,_} -> false;
+        {ok,#user_payment{top = undefined}} -> false;
+        _ -> true end.
 
 default_if_undefined(Value, Undefined, Default) ->
     case Value of
@@ -53,7 +51,7 @@ add_payment(#payment{} = MP, State0, Info) ->
             Id = default_if_undefined(MP#payment.id, undefined, payment_id()),
             Purchase = MP#payment{id = Id, state = State, start_time = Start, state_log = StateLog},
             %mqs:notify_purchase(Purchase),
-            ?INFO("Purchase added ~p ~p",[Purchase#payment.user_id, Purchase]),
+%            ?INFO("Payment added ~p ~p",[Purchase#payment.user_id, Purchase]),
             add_to_user(Purchase#payment.user_id, Purchase)
     end.
 
@@ -74,8 +72,7 @@ add_to_user(UserId,Payment) ->
                      Next = TopEntry#payment.id,
                      EditedEntry = TopEntry#payment{next = TopEntry#payment.next, prev = EntryId},
                      kvs:put(EditedEntry);
-                {error,notfound} -> Next = undefined end
-    end,
+                {error, _} -> Next = undefined end end,
 
     kvs:put(#user_payment{ user = UserId, top = EntryId}), % update team top with current
 

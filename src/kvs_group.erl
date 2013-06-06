@@ -46,10 +46,10 @@ delete(GroupName) ->
                     mqs_channel:close(Channel);
                 {error,Reason} -> ?ERROR("delete group failed: ~p",[Reason]) end end.
 
-participate(UserName) -> [GroupName || #group_subscription{group_id=GroupName} <- kvs:all_by_index(group_subscription, <<"who_bin">>, UserName) ].
-members(GroupName) -> [UserName || #group_subscription{user_id=UserName} <- kvs:all_by_index(group_subscription, <<"where_bin">>, GroupName) ].
-members_by_type(GroupName, Type) -> [UserName || #group_subscription{user_id=UserName, user_type=T} <- kvs:all_by_index(group_subscription, <<"where_bin">>, GroupName), T == Type ].
-members_with_types(GroupName) -> [{UserName, Type} || #group_subscription{user_id=UserName, user_type=Type} <- kvs:all_by_index(group_subscriptioin, <<"where_bin">>, list_to_binary(GroupName)) ].
+participate(UserName) -> [GroupName || #group_subscription{where=GroupName} <- kvs:all_by_index(group_subscription, <<"who_bin">>, UserName) ].
+members(GroupName) -> [UserName || #group_subscription{who=UserName} <- kvs:all_by_index(group_subscription, <<"where_bin">>, GroupName) ].
+members_by_type(GroupName, Type) -> [UserName || #group_subscription{who=UserName, type=T} <- kvs:all_by_index(group_subscription, <<"where_bin">>, GroupName), T == Type ].
+members_with_types(GroupName) -> [{UserName, Type} || #group_subscription{who=UserName, type=Type} <- kvs:all_by_index(group_subscriptioin, <<"where_bin">>, list_to_binary(GroupName)) ].
 
 owner(UserName, GroupName) ->
     case kvs:get(group, GroupName) of
@@ -63,11 +63,11 @@ member(UserName, GroupName) ->
 
 member_type(UserName, GroupName) ->
     case kvs:get(group_subs, {UserName, GroupName}) of
-        {error, notfound} -> not_in_group;
-        {ok, #group_subscription{user_type=Type}} -> Type end.
+        {error, _} -> not_in_group;
+        {ok, #group_subscription{type=Type}} -> Type end.
 
 add(UserName, GroupName, Type) ->
-    kvs:put(#group_subscription{key={UserName,GroupName},user_id=UserName, group_id=GroupName, user_type=Type}),
+    kvs:put(#group_subscription{key={UserName,GroupName},who=UserName, where=GroupName, type=Type}),
     {ok, Group} = kvs:get(group, GroupName),
     Users = Group#group.users_count,
     kvs:put(Group#group{users_count = Users + 1}).

@@ -78,7 +78,7 @@ acl_entries(AclId) ->
     RA = kvs:get(acl, erlang:list_to_binary(AclStr)),
     case RA of
         {ok,RO} -> riak_read_acl_entries(RO#acl.top, []);
-        {error, notfound} -> [] end.
+        {error, _} -> [] end.
 
 riak_read_acl_entries(undefined, Result) -> Result;
 riak_read_acl_entries(Next, Result) ->
@@ -86,7 +86,7 @@ riak_read_acl_entries(Next, Result) ->
     RA = kvs:get(acl_entry,erlang:list_to_binary(NextStr)),
     case RA of
          {ok,RO} -> riak_read_acl_entries(RO#acl_entry.prev, Result ++ [RO]);
-         {error,notfound} -> Result end.
+         {error, _} -> Result end.
 
 acl_add_entry(Resource, Accessor, Action) ->
     Acl = case kvs:get(acl, Resource) of

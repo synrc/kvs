@@ -24,9 +24,7 @@ create(UID, Name, Desc, Date, Time, Players, Quota, Awards, Type, Game, Mode, To
 get(TID) ->
     case kvs:get(meeting, TID) of
         {ok, Tournament} -> Tournament;
-        {error, not_found} -> #meeting{};
-        {error, notfound} -> #meeting{}
-    end.
+        {error, _} -> #meeting{} end.
 
 start(_TID) -> ok.
 join(UID, TID) -> kvs:join_tournament(UID, TID).

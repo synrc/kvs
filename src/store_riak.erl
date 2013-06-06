@@ -55,7 +55,7 @@ make_indices(#subscription{who=Who, whom=Whom}) -> [
     {<<"who_bin">>, key_to_bin(Who)},
     {<<"whom_bin">>, key_to_bin(Whom)}];
 
-make_indices(#group_subscription{user_id=UId, group_id=GId}) -> [
+make_indices(#group_subscription{who=UId, where=GId}) -> [
     {<<"who_bin">>, key_to_bin(UId)},
     {<<"where_bin">>, key_to_bin(GId)}];
 

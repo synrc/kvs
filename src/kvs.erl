@@ -116,6 +116,7 @@ add_sample_users() ->
     {ok, Quota} = kvs:get(config,"accounts/default_quota", 300),
 
     [ begin
+        [ kvs_group:join(Me#user.username,G#group.username) || G <- Groups ],
           kvs_account:create_account(Me#user.username),
           kvs_account:transaction(Me#user.username, quota, Quota, #tx_default_assignment{}),
           kvs:put(Me#user{password = kvs:sha(Me#user.password), starred = kvs_feed:create(), pinned = kvs_feed:create()})

@@ -29,7 +29,7 @@ add_entry(FId, User, To, EntryId, Desc, Medias, Type, SharedBy, _) ->
                undefined -> undefined;
                X -> case kvs:get(entry, X) of
                        {ok, TopEntry} -> EditedEntry = TopEntry#entry{next = Id}, kvs:put(EditedEntry), TopEntry#entry.id;
-                       {error,notfound} -> undefined end end,
+                       {error, _} -> undefined end end,
 
     kvs:put(#feed{id = FId, top = {EntryId, FId}}), % update feed top with current
 
@@ -50,7 +50,7 @@ entry_traversal(undefined, _) -> [];
 entry_traversal(_, 0) -> [];
 entry_traversal(Next, Count)->
     case kvs:get(entry, Next) of
-        {error,notfound} -> [];
+        {error, _} -> [];
         {ok, R} ->
             Prev = element(#entry.prev, R),
             Count1 = case Count of 
@@ -67,7 +67,7 @@ entry_traversal(Next, Count)->
 entries(FeedId, undefined, PageAmount) ->
     case kvs:get(feed, FeedId) of
         {ok, O} -> entry_traversal(O#feed.top, PageAmount);
-        {error, notfound} -> [] end;
+        {error, _} -> [] end;
 entries(FeedId, StartFrom, PageAmount) ->
     case kvs:get(entry,{StartFrom, FeedId}) of
         {ok, #entry{prev = Prev}} -> entry_traversal(Prev, PageAmount);
@@ -93,7 +93,7 @@ add_like(Fid, Eid, Uid) ->
                 one_like_head = Write_one_like(ELikes#entry_likes.one_like_head), 
                 total_count = ELikes#entry_likes.total_count + 1
             });
-        {error, notfound} ->
+        {error, _} ->
             kvs:put(#entry_likes{
                 entry_id = Eid,                
                 one_like_head = Write_one_like(undefined),
@@ -107,7 +107,7 @@ add_like(Fid, Eid, Uid) ->
                 one_like_head = Write_one_like(ULikes#user_likes.one_like_head),
                 total_count = ULikes#user_likes.total_count + 1
             });
-        {error, notfound} ->
+        {error, _} ->
             kvs:put(#user_likes{
                 user_id = Uid,                
                 one_like_head = Write_one_like(undefined),
@@ -118,12 +118,12 @@ add_like(Fid, Eid, Uid) ->
 entries_count(Uid) ->
     case kvs:get(user_etries_count, Uid) of
         {ok, UEC} -> UEC#user_etries_count.entries;
-        {error, notfound} -> 0 end.
+        {error, _} -> 0 end.
 
 comments_count(Uid) ->
     case kvs:get(user_etries_count, Uid) of
         {ok, UEC} -> UEC#user_etries_count.comments;
-        {error, notfound} -> 0 end.
+        {error, _} -> 0 end.
 
 remove_entry(FeedId, EId) ->
     {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
@@ -133,7 +133,7 @@ remove_entry(FeedId, EId) ->
             case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
             case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
             case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev}); _ -> ok end;
-        {error, notfound} -> ?INFO("Not found"), ok
+        {error, _} -> ?INFO("Not found"), ok
     end,
     kvs:delete(entry, {EId, FeedId}).
 
@@ -143,7 +143,7 @@ edit_entry(FeedId, EId, NewDescription) ->
             NewEntryRaw =  OldEntry#entry{description = NewDescription, raw_description = NewDescription},
             NewEntry = feedformat:format(NewEntryRaw),
             kvs:put(NewEntry);
-        {error, notfound}-> {error, notfound} end.
+        {error, Reason}-> {error, Reason} end.
 
 like_list(undefined) -> [];
 like_list(Id) -> {ok, OneLike} = kvs:get(one_like, Id), [OneLike] ++ like_list(OneLike#one_like.next).
@@ -154,27 +154,27 @@ like_list(Id, N) -> {ok, OneLike} = kvs:get(one_like, Id), [OneLike] ++ like_lis
 entry_likes(Entry_id) ->
     case kvs:get(entry_likes, Entry_id) of
         {ok, Likes} -> like_list(Likes#entry_likes.one_like_head);
-        {error, notfound} -> [] end.
+        {error, _} -> [] end.
 
 entry_likes_count(Entry_id) ->
     case kvs:get(entry_likes, Entry_id) of
         {ok, Likes} -> Likes#entry_likes.total_count;
-        {error, notfound} -> 0 end.
+        {error, _} -> 0 end.
 
 user_likes_count(UserId) ->
     case kvs:get(user_likes, UserId) of
         {ok, Likes} -> Likes#user_likes.total_count;
-        {error, notfound} -> 0 end.
+        {error, _} -> 0 end.
 
 user_likes(UserId) ->
     case kvs:get(user_likes, UserId) of
         {ok, Likes} -> like_list(Likes#user_likes.one_like_head);
-        {error, notfound} -> [] end.
+        {error, _} -> [] end.
 
 user_likes(UserId, {Page, PageAmount}) ->
     case kvs:get(user_likes, UserId) of
         {ok, Likes} -> lists:nthtail((Page-1)*PageAmount, like_list(Likes#user_likes.one_like_head, PageAmount*Page));
-        {error, notfound} -> [] end.
+        {error, _} -> [] end.
 
 purge_feed(FeedId) ->
     {ok,Feed} = kvs:get(feed,FeedId),
@@ -198,8 +198,8 @@ handle_notice(["kvs_feed", "group", GroupId, "entry", EntryId, "add"] = Route, [
             GE = Group#group.entries_count,
             kvs:put(Group#group{entries_count = GE+1}),
             {ok, Subs} = kvs:get(group_subscription, {From, GroupId}),
-            SE = Subs#group_subscription.user_posts_count,
-            kvs:put(Subs#group_subscription{user_posts_count = SE+1})
+            SE = Subs#group_subscription.posts_count,
+            kvs:put(Subs#group_subscription{posts_count = SE+1})
     end,
     self() ! {feed_refresh,Feed,20},
     {noreply, State};
@@ -316,7 +316,7 @@ handle_notice(["kvs_feed", "user", UId, "count_entry_in_statistics"] = Route,
         {ok, UEC} -> 
             kvs:put(UEC#user_etries_count{entries = UEC#user_etries_count.entries+1 }),
             kvs_users:attempt_active_user_top(UId, UEC#user_etries_count.entries+1);
-        {error, notfound} ->
+        {error, _} ->
             kvs:put(#user_etries_count{user_id = UId, entries = 1 }),
             kvs_users:attempt_active_user_top(UId, 1) end,
     {noreply, State};
@@ -326,7 +326,7 @@ handle_notice(["kvs_feed", "user", UId, "count_comment_in_statistics"] = Route,
     ?INFO("queue_action(~p): count_comment_in_statistics: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     case kvs:get(user_etries_count, UId) of
         {ok, UEC} -> kvs:put(UEC#user_etries_count{comments = UEC#user_etries_count.comments+1 });
-        {error, notfound} -> kvs:put(#user_etries_count{ user_id = UId, comments = 1 }) end,
+        {error, _} -> kvs:put(#user_etries_count{ user_id = UId, comments = 1 }) end,
     {noreply, State};
 
 handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here beacause of the same message used for comet update

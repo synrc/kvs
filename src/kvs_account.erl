@@ -64,24 +64,13 @@ check_quota(User, Amount) ->
 
 commit_transaction(#transaction{remitter = R, acceptor = A,  currency = Currency, amount = Amount} = TX) ->
     case change_accounts(R, A, Currency, Amount) of
-         ok -> skip;
-              %mqs:notify([transaction, user, R, add_transaction], TX),% notify_transaction(R,TX),
-              %mqs:notify([transaction, user, A, add_transaction], TX);%notify_transaction(A,TX);
-         Error ->  skip
-%            case TX#transaction.info of
-%                #tx_game_event{} ->
-%                    mqs:notify_transaction(R,TX),
-%                    mqs:notify_transaction(A,TX);
-%                _ ->
-%                    ?ERROR("commit transaction error: change accounts ~p", [Error]),
-%                    Error
-%            end
-    end.
+         ok -> mqs:notify([transaction, user, R, add_transaction], TX),
+               mqs:notify([transaction, user, A, add_transaction], TX);
+         Error -> skip end.
 
 change_accounts(Remitter, Acceptor, Currency, Amount) ->
     case {kvs:get(account,{Remitter, Currency}), kvs:get(account,{Acceptor, Currency})} of
         {{ok, RA = #account{}}, {ok, AA = #account{}}}  ->
-            ?INFO("transacrion: RemitterAccount ~p, AcceptorAccount: ~p", [RA, AA]),
             %% check balance for remitter according to currency and amount
             case check_remitter_balance(RA, Amount) of
                 ok ->   RA1 = RA#account{credit = RA#account.credit + Amount, last_change = -Amount },
@@ -107,7 +96,7 @@ transactions(UserId) -> tx_list(UserId, undefined, 10000).
 tx_list(UserId, undefined, PageAmount) ->
     case kvs:get(user_transaction, UserId) of
         {ok, O} when O#user_transaction.top =/= undefined -> tx_list(UserId, O#user_transaction.top, PageAmount);
-        {error, notfound} -> [] end;
+        {error, _} -> [] end;
 tx_list(UserId, StartFrom, Limit) ->
     case kvs:get(transaction,StartFrom) of
         {ok, #transaction{next = N}=P} -> [ P | kvs:traversal(transaction, #transaction.next, N, Limit)];
@@ -152,7 +141,7 @@ add_transaction_to_user(UserId,Purchase) ->
                            next = TopEntry#transaction.next,
                            prev = EntryId },
                     kvs:put(EditedEntry); % update prev entry
-                 {error,notfound} -> Next = undefined
+                 {error, _} -> Next = undefined
              end
     end,
 
