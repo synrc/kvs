@@ -2,6 +2,7 @@
 -copyright('Synrc Research Center s.r.o.').
 -author('Alexander Kalenuk').
 -include_lib("kvs/include/feeds.hrl").
+-include_lib("kvs/include/config.hrl").
 -compile(export_all).
 
 add(FId, User, EntryId, ParentComment, CommentId, Content, Medias) ->
@@ -57,9 +58,7 @@ feed_comments({EId, FId}) ->
         {ok, #entry{comments_rear = First}} -> lists:flatten(read_comments(First));
         _ -> [] end.
 
-author_comments(Who) ->
-    EIDs = [E || #comment{entry_id=E} <- kvs:all_by_index(comment,<<"author_bin">>, Who) ],
-    lists:flatten([ kvs:all_by_index(entry,<<"entry_bin">>,EID) || EID <- EIDs]).
+author_comments(Who) -> DBA=?DBA,DBA:author_comments(Who).
 
 remove(FId, EId) ->
     AllComments = feed_comments({EId, FId}),

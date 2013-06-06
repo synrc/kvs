@@ -213,3 +213,16 @@ next_id(CounterId, Default, Incr) ->
     case Riak:put(Object, Options) of
         ok -> Value;
         {error, _} -> next_id(CounterId, Incr) end.
+
+%%%%%%%%%%%%%%%%
+
+products(UId) -> all_by_index(user_product, <<"user_bin">>, list_to_binary(UId)).
+subscriptions(UId) -> all_by_index(subsciption, <<"subs_who_bin">>, list_to_binary(UId)).
+subscribed(Who) -> all_by_index(subscription, <<"subs_whom_bin">>, list_to_binary(Who)).
+participate(UserName) -> all_by_index(group_subscription, <<"who_bin">>, UserName).
+members(GroupName) -> all_by_index(group_subscription, <<"where_bin">>, GroupName).
+user_tournaments(UId) -> all_by_index(play_record, <<"play_record_who_bin">>, list_to_binary(UId)).
+tournament_users(TId) -> all_by_index(play_record, <<"play_record_tournament_bin">>, list_to_binary(integer_to_list(TId))).
+author_comments(Who) ->
+    EIDs = [E || #comment{entry_id=E} <- all_by_index(comment,<<"author_bin">>, Who) ],
+    lists:flatten([ all_by_index(entry,<<"entry_bin">>,EID) || EID <- EIDs]).

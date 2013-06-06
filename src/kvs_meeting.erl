@@ -3,6 +3,7 @@
 -include_lib("kvs/include/meetings.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/log.hrl").
+-include_lib("kvs/include/config.hrl").
 -compile(export_all).
 
 create_team(Name) ->
@@ -110,8 +111,5 @@ leave_tournament(UserId, TournamentId) ->
         _ -> ok
     end.
 
-user_tournaments(UId) -> 
-    kvs:all_by_index(play_record, <<"play_record_who_bin">>, list_to_binary(UId)).
-
-tournament_waiting_queue(TId) ->
-    kvs:all_by_index(play_record, <<"play_record_tournament_bin">>, list_to_binary(integer_to_list(TId))).
+user_tournaments(UId) -> DBA=?DBA,DBA:user_tournaments(UId).
+tournament_users(TId) -> DBA=?DBA,DBA:tournament_users(TId).

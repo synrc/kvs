@@ -3,9 +3,11 @@
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
+-include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
+
 
 register(#user{username=U, email=Email, facebook_id = FbId} = RegisterData0) ->
     FindUser = case check_username(U, FbId) of
@@ -79,7 +81,9 @@ unsubscribe(Who, Whom) ->
 
 subscriptions(undefined)-> [];
 subscriptions(#user{username = UId}) -> subscriptions(UId);
-subscriptions(UId) when is_list(UId) -> lists:sort( kvs:all_by_index(subs, <<"subs_who_bin">>, list_to_binary(UId)) ).
+
+subscriptions(UId) -> DBA=?DBA, DBA:subscriptions(UId).
+subscribed(Who) -> DBA=?DBA, DBA:subscribed(Who).
 
 subscribed(Who, Whom) ->
     case kvs:get(subscription, {Who, Whom}) of

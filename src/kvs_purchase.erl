@@ -2,6 +2,7 @@
 -include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/purchases.hrl").
 -include_lib("kvs/include/log.hrl").
+-include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
@@ -19,8 +20,7 @@ buy(UId, ProductId) ->
 give(UId, PId) ->
     kvs:put(#user_product{username=UId, timestamp=now(), product_id = PId}).
 
-products(UId) ->
-    kvs:all_by_index(user_product, <<"user_bin">>, list_to_binary(UId)).
+products(UId) -> DBA=?DBA, DBA:products(UId).
 
 handle_notice(["kvs_purchase", "user", UId, "buy"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->

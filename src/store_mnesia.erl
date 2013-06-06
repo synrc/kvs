@@ -44,6 +44,7 @@ initialize() ->
     ?CREATE_TAB(transaction),
     ?CREATE_TAB(translation),
     ok = add_table_index(comment, entry_id),
+    ok = add_table_index(comment, author_id),
     ok = add_table_index(subscription, who),
     ok = add_table_index(subscription, whom),
     ok = add_table_index(group_subscription, who),
@@ -141,3 +142,15 @@ storage_to_mnesia_type(ondisk) -> {disc_only_copies, [node()]}.
 
 exec(Q) -> F = fun() -> qlc:e(Q) end, {atomic, Val} = mnesia:transaction(F), Val.
 
+%
+
+products(UId) -> all_by_index(user_product, #user_product.username, UId).
+subscriptions(UId) -> all_by_index(subsciption, #subscription.who, UId).
+subscribed(Who) -> all_by_index(subscription, #subscription.whom, Who).
+participate(UserName) -> all_by_index(group_subscription, #group_subscription.who, UserName).
+members(GroupName) -> all_by_index(group_subscription, #group_subscription.where, GroupName).
+user_tournaments(UId) -> all_by_index(play_record, #play_record.who, UId).
+tournament_users(TId) -> all_by_index(play_record, #play_record.tournament, TId).
+author_comments(Who) ->
+    EIDs = [E || #comment{entry_id=E} <- all_by_index(comment,#comment.author_id, Who) ],
+    lists:flatten([ all_by_index(entry, #entry.id,EID) || EID <- EIDs]).

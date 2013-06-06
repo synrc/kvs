@@ -5,6 +5,7 @@
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/feed_state.hrl").
+-include_lib("kvs/include/config.hrl").
 -include_lib("mqs/include/mqs.hrl").
 
 retrieve_groups(User) ->
@@ -46,10 +47,8 @@ delete(GroupName) ->
                     mqs_channel:close(Channel);
                 {error,Reason} -> ?ERROR("delete group failed: ~p",[Reason]) end end.
 
-participate(UserName) -> [GroupName || #group_subscription{where=GroupName} <- kvs:all_by_index(group_subscription, <<"who_bin">>, UserName) ].
-members(GroupName) -> [UserName || #group_subscription{who=UserName} <- kvs:all_by_index(group_subscription, <<"where_bin">>, GroupName) ].
-members_by_type(GroupName, Type) -> [UserName || #group_subscription{who=UserName, type=T} <- kvs:all_by_index(group_subscription, <<"where_bin">>, GroupName), T == Type ].
-members_with_types(GroupName) -> [{UserName, Type} || #group_subscription{who=UserName, type=Type} <- kvs:all_by_index(group_subscriptioin, <<"where_bin">>, list_to_binary(GroupName)) ].
+participate(UserName) -> DBA=?DBA,DBA:participate(UserName).
+members(GroupName) -> DBA=?DBA,DBA:members(GroupName).
 
 owner(UserName, GroupName) ->
     case kvs:get(group, GroupName) of

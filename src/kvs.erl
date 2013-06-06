@@ -16,8 +16,6 @@
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
 
--define(DBA, store_mnesia).
-
 start() -> DBA = ?DBA, DBA:start().
 dir() -> DBA = ?DBA, DBA:dir().
 stop() -> DBA = ?DBA, DBA:stop().
