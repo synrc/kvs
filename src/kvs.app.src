@@ -3,7 +3,7 @@
   {description, "Distributed Persistance"},
   {vsn, "1"},
   {registered, []},
-  {applications, [kernel,stdlib,riak_kv,mnesia,mqs]},
+  {applications, [kernel,stdlib,mnesia,mqs]},
   {mod, { kvs_app, []}},
   {env, []}
  ]}.
