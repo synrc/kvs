@@ -18,7 +18,7 @@
 
 start() -> ok.
 stop() -> ok.
-version() -> {version,"RIAK 1.3.2"}.
+version() -> {version,"KVS RIAK 1.3.2-voxoz"}.
 
 initialize() ->
     C = riak:client_connect(node()),

@@ -37,7 +37,7 @@ traversal(RecordType, PrevPos, Next, Count)->
     end.
 
 init_db() ->
-    case kvs:get(user,"alice") of
+    case kvs:get(user,"joe") of
         {error,_} ->
             add_seq_ids(),
             kvs_account:create_account(system),
@@ -97,24 +97,19 @@ add_sample_users() ->
                #group{username="Erlang"} ],
 
     UserList = [
-                     #user{username = "maxim", password="kaka15ra",
-                           name = "Maxim", surname = "Sokhatsky", feed = kvs_feed:create(),
-                           type = admin, direct = kvs_feed:create(),
-                           sex=m,
-                           status=ok,
-                           team = kvs_meeting:create_team("tours"),
-                           email="maxim.sokhatsky@gmail.com"},
-                     #user{username = "doxtop", password="password",
-                           feed = kvs_feed:create(),
-                           name = "Andrii Zadorozhnii",
-                           email="doxtop@synrc.com",
-                           type=admin,
-                           team = kvs_meeting:create_team("tours"), direct = kvs_feed:create(),
-                           status=ok,
-                           age={1981,9,29},
-                           register_date={1345,14071,852889}
-                     } 
-         ],
+        #user{username = "maxim", password="pass", name = "Maxim", surname = "Sokhatsky",
+            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
+            sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="maxim@synrc.com"},
+        #user{username = "doxtop", password="pass", name = "Andrii", surname = "Zadorozhnii",
+            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
+            sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="doxtop@synrc.com"},
+        #user{username = "alice", password="pass", name = "Alice", surname = "Imagionary",
+            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
+            sex=f, status=ok, team = kvs_meeting:create_team("tours"),  email="alice@synrc.com"},
+        #user{username = "akalenuk", password="pass", name = "Alexander", surname = "Kalenuk",
+            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
+            sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="akalenuk@gmail.com"}
+    ],
 
     kvs:put(Groups),
 

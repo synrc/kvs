@@ -21,7 +21,7 @@
 start() -> mnesia:change_table_copy_type(schema, node(), disc_copies).
 stop() -> mnesia:stop().
 delete() -> mnesia:delete_schema([node()]).
-version() -> {version,"MNESIA Embedded"}.
+version() -> {version,"KVS MNESIA Embedded"}.
 initialize() ->
     mnesia:create_schema([node()]),
     ?CREATE_TAB(payment),
@@ -44,6 +44,8 @@ initialize() ->
     ?CREATE_TAB(transaction),
     ?CREATE_TAB(translation),
     ok = add_table_index(comment, entry_id),
+    ok = add_table_index(subscription, who),
+    ok = add_table_index(subscription, whom),
     ok = add_table_index(entry, feed_id),
     ok = add_table_index(entry, entry_id),
     ok = add_table_index(entry, from),
@@ -90,12 +92,12 @@ select(From, [{where, Fn}, {order, {Idx, Order}}, {limit, {Offset, Length}}]) ->
 select(RecordName, Key) -> many(fun() -> mnesia:read({RecordName, Key}) end).
 count(RecordName) -> mnesia:table_info(RecordName, size).
 all(RecordName) -> flatten(fun() -> Lists = mnesia:all_keys(RecordName), [ mnesia:read({RecordName, G}) || G <- Lists ] end).
-all_by_index(RecordName,Key,Value) -> flatten(fun() -> Lists = mnesia:all_keys(RecordName), [ mnesia:read({RecordName, G}) || G <- Lists ] end).
+all_by_index(RecordName,Key,Value) -> flatten(fun() -> mnesia:index_read(RecordName,Value,Key) end).
 
 next_id(RecordName) -> next_id(RecordName, 1).
 next_id(RecordName, Incr) ->
-    [RecordStr] = io_lib:format("~p",[RecordName]),
-    mnesia:dirty_update_counter({id_seq, RecordStr}, Incr).
+%    [RecordStr] = io_lib:format("~p",[RecordName]),
+    mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
 
 just_one(Fun) ->
     case mnesia:transaction(Fun) of
