@@ -16,7 +16,7 @@
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
 
--define(DBA, store_riak).
+-define(DBA, store_mnesia).
 
 start() -> DBA = ?DBA, DBA:start().
 dir() -> DBA = ?DBA, DBA:dir().
@@ -135,7 +135,7 @@ add_sample_users() ->
     ok.
 
 add_sample_packages() -> kvs_membership:add_sample_data().
-version() -> ?INFO("version: ~p", [1]).
+version() -> DBA=?DBA, DBA:version().
 
 add_configs() ->
     %% smtp

@@ -18,9 +18,10 @@
 -compile(export_all).
 -define(CREATE_TAB(T), create_table(T, record_info(fields, T), [{storage, permanent}]) ).
 
-start() -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies).
+start() -> mnesia:change_table_copy_type(schema, node(), disc_copies).
 stop() -> mnesia:stop().
 delete() -> mnesia:delete_schema([node()]).
+version() -> {version,"MNESIA Embedded"}.
 initialize() ->
     mnesia:create_schema([node()]),
     ?CREATE_TAB(payment),

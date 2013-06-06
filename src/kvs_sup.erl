@@ -18,22 +18,8 @@ init([]) ->
   Shutdown = 2000,
   Type = worker,
 
-  case application:get_env(kvs, riak_srv_node) of
-    undefined ->
-      error_logger:info_msg("Waiting for Riak to Start...."),
-      kvs:start(),
-      error_logger:info_msg("Waiting for Riak to Initialize....");
-    {ok, _Value} -> skip end,
-
+  kvs:start(),
   kvs:initialize(),
-
-  case application:get_env(kvs, riak_srv_node) of
-    undefined ->
-      case application:get_env(kvs, sync_nodes) of
-         true -> [error_logger:info_msg("Joined: ~p ~p~n", [N, riak_core:join(N)]) || N <- application:get_env(kvs, nodes) -- [node()] ];
-         _ -> skip end,
-      case application:get_env(kvs, pass_init_db) of true -> pass; _ -> kvs:init_db() end;
-    _ -> skip end,
 
   {ok, { {one_for_one, 5, 10}, []} }.
 

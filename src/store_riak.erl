@@ -18,6 +18,7 @@
 
 start() -> ok.
 stop() -> ok.
+version() -> {version,"RIAK 1.3.2"}.
 
 initialize() ->
     C = riak:client_connect(node()),
