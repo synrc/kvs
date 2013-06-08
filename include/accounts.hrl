@@ -4,9 +4,9 @@
 
 -record(account, {
         id :: account_id(),
-        debet       :: integer(),
-        credit      :: integer(),
-        last_change :: integer() }).
+        debet = 0 :: integer(),
+        credit = 0 :: integer(),
+        last_change = 0 :: integer() }).
 
 -record(tx_payment,{ id :: integer() }).
 -record(tx_admin_change,{ reason :: binary() }).

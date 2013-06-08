@@ -125,9 +125,6 @@ post_write_hooks(R,C) ->
         user -> case R#user.email of
                     undefined -> nothing;
                     _ -> C:put(make_object({email, R#user.username, R#user.email})) end,
-                case R#user.verification_code of
-                    undefined -> nothing;
-                    _ -> C:put(make_object({code, R#user.username, R#user.verification_code})) end,
                 case R#user.facebook_id of
                   undefined -> nothing;
                   _ -> C:put(make_object({facebook, R#user.username, R#user.facebook_id})) end;
@@ -161,16 +158,14 @@ delete_by_index(Tab, IndexId, IndexVal) ->
     Riak = riak_client(),
     Bucket = key_to_bin(Tab),
     {ok, Keys} = Riak:get_index(Bucket, {eq, IndexId, key_to_bin(IndexVal)}),
-    [Riak:delete(Bucket, Key) || Key <- Keys],
-    ok.
+    [Riak:delete(Bucket, Key) || Key <- Keys].
 
 key_to_bin(Key) ->
     if is_integer(Key) -> erlang:list_to_binary(integer_to_list(Key));
        is_list(Key) -> erlang:list_to_binary(Key);
        is_atom(Key) -> erlang:list_to_binary(erlang:atom_to_list(Key));
        is_binary(Key) -> Key;
-       true ->  [ListKey] = io_lib:format("~p", [Key]), erlang:list_to_binary(ListKey)
-    end.
+       true ->  [ListKey] = io_lib:format("~p", [Key]), erlang:list_to_binary(ListKey) end.
 
 all(RecordName) ->
     Riak = riak_client(),
@@ -183,11 +178,10 @@ all_by_index(Tab, IndexId, IndexVal) ->
     Riak = riak_client(),
     Bucket = key_to_bin(Tab),
     {ok, Keys} = Riak:get_index(Bucket, {eq, IndexId, key_to_bin(IndexVal)}),
-    F = fun(Key, Acc) ->
-                case Riak:get(Bucket, Key, []) of
-                    {ok, O} -> [riak_object:get_value(O) | Acc];
-                    {error, notfound} -> Acc end end,
-    lists:foldl(F, [], Keys).
+    lists:foldl(fun(Key, Acc) ->
+        case Riak:get(Bucket, Key, []) of
+            {ok, O} -> [riak_object:get_value(O) | Acc];
+            {error, notfound} -> Acc end end, [], Keys).
 
 riak_get_raw({RecordBin, Key, Riak}) ->
     case Riak:get(RecordBin, Key) of

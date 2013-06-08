@@ -57,14 +57,11 @@ entry_traversal(Next, Count)->
             Prev = element(#entry.prev, R),
             Count1 = case Count of 
                 C when is_integer(C) -> case R#entry.type of
-                    {_, system} -> C;   % temporal entries are entries too, but they shouldn't be counted
+                    {_, system} -> C; % temporal entries are entries too, but they shouldn't be counted
                     {_, system_note} -> C;
-                    _ -> C - 1
-                end;
-                _-> Count 
-            end,
-            [R | entry_traversal(Prev, Count1)]
-    end.
+                    _ -> C - 1 end;
+                _-> Count end,
+            [R | entry_traversal(Prev, Count1)] end.
 
 entries(FeedId, undefined, PageAmount) ->
     case kvs:get(feed, FeedId) of

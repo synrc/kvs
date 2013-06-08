@@ -180,20 +180,17 @@ init_mq(Group=#group{}) ->
         {ok, Channel} ->
             mqs_channel:create_exchange(Channel, GroupExchange, ExchangeOptions),
             Relations = build_group_relations(Group),
-            [bind_group_exchange(Channel, Group, RK) || RK <- Relations],
+            [mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Group#group.id), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
             mqs_channel:close(Channel);
         {error, Reason} -> ?ERROR("init_mq error: ~p",[Reason]) end.
 
-rk_group_feed(Group) -> mqs_lib:list_to_key([feed, group, Group, '*', '*', '*']).
+rk_group_feed(Group) -> mqs_lib:list_to_key([kvs_feed, group, Group, '*', '*', '*']).
 
-bind_group_exchange(Channel, Group, Route) -> {bind, Route, mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Group), ?NOTIFICATIONS_EX, Route)}.
-unbind_group_exchange(Channel, Group, Route) -> {unbind, Route, mqs_channel:unbind_exchange(Channel, ?GROUP_EXCHANGE(Group), ?NOTIFICATIONS_EX, Route)}.
-
-subscription_mq(Type, Action, MeId, ToId) ->
+subscription_mq(Type, Action, Who, Where) ->
     case mqs:open([]) of
         {ok,Channel} ->
             case {Type,Action} of 
-                {group,add} -> bind_group_exchange(Channel, MeId, rk_group_feed(ToId));
-                {group,remove} -> unbind_group_exchange(Channel, MeId, rk_group_feed(ToId)) end,
+                {group,add}     -> mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where));
+                {groupr,remove}  -> mqs_channel:unbind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where));
             mqs_channel:close(Channel);
         {error,Reason} -> ?ERROR("subscription_mq error: ~p",[Reason]) end.

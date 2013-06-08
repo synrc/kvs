@@ -30,18 +30,7 @@ balance(AccountId, Currency) ->
          {ok, #account{debet = Debet, credit = Credit}} -> {ok, Debet - Credit};
          Error -> Error end.
 
-create_account(AccountId) ->
-    Currencies = get_currencies(),
-    try [{ok, Currency} = {create_account(AccountId, Currency), Currency} || Currency <- Currencies]
-    catch _:_ -> {error, unable_create_account} end.
-
-create_account(AccountId, Currency) ->
-    Account = #account{id = {AccountId, Currency}, credit = 0, debet = 0, last_change = 0},
-
-    case kvs:put(Account) of
-         ok -> ok;
-         Error -> ?ERROR("create_account: put to db error: ~p", [Error]),
-                  {error, unable_to_store_account} end.
+create_account(AccountId) -> [ kvs:put(#account{id={AccountId, Currency}) || Currency <- get_currencies() ].
 
 check_quota(User) -> check_quota(User, 0).
 check_quota(User, Amount) ->
@@ -56,8 +45,8 @@ check_quota(User, Amount) ->
 
 commit_transaction(#transaction{remitter = R, acceptor = A,  currency = Currency, amount = Amount} = TX) ->
     case change_accounts(R, A, Currency, Amount) of
-         ok -> mqs:notify([transaction, user, R, add_transaction], TX),
-               mqs:notify([transaction, user, A, add_transaction], TX);
+         ok -> mqs:notify([kvs_account, user, R, transaction], TX),
+               mqs:notify([kvs_account, user, A, transaction], TX);
          Error -> skip end.
 
 check_remitter_balance(RA, Amount) -> ok.

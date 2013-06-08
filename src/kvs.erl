@@ -45,6 +45,8 @@ init_db() ->
             add_translations();
         {ok,_} -> ignore end.
 
+add_sample_packages() -> kvs_membership:add_sample_data().
+
 add_sample_payments() ->
     {ok, Pkg1} = kvs:get(membership,1),
     {ok, Pkg2} = kvs:get(membership,2),
@@ -83,10 +85,8 @@ add_seq_ids() ->
 
 add_translations() ->
     lists:foreach(fun({English, Lang, Word}) ->
-                          ok = kvs:put(#translation{english = English, lang = "en",  word = English}),
-                          ok = kvs:put(#translation{english = English, lang = Lang,  word = Word}),
-              ok
-    end, ?URL_DICTIONARY).
+        kvs:put(#translation{english = English, lang = "en",  word = English}),
+        kvs:put(#translation{english = English, lang = Lang,  word = Word}) end, ?URL_DICTIONARY).
 
 add_sample_users() ->
 
@@ -117,8 +117,8 @@ add_sample_users() ->
         [ kvs_group:join(Me#user.username,G#group.id) || G <- Groups ],
           kvs_account:create_account(Me#user.username),
           kvs_account:transaction(Me#user.username, quota, Quota, #tx_default_assignment{}),
-          kvs:put(Me#user{password = kvs:sha(Me#user.password), starred = kvs_feed:create(), pinned = kvs_feed:create()})
-      end || Me <- UserList],
+          kvs:put(Me#user{password = sha(Me#user.password), starred = kvs_feed:create(), pinned = kvs_feed:create()})
+      end || Me <- UserList ],
 
     kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
     kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
@@ -128,7 +128,6 @@ add_sample_users() ->
 
     ok.
 
-add_sample_packages() -> kvs_membership:add_sample_data().
 version() -> DBA=?DBA, DBA:version().
 
 add_configs() ->
@@ -225,8 +224,7 @@ load_db(Path) ->
 make_paid_fake(UId) ->
     put(#payment{user_id=UId,info= "fake_purchase"}).
 
-save(Key, Value) ->
-    Dir = ling:trim_from_last(Key, "/"),
+save(Dir, Value) ->
     filelib:ensure_dir(Dir),
     file:write_file(Key, term_to_binary(Value)).
 
