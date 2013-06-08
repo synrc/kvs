@@ -214,7 +214,7 @@ next_id(CounterId, Default, Incr) ->
         ok -> Value;
         {error, _} -> next_id(CounterId, Incr) end.
 
-%%%%%%%%%%%%%%%%
+% index funs
 
 products(UId) -> all_by_index(user_product, <<"user_bin">>, list_to_binary(UId)).
 subscriptions(UId) -> all_by_index(subsciption, <<"subs_who_bin">>, list_to_binary(UId)).

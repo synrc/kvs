@@ -142,7 +142,7 @@ storage_to_mnesia_type(ondisk) -> {disc_only_copies, [node()]}.
 
 exec(Q) -> F = fun() -> qlc:e(Q) end, {atomic, Val} = mnesia:transaction(F), Val.
 
-%
+% index funs
 
 products(UId) -> all_by_index(user_product, #user_product.username, UId).
 subscriptions(UId) -> all_by_index(subsciption, #subscription.who, UId).

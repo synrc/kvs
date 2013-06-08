@@ -4,10 +4,10 @@
         aclver}).
 
 -record(entry, {
-        id, %% {entry_id, feed_id}
-        entry_id, %% taken from id_seq
-        feed_id, %% owner's feed_id, indexed field
-        from, %% author
+        id, % {entry_id, feed_id} we want to hold in key information about feed
+        entry_id, % these fields 
+        feed_id,  % are for secondary indexes
+        from, % author
         to,
         description,
         created, % time

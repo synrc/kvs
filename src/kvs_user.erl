@@ -1,4 +1,5 @@
 -module(kvs_user).
+-copyright('Synrc Research Center s.r.o.').
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
