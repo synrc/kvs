@@ -17,8 +17,8 @@ buy(UId, ProductId) ->
     kvs_accounts:transaction(UId, currency, -Price, "Buy " ++ Name ++ " for "++ integer_to_list(Price)),
     kvs:put(#user_product{username=UId, timestamp=now(), product_id = ProductId}).
 
-give(UId, PId) ->
-    kvs:put(#user_product{username=UId, timestamp=now(), product_id = PId}).
+give(UId, ProductId) ->
+    kvs:put(#user_product{username=UId, timestamp=now(), product_id = ProductId}).
 
 products(UId) -> DBA=?DBA, DBA:products(UId).
 

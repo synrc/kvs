@@ -50,18 +50,14 @@ add_payment(#payment{} = MP, State0, Info) ->
 
             Id = default_if_undefined(MP#payment.id, undefined, payment_id()),
             Purchase = MP#payment{id = Id, state = State, start_time = Start, state_log = StateLog},
-            %mqs:notify_purchase(Purchase),
-%            ?INFO("Payment added ~p ~p",[Purchase#payment.user_id, Purchase]),
-            add_to_user(Purchase#payment.user_id, Purchase)
-    end.
+            add_to_user(Purchase#payment.user_id, Purchase) end.
 
 add_to_user(UserId,Payment) ->
     {ok,Team} = case kvs:get(user_payment, UserId) of
                      {ok,T} -> {ok,T};
                      _ -> ?INFO("user_payment not found ~p. create top",[UserId]),
                           Head = #user_payment{ user = UserId, top = undefined},
-                          {kvs:put(Head),Head}
-                end,
+                          {kvs:put(Head),Head} end,
 
     EntryId = Payment#payment.id,
     Prev = undefined,
@@ -95,7 +91,7 @@ set_payment_state(MPId, NewState, Info) ->
               end,
     Purchase = MP#payment{state = NewState, end_time = EndTime, state_log = NewStateLog},
 
-%    mqs:notify_purchase(Purchase),
+    mqs:notify([kvs_payment,user,Purchase#payment.user_id,notify],Purchase),
     NewMP=MP#payment{state = NewState, end_time = EndTime, state_log = NewStateLog},
     kvs:put(NewMP),
 

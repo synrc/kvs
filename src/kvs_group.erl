@@ -9,12 +9,9 @@
 -include_lib("mqs/include/mqs.hrl").
 
 retrieve_groups(User) ->
-    ?INFO("retrieve group for user: ~p",[User]),
     case participate(User) of
          [] -> [];
-         Gs -> UC_GId = lists:sublist(lists:reverse(
-                              lists:sort([{members_count(GId), GId} || GId <- Gs])), 
-                                    20),
+         Gs -> UC_GId = lists:reverse(lists:sort([{members_count(GId), GId} || GId <- Gs])),
                Result = [begin case kvs:get(group,GId) of
                                    {ok, Group} -> {Group#group.name,GId,UC};
                                    _ -> undefined end end || {UC, GId} <- UC_GId],

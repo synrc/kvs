@@ -28,21 +28,17 @@ get(TID) ->
         {error, _} -> #meeting{} end.
 
 start(_TID) -> ok.
-join(UID, TID) -> kvs:join_tournament(UID, TID).
-remove(UID, TID) -> kvs:leave_tournament(UID, TID).
-waiting_player(TID) -> kvs:tournament_pop_waiting_player(TID).
-joined_users(TID) -> kvs:tournament_waiting_queue(TID).
+join(UID, TID) -> join_tournament(UID, TID).
+leave(UID, TID) -> leave_tournament(UID, TID).
 user_joined(TID, UID) -> 
-    AllJoined = [UId || #play_record{who = UId} <- joined_users(TID)],
+    AllJoined = [UId || #play_record{who = UId} <- tournament_users(TID)],
     lists:member(UID, AllJoined).
 all() -> kvs:all(tournament).
 user_is_team_creator(_UID, _TID) -> true.
-list_users_per_team(_TeamID) -> [].
 destroy(TID) -> kvs:delete_by_index(play_record, <<"play_record_tournament_bin">>, TID),
                           kvs:delete(tournament,TID).
 clear() -> [destroy(T#meeting.id) || T <- kvs:all(meeting)].
 lost() -> lists:usort([erlang:element(3, I) || I <- kvs:all(play_record)]).
-fake_join(TID) -> [kvs_meeting:join(auth:ima_gio2(X),TID)||X<-lists:seq(1,30)].
 
 handle_notice(["kvs_meeting", "user", UId, "create"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
@@ -75,7 +71,7 @@ handle_notice(["kvs_meeting", "user", UId, "leave"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): tournament_remove: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UId, TId} = Message,
-    kvs_meeting:remove(UId, TId),
+    kvs_meeting:leave(UId, TId),
     {noreply, State};
 
 handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown MEETINGS notice").
