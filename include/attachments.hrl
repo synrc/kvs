@@ -6,4 +6,4 @@
         file,
         thumb,
         owner,
-        create_data}).
+        data}).

@@ -41,11 +41,11 @@ init_db() ->
             kvs_account:create_account(system),
             add_sample_users(),
             add_sample_packages(),
-            add_payments(),
+            add_sample_payments(),
             add_translations();
         {ok,_} -> ignore end.
 
-add_payments() ->
+add_sample_payments() ->
     {ok, Pkg1} = kvs:get(membership,1),
     {ok, Pkg2} = kvs:get(membership,2),
     {ok, Pkg3} = kvs:get(membership,3),
@@ -90,9 +90,9 @@ add_translations() ->
 
 add_sample_users() ->
 
-    Groups = [ #group{username="Clojure"},
-               #group{username="Haskell"},
-               #group{username="Erlang"} ],
+    Groups = [ #group{id="Clojure"},
+               #group{id="Haskell"},
+               #group{id="Erlang"} ],
 
     UserList = [
         #user{username = "maxim", password="pass", name = "Maxim", surname = "Sokhatsky",
@@ -114,7 +114,7 @@ add_sample_users() ->
     {ok, Quota} = kvs:get(config,"accounts/default_quota", 300),
 
     [ begin
-        [ kvs_group:join(Me#user.username,G#group.username) || G <- Groups ],
+        [ kvs_group:join(Me#user.username,G#group.id) || G <- Groups ],
           kvs_account:create_account(Me#user.username),
           kvs_account:transaction(Me#user.username, quota, Quota, #tx_default_assignment{}),
           kvs:put(Me#user{password = kvs:sha(Me#user.password), starred = kvs_feed:create(), pinned = kvs_feed:create()})
@@ -238,8 +238,7 @@ coalesce(undefined, B) -> B;
 coalesce(A, _) -> A.
 
 sha(Raw) ->
-    lists:flatten(
-      [io_lib:format("~2.16.0b", [N]) || <<N>> <= crypto:sha(Raw)]).
+    lists:flatten([io_lib:format("~2.16.0b", [N]) || <<N>> <= crypto:sha(Raw)]).
 
 sha_upper(Raw) ->
     SHA = sha(Raw),

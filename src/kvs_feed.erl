@@ -10,6 +10,8 @@
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/log.hrl").
 
+-define(CACHED_ENTRIES, 20).
+
 create() ->
     FId = kvs:next_id("feed", 1),
     ok = kvs:put(#feed{id = FId} ),
@@ -34,8 +36,8 @@ add_entry(FId, User, To, EntryId, Desc, Medias, Type, SharedBy, _) ->
     kvs:put(#feed{id = FId, top = {EntryId, FId}}), % update feed top with current
 
     Entry  = #entry{id = {EntryId, FId}, entry_id = EntryId, feed_id = FId, from = User,
-                    to = To, type = Type, media = Medias, created_time = now(),
-                    description = Desc, raw_description = Desc, shared = SharedBy,
+                    to = To, type = Type, media = Medias, created = now(),
+                    description = Desc, shared = SharedBy,
                     next = Next, prev = Prev},
 
     ModEntry = case catch feedformat:format(Entry) of
@@ -129,7 +131,6 @@ remove_entry(FeedId, EId) ->
     {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
     case kvs:get(entry, {EId, FeedId}) of
         {ok, #entry{prev = Prev, next = Next}}->
-            ?INFO("P: ~p, N: ~p", [Prev, Next]),
             case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
             case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
             case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev}); _ -> ok end;
@@ -140,7 +141,7 @@ remove_entry(FeedId, EId) ->
 edit_entry(FeedId, EId, NewDescription) ->
     case kvs:get(entry,{EId, FeedId}) of
         {ok, OldEntry} ->
-            NewEntryRaw =  OldEntry#entry{description = NewDescription, raw_description = NewDescription},
+            NewEntryRaw =  OldEntry#entry{description = NewDescription},
             NewEntry = feedformat:format(NewEntryRaw),
             kvs:put(NewEntry);
         {error, Reason}-> {error, Reason} end.
@@ -201,8 +202,9 @@ handle_notice(["kvs_feed", "group", GroupId, "entry", EntryId, "add"] = Route, [
             SE = Subs#group_subscription.posts_count,
             kvs:put(Subs#group_subscription{posts_count = SE+1})
     end,
-    self() ! {feed_refresh,Feed,20},
+    self() ! {feed_refresh,Feed, ?CACHED_ENTRIES},
     {noreply, State};
+
 
 handle_notice(["kvs_feed", "user", FeedOwner, "entry", EntryId, "add"] = Route,
     [From|_] = Message, #state{owner = WorkerOwner, feed = Feed, direct = Direct} = State) ->
@@ -215,22 +217,22 @@ handle_notice(["kvs_feed", "user", FeedOwner, "entry", EntryId, "add"] = Route,
         FeedOwner == From andalso FeedOwner == WorkerOwner->
             FilteredDst = [D || {_, group} = D <- Destinations],
             kvs_feed:add_entry(Feed, From, FilteredDst, EntryId, Desc, Medias, {user, normal},""),
-            self() ! {feed_refresh,Feed,20};
+            self() ! {feed_refresh,Feed, ?CACHED_ENTRIES};
 
         %% friend added message to public feed
         FeedOwner == From -> 
             kvs_feed:add_entry(Feed, From, [], EntryId, Desc, Medias, {user, normal},""),
-            self() ! {feed_refresh,Feed,20};
+            self() ! {feed_refresh,Feed, ?CACHED_ENTRIES};
 
         %% direct message to worker owner
         FeedOwner == WorkerOwner -> 
             kvs_feed:add_entry(Direct, From, [{FeedOwner, user}], EntryId, Desc, Medias, {user,direct}, ""),
-            self() ! {direct_refresh,Direct,20};
+            self() ! {direct_refresh,Direct, ?CACHED_ENTRIES};
 
         %% user sent direct message to friend, add copy to his direct feed
         From == WorkerOwner ->
             kvs_feed:add_entry(Direct, WorkerOwner, Destinations, EntryId, Desc, Medias, {user, direct}, ""),
-            self() ! {direct_refresh,Direct,20};
+            self() ! {direct_refresh,Direct, ?CACHED_ENTRIES};
 
         true -> ?INFO("not matched case in entry->add")
     end,
@@ -261,7 +263,7 @@ handle_notice(["feed", "user", UId, "post_note"] = Route,
     {noreply, State};
 
 handle_notice(["kvs_feed", _, WhoShares, "entry", NewEntryId, "share"] = Route,
-                #entry{entry_id = _EntryId, raw_description = Desc, media = Medias, to = Destinations,
+                #entry{entry_id = _EntryId, description = Desc, media = Medias, to = Destinations,
                 from = From} = E, #state{feed = Feed, type = user} = State) ->
     %% FIXME: sharing is like posting to the wall
     ?INFO("share: ~p, WhoShares: ~p", [E, WhoShares]),
@@ -274,7 +276,7 @@ handle_notice(["kvs_feed", "group", _Group, "entry", EntryId, "delete"] = Route,
           [self(), Owner, Route, Message]),
     %% all group subscribers shold delete entry from their feeds
     kvs_feed:remove_entry(Feed, EntryId),
-    self() ! {feed_refresh,Feed,20},
+    self() ! {feed_refresh,Feed, ?CACHED_ENTRIES},
     {noreply, State};
 
 handle_notice(["kvs_feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Route,
@@ -292,7 +294,7 @@ handle_notice(["kvs_feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Rout
             kvs_feed:remove_entry(Direct, EntryId);
         %% one of the friends has deleted some entry from his feed. Ignore
         _ -> ok end,
-    self() ! {feed_refresh, State#state.feed,20},
+    self() ! {feed_refresh, State#state.feed, ?CACHED_ENTRIES},
     {noreply, State};
 
 handle_notice(["kvs_feed", _Type, _EntryOwner, "entry", EntryId, "edit"] = Route,

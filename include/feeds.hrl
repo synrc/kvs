@@ -10,8 +10,7 @@
         from, %% author
         to,
         description,
-        raw_description,
-        created_time,
+        created, % time
         hidden,
         access,
         shared,
@@ -28,8 +27,7 @@
         next,
         prev}).
 
--record(id_seq, {thing, %% feed, user, group, ...
-                 id = 100000}).
+-record(id_seq, {thing, id}).
 
 -record(media, {
         id,
@@ -47,10 +45,9 @@
         id,          %% {comment_id, entry_id}
         comment_id,  %% generowane przez id_seq
         entry_id,    %% index
-        raw_content, %% raw text of comment
         content,     %% text of comment
         author_id,
-        create_time,
+        creation_time,
         media = [],  %% for oembed
         parent,
         comments,

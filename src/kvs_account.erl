@@ -7,7 +7,7 @@
 -compile(export_all).
 
 transaction(Account, Currency, 0, TransactionInfo) -> ok;
-transaction(Account, Currency, Amount, TransactionInfo) when Amount /= 0->
+transaction(Account, Currency, Amount, TransactionInfo) when Amount /= 0 ->
     {Remitter, Acceptor} = if Amount > 0 -> {system, Account}; true -> {Account, system} end,
     transaction(Remitter, Acceptor, Currency, abs(Amount), TransactionInfo).
 transaction(Remitter, Acceptor, Currency, Amount, TransactionInfo) ->
@@ -36,8 +36,7 @@ create_account(AccountId) ->
     catch _:_ -> {error, unable_create_account} end.
 
 create_account(AccountId, Currency) ->
-    Account = #account{id = {AccountId, Currency},
-                       credit = 0, debet = 0, last_change = 0},
+    Account = #account{id = {AccountId, Currency}, credit = 0, debet = 0, last_change = 0},
 
     case kvs:put(Account) of
          ok -> ok;
@@ -49,24 +48,19 @@ check_quota(User, Amount) ->
     SoftLimit = kvs:get_config("accounts/quota_limit/soft",  -20),
     {ok, Balance} = balance(User, quota),
     BalanceAfterChange = Balance - Amount,
-    if
-        BalanceAfterChange > SoftLimit ->
-            ok;
+    if  BalanceAfterChange > SoftLimit -> ok;
         true ->
             HardLimit = kvs:get(config, "accounts/quota_limit/hard",  -100),
-            if
-                BalanceAfterChange =< HardLimit ->
-                    {error, hard_limit};
-                true ->
-                    {error, soft_limit}
-            end
-    end.
+            if  BalanceAfterChange =< HardLimit -> {error, hard_limit};
+                true -> {error, soft_limit} end end.
 
 commit_transaction(#transaction{remitter = R, acceptor = A,  currency = Currency, amount = Amount} = TX) ->
     case change_accounts(R, A, Currency, Amount) of
          ok -> mqs:notify([transaction, user, R, add_transaction], TX),
                mqs:notify([transaction, user, A, add_transaction], TX);
          Error -> skip end.
+
+check_remitter_balance(RA, Amount) -> ok.
 
 change_accounts(Remitter, Acceptor, Currency, Amount) ->
     case {kvs:get(account,{Remitter, Currency}), kvs:get(account,{Acceptor, Currency})} of
@@ -81,16 +75,8 @@ change_accounts(Remitter, Acceptor, Currency, Amount) ->
         {#account{}, {error, Reason}} -> {error, {acceptor_account_unavailable, Reason}};
         {RE, AE} -> {error, both_accounts_unavailable} end.
 
-check_remitter_balance(#account{id = {system, _}}, _) -> ok;
-check_remitter_balance(_Account, _Amount) -> ok.
-
 get_currencies() -> [internal, currency, money, quota, points].
-
-generate_id() ->
-    {MegSec, Sec, MicroSec} = now(),
-    H = erlang:phash2(make_ref()),
-    lists:concat([MegSec*1000000000000, Sec*1000000, MicroSec, "-", H]).
-
+generate_id() -> {now(),make_ref()}.
 transactions(UserId) -> tx_list(UserId, undefined, 10000).
 
 tx_list(UserId, undefined, PageAmount) ->
@@ -116,7 +102,7 @@ handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown ACCOUNTS 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 add_transaction_to_user(UserId,Purchase) ->
-    {ok,Team} = case kvs:get(user_transaction, UserId) of
+    {ok,Top} = case kvs:get(user_transaction, UserId) of
                      {ok,T} -> {ok,T};
                      _ -> ?INFO("user_transaction not found"),
                           Head = #user_transaction{ user = UserId, top = undefined},
@@ -125,7 +111,7 @@ add_transaction_to_user(UserId,Purchase) ->
 
     EntryId = Purchase#transaction.id, %kvs:next_id("membership_purchase",1),
     Prev = undefined,
-    case Team#user_transaction.top of
+    case Top#user_transaction.top of
         undefined -> Next = undefined;
         X -> case kvs:get(transaction, X) of
                  {ok, TopEntry} ->

@@ -23,7 +23,7 @@ retrieve_groups(User) ->
 create(Creator, GroupName, GroupFullName, Desc, Publicity) ->
     Feed = kvs_feed:create(),
     Time = erlang:now(),
-    Group = #group{username = GroupName, name = GroupFullName, description = Desc, publicity = Publicity,
+    Group = #group{id = GroupName, name = GroupFullName, description = Desc, scope = Publicity,
                    creator = Creator, created = Time, owner = Creator, feed = Feed},
     kvs:put(Group),
     init_mq(Group),
@@ -73,10 +73,10 @@ add(UserName, GroupName, Type) ->
 
 join(UserName,GroupName) ->
     case kvs:get(group,GroupName) of
-        {ok, #group{username = GroupName, publicity = public}} ->
+        {ok, #group{id = GroupName, scope = public}} ->
             add(UserName, GroupName, member),
             {ok, joined};
-        {ok, #group{username = GroupName}} ->
+        {ok, #group{id = GroupName}} ->
             case member_type(UserName, GroupName) of
                 member -> {ok, joined};
                 req -> {error, already_sent};
@@ -103,7 +103,7 @@ coalesce(A, _) -> A.
 publicity(GroupName) ->
     case kvs:get(group,GroupName) of
         {error,_} -> no_such_group;
-        {ok,Group} -> Group#group.publicity end.
+        {ok,Group} -> Group#group.scope end.
 
 members_count(GroupName) ->
     case kvs:get(group,GroupName) of
@@ -115,7 +115,7 @@ user_has_access(UserName, GroupName) ->
     case kvs:get(group, GroupName) of
         {error,_} -> false;
         {ok,Group} ->
-            Publicity = Group#group.publicity,
+            Publicity = Group#group.scope,
             case {Publicity, Type} of
                 {public, _} -> true;
                 {private, member} -> true;
@@ -136,7 +136,7 @@ handle_notice(["kvs_group", "update", GroupName] = Route,
         {ok, Group} ->
             NewGroup = Group#group{name = coalesce(Name,Group#group.name),
                 description = coalesce(Description,Group#group.description),
-                publicity = coalesce(Publicity,Group#group.publicity),
+                scope = coalesce(Publicity,Group#group.scope),
                 owner = coalesce(Owner,Group#group.owner)},
             kvs:put(NewGroup);
         {error,Reason} -> ?ERROR("Cannot update group ~p",[Reason]) end,
@@ -177,7 +177,7 @@ build_group_relations(Group) -> [
     ].
 
 init_mq(Group=#group{}) ->
-    GroupExchange = ?GROUP_EXCHANGE(Group#group.username),
+    GroupExchange = ?GROUP_EXCHANGE(Group#group.id),
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
     case mqs:open([]) of
         {ok, Channel} ->

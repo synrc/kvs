@@ -95,7 +95,6 @@ join_tournament(UserId, TournamentId) ->
                  tournament = TournamentId,
                  team = User#user.team,
                  game_id = undefined, 
-		 other = now(),
                  realname = RN,
                  points = GP,
                  quota = Q});

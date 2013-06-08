@@ -10,7 +10,7 @@
         game_type,
         description,
         creator,
-        created,
+        created, % time
         start_date,
         start_time,
         end_date,
@@ -34,6 +34,5 @@
         game_id, % { game id that user played under that team }
         realname,
         points, % [{money,Point},{bonus,Points}]
-        quota,
-        other }).
+        quota }).
 

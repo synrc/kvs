@@ -25,7 +25,7 @@ check_access(#user{username = UId, type = UType}, #feed{id = FId}) ->
     Query = [ {{user, UId}, Feed}, {{user_type, UType}, Feed}, {default, Feed}],
     check(Query);
 
-check_access(#user{username = UId, type = UType}, #group{username = GId}) ->
+check_access(#user{username = UId, type = UType}, #group{id = GId}) ->
     Group = {group, GId},
     Query = [ {{user, UId}, Group}, {{user_type, UType}, Group}, {default, Group}],
     check(Query);
@@ -46,7 +46,7 @@ check_access({user_type, Type}, #feed{id = FId}) ->
     Query = [ {{user_type, Type}, Feed}, {default, Feed} ],
     check(Query);
 
-check_access({user_type, Type}, #group{username = GId}) ->
+check_access({user_type, Type}, #group{id = GId}) ->
     Group = {group, GId},
     Query = [{{user_type, Type}, Group}, {default, Group}],
     check(Query);
@@ -66,7 +66,7 @@ check_access(UId, {feature, _Feature} = Resource) ->
     end.
 
 select_type(#user{username = UId}) -> {user, UId};
-select_type(#group{username = GId}) -> {group, GId};
+select_type(#group{id = GId}) -> {group, GId};
 select_type(#feed{id = FId}) -> {feed, FId};
 select_type({user, UId}) -> {user, UId};
 select_type({group, name = GId}) -> {group, GId};
