@@ -117,7 +117,7 @@ add_sample_users() ->
         [ kvs_group:join(Me#user.username,G#group.id) || G <- Groups ],
           kvs_account:create_account(Me#user.username),
           kvs_account:transaction(Me#user.username, quota, Quota, #tx_default_assignment{}),
-          kvs:put(Me#user{password = sha(Me#user.password), starred = kvs_feed:create(), pinned = kvs_feed:create()})
+          kvs:put(Me#user{password = kvs:sha(Me#user.password), starred = kvs_feed:create(), pinned = kvs_feed:create()})
       end || Me <- UserList ],
 
     kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
@@ -226,7 +226,7 @@ make_paid_fake(UId) ->
 
 save(Dir, Value) ->
     filelib:ensure_dir(Dir),
-    file:write_file(Key, term_to_binary(Value)).
+    file:write_file(Dir, term_to_binary(Value)).
 
 load(Key) ->
     {ok, Bin} = file:read_file(Key),

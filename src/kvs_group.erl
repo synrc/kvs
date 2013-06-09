@@ -191,6 +191,6 @@ subscription_mq(Type, Action, Who, Where) ->
         {ok,Channel} ->
             case {Type,Action} of 
                 {group,add}     -> mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where));
-                {groupr,remove}  -> mqs_channel:unbind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where));
+                {groupr,remove}  -> mqs_channel:unbind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where)) end,
             mqs_channel:close(Channel);
         {error,Reason} -> ?ERROR("subscription_mq error: ~p",[Reason]) end.

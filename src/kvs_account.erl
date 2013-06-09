@@ -30,7 +30,7 @@ balance(AccountId, Currency) ->
          {ok, #account{debet = Debet, credit = Credit}} -> {ok, Debet - Credit};
          Error -> Error end.
 
-create_account(AccountId) -> [ kvs:put(#account{id={AccountId, Currency}) || Currency <- get_currencies() ].
+create_account(AccountId) -> [ kvs:put(#account{id={AccountId, Currency}}) || Currency <- get_currencies() ].
 
 check_quota(User) -> check_quota(User, 0).
 check_quota(User, Amount) ->

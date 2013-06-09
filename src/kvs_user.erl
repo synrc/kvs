@@ -18,19 +18,19 @@ register(#user{username=UserName, email=Email, facebook_id = FacebookId} = Regis
             {ok, _} -> {error, email_taken} end end,
 
     GroupUser = case EmailUser of
-        {error, Reason} -> {error, Reason};
-        {ok, Name} -> case kvs_group:get(Name) of
-            {error, _} -> {ok, Name};
+        {error, Reason2} -> {error, Reason2};
+        {ok, Name2} -> case kvs_group:get(Name2) of
+            {error, _} -> {ok, Name2};
             {ok,_} -> {error, username_taken} end end,
 
-    case Group of
-        {ok, Name} -> process_register(Registeration#user{username=Name});
+    case GroupUser of
+        {ok, Name3} -> process_register(Registeration#user{username=Name3});
         Error -> Error end.
 
 process_register(#user{username=U} = RegisterData0) ->
     HashedPassword = case RegisterData0#user.password of
         undefined -> undefined;
-        PlainPassword -> sha(PlainPassword) end,
+        PlainPassword -> kvs:sha(PlainPassword) end,
     RegisterData = RegisterData0#user {
         feed     = kvs:feed_create(),
         direct   = kvs:feed_create(),
@@ -95,7 +95,7 @@ subscription_mq(Type, Action, Who, Whom) ->
         {ok,Channel} ->
             case {Type,Action} of 
                 {user,add}     -> mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_user_feed(Whom));
-                {user,remove}  -> mqs_channel:unbind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_user_feed(Whom));
+                {user,remove}  -> mqs_channel:unbind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_user_feed(Whom)) end,
             mqs_channel:close(Channel);
         {error,Reason} -> ?ERROR("subscription_mq error: ~p",[Reason]) end.
 
