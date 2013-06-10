@@ -138,7 +138,7 @@ retrieve_connections(Id,Type) ->
                     Data = [begin
                         case kvs:get(user,Who) of
                             {ok,User} -> RealName = kvs_users:user_realname_user(User),
-                            Paid = kvs_account:user_paid(Who),
+                            Paid = kvs_payment:user_paid(Who),
                             {Who,Paid,RealName};
                         _ -> undefined end end || Who <- Sub],
                     [ X || X <- Data, X/=undefined ] end end.
