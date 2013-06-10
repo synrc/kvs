@@ -1,6 +1,6 @@
 -record(state, {
         owner = "feed_owner",
-        type :: user | group | system, 
+        type :: user | group | system | product,
         feed,
         direct,
         cached_feed,

@@ -20,6 +20,7 @@
         ext_name               :: binary(),  % ext
         vendor_id              :: integer(), % auto
         categories             :: list(integer()), % admin
+        feed,
         description_short      :: binary(),  % admin (based on ext)
         description_long       :: binary(),  % admin (based on ext)
         image_small_url        :: binary(),  % admin (based on ext)
