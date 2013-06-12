@@ -43,17 +43,18 @@ initialize() ->
     ?CREATE_TAB(id_seq),
     ?CREATE_TAB(transaction),
     ?CREATE_TAB(translation),
-    ok = add_table_index(comment, entry_id),
-    ok = add_table_index(comment, author_id),
-    ok = add_table_index(subscription, who),
-    ok = add_table_index(subscription, whom),
-    ok = add_table_index(group_subscription, who),
-    ok = add_table_index(group_subscription, where),
-    ok = add_table_index(entry, feed_id),
-    ok = add_table_index(entry, entry_id),
-    ok = add_table_index(entry, from),
-    ok = add_table_index(user, facebook_id),
-    ok = add_table_index(user, email),
+    mnesia:wait_for_tables([comment,subscription,group,group_subscription,user,entry],5000),
+    add_table_index(comment, entry_id),
+    add_table_index(comment, author_id),
+    add_table_index(subscription, who),
+    add_table_index(subscription, whom),
+    add_table_index(group_subscription, who),
+    add_table_index(group_subscription, where),
+    add_table_index(entry, feed_id),
+    add_table_index(entry, entry_id),
+    add_table_index(entry, from),
+    add_table_index(user, facebook_id),
+    add_table_index(user, email),
     ok.
 
 dir() ->
@@ -121,10 +122,10 @@ create_table(Record, RecordInfo,  Opts0) ->
         {aborted, Err}                       -> {error, Err} end.
 
 add_table_index(Record, Field) ->
-    case mnesia:add_table_index(Record, Field) of
-        {atomic, ok}                        -> ok;
-        {aborted,{already_exists,Record,_}} -> ok;
-        {aborted, Err}                      -> {error, Err} end.
+    catch case mnesia:add_table_index(Record, Field) of
+        {atomic, ok} -> ok;
+        {aborted,Reason} -> {aborted,Reason};
+        Err -> Err end.
 
 transform_opts(Opts) -> transform_opts(Opts, []).
 transform_opts([], Acc) -> lists:reverse(Acc);
