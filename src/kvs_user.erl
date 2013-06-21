@@ -13,13 +13,13 @@ register(#user{username=UserName, email=Email, facebook_id = FacebookId} = Regis
 
     EmailUser = case check_username(UserName, FacebookId) of
         {error, Reason} -> {error, Reason};
-        {ok, Name} -> case kvs_users:get({email, Email}) of
+        {ok, Name} -> case kvs_user:get({email, Email}) of
             {error, _} -> {ok, Name};
             {ok, _} -> {error, email_taken} end end,
 
     GroupUser = case EmailUser of
         {error, Reason2} -> {error, Reason2};
-        {ok, Name2} -> case kvs_group:get(Name2) of
+        {ok, Name2} -> case kvs:get(group, Name2) of
             {error, _} -> {ok, Name2};
             {ok,_} -> {error, username_taken} end end,
 
@@ -32,29 +32,29 @@ process_register(#user{username=U} = RegisterData0) ->
         undefined -> undefined;
         PlainPassword -> kvs:sha(PlainPassword) end,
     RegisterData = RegisterData0#user {
-        feed     = kvs:feed_create(),
-        direct   = kvs:feed_create(),
-        pinned   = kvs:feed_create(),
-        starred  = kvs:feed_create(),
+        feed     = kvs_feed:create(),
+        direct   = kvs_feed:create(),
+        pinned   = kvs_feed:create(),
+        starred  = kvs_feed:create(),
         password = HashedPassword },
 
     kvs:put(RegisterData),
     kvs_account:create_account(U),
     {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
     kvs_account:transaction(U, quota, DefaultQuota, #tx_default_assignment{}),
-    init_mq(U),
-    mqs:notify([user, init], {U, RegisterData#user.feed}),
+    %init_mq(RegisterData),
+    %mqs:notify([user, init], {U, RegisterData#user.feed}),
     {ok, U}.
 
 check_username(Name, FbId) ->
-    case kvs_users:get(Name) of
+    case kvs_user:get(Name) of
         {error, _} -> {ok, Name};
         {ok, User} when FbId =/= undefined ->
             check_username(User#user.username  ++ integer_to_list(crypto:rand_uniform(0,10)), FbId);
         {ok, _}-> {error, username_taken} end.
 
 delete(UserName) ->
-    case kvs_users:get(UserName) of
+    case kvs_user:get(UserName) of
         {ok, User} ->
             GIds = kvs_group:participate(UserName),
             [ mqs:notify(["subscription", "user", UserName, "remove_from_group"], {GId}) || GId <- GIds ],
@@ -127,7 +127,7 @@ rk_user_feed(User) -> mqs:key([kvs_feed, user, User, '*', '*', '*']).
 
 retrieve_connections(Id,Type) ->
     Friends = case Type of 
-        user -> kvs_users:list_subscr_usernames(Id);
+        user -> kvs_user:list_subscr_usernames(Id);
         _ -> kvs_group:list_group_members(Id) end,
     case Friends of
         [] -> [];
@@ -137,7 +137,7 @@ retrieve_connections(Id,Type) ->
                 _ ->
                     Data = [begin
                         case kvs:get(user,Who) of
-                            {ok,User} -> RealName = kvs_users:user_realname_user(User),
+                            {ok,User} -> RealName = kvs_user:user_realname_user(User),
                             Paid = kvs_payment:user_paid(Who),
                             {Who,Paid,RealName};
                         _ -> undefined end end || Who <- Sub],
@@ -156,14 +156,14 @@ user_by_email(Email) ->
 handle_notice(["kvs_user", "subscribe", Who] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     {Whom} = Message,
-    kvs_users:subscribe(Who, Whom),
+    kvs_user:subscribe(Who, Whom),
     subscription_mq(user, add, Who, Whom),
     {noreply, State};
 
 handle_notice(["kvs_user", "unsubscribe", Who] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     {Whom} = Message,
-    kvs_users:unsubscribe(Who, Whom),
+    kvs_user:unsubscribe(Who, Whom),
     subscription_mq(user, remove, Who, Whom),
     {noreply, State};
 
