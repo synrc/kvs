@@ -127,7 +127,10 @@ post_write_hooks(R,C) ->
                     _ -> C:put(make_object({email, R#user.username, R#user.email})) end,
                 case R#user.facebook_id of
                   undefined -> nothing;
-                  _ -> C:put(make_object({facebook, R#user.username, R#user.facebook_id})) end;
+                  _ -> C:put(make_object({facebook, R#user.username, R#user.facebook_id})) end,
+                case R#user.googleplus_id of
+                  undefined -> nothing;
+                  _ -> C:put(make_object({googleplus, R#user.username, #user.googleplus_id})) end;
         _ -> continue end.
 
 get(Tab, Key) ->

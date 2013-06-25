@@ -2,9 +2,11 @@
 
 -record(user, {
         username :: username_type() | '_', %% Dialyzer and record MatchSpec warnings http://j.mp/vZ8670
+        display_name,
         password,
         facebook_id,
         twitter_id,
+        googleplus_id,
         auth,
         email,
         avatar,
@@ -89,6 +91,7 @@
 
 -record(twitter_oauth, {user_id, token, secret}).
 -record(facebook_oauth, {user_id, access_token}).
+-record(googleplus_oauth, {user_id, access_token}).
 
 -define(ACTIVE_USERS_TOP_N, 12).
 

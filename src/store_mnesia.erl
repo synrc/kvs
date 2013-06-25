@@ -54,6 +54,7 @@ initialize() ->
     add_table_index(entry, entry_id),
     add_table_index(entry, from),
     add_table_index(user, facebook_id),
+    add_table_index(user, googleplus_id),
     add_table_index(user, email),
     ok.
 

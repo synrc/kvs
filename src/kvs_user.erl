@@ -9,9 +9,8 @@
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
-register(#user{username=UserName, email=Email, facebook_id = FacebookId} = Registeration) ->
-
-    EmailUser = case check_username(UserName, FacebookId) of
+register(#user{username=UserName, email=Email, facebook_id = FacebookId, googleplus_id=GooglePlusId} = Registeration) ->
+    EmailUser = case check_username(UserName, FacebookId, GooglePlusId) of
         {error, Reason} -> {error, Reason};
         {ok, Name} -> case kvs_user:get({email, Email}) of
             {error, _} -> {ok, Name};
@@ -37,7 +36,7 @@ process_register(#user{username=U} = RegisterData0) ->
         pinned   = kvs_feed:create(),
         starred  = kvs_feed:create(),
         password = HashedPassword },
-
+    error_logger:info_msg("PUT USER ~p", [U]),
     kvs:put(RegisterData),
     kvs_account:create_account(U),
     {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
@@ -46,11 +45,11 @@ process_register(#user{username=U} = RegisterData0) ->
     %mqs:notify([user, init], {U, RegisterData#user.feed}),
     {ok, U}.
 
-check_username(Name, FbId) ->
+check_username(Name, Fbid, Gid) ->
     case kvs_user:get(Name) of
         {error, _} -> {ok, Name};
-        {ok, User} when FbId =/= undefined ->
-            check_username(User#user.username  ++ integer_to_list(crypto:rand_uniform(0,10)), FbId);
+        {ok, User} when Fbid =/= undefined orelse Gid =/= undefined->
+            check_username(User#user.username  ++ integer_to_list(crypto:rand_uniform(0,10)), Fbid, Gid);
         {ok, _}-> {error, username_taken} end.
 
 delete(UserName) ->
@@ -67,6 +66,7 @@ delete(UserName) ->
         E -> E end.
 
 get({facebook, FBId}) -> user_by_facebook_id(FBId);
+get({googleplus, GId}) -> user_by_googleplus_id(GId);
 get({email, Email}) -> user_by_email(Email);
 get(UId) -> kvs:get(user, UId).
 
@@ -145,6 +145,11 @@ retrieve_connections(Id,Type) ->
 
 user_by_facebook_id(FBId) ->
     case kvs:get(facebook,FBId) of
+        {ok,{_,User,_}} -> kvs:get(user,User);
+        Else -> Else end.
+
+user_by_googleplus_id(GId) ->
+    case kvs:get(googleplus,GId) of
         {ok,{_,User,_}} -> kvs:get(user,User);
         Else -> Else end.
 
