@@ -29,6 +29,21 @@ distributed(Node) ->
                                || T <- mnesia:system_info(tables)]].
 delete() -> mnesia:delete_schema([node()]).
 version() -> {version,"KVS MNESIA Embedded"}.
+add_indexes() ->
+    add_table_index(comment, entry_id),
+    add_table_index(comment, author_id),
+    add_table_index(subscription, who),
+    add_table_index(subscription, whom),
+    add_table_index(group_subscription, who),
+    add_table_index(group_subscription, where),
+    add_table_index(entry, feed_id),
+    add_table_index(entry, entry_id),
+    add_table_index(entry, from),
+    add_table_index(user, facebook_id),
+    add_table_index(user, googleplus_id),
+    add_table_index(user, twitter_id),
+    add_table_index(user, email),
+    ok.
 initialize() ->
     error_logger:info_msg("Mnesia Init"),
     mnesia:create_schema([node()]),
@@ -52,19 +67,7 @@ initialize() ->
     ?CREATE_TAB(transaction),
     ?CREATE_TAB(translation),
     mnesia:wait_for_tables([comment,subscription,group,group_subscription,user,entry],5000),
-    add_table_index(comment, entry_id),
-    add_table_index(comment, author_id),
-    add_table_index(subscription, who),
-    add_table_index(subscription, whom),
-    add_table_index(group_subscription, who),
-    add_table_index(group_subscription, where),
-    add_table_index(entry, feed_id),
-    add_table_index(entry, entry_id),
-    add_table_index(entry, from),
-    add_table_index(user, facebook_id),
-    add_table_index(user, googleplus_id),
-    add_table_index(user, twitter_id),
-    add_table_index(user, email),
+    add_indexes(),
     ok.
 
 dir() ->
