@@ -1,6 +1,7 @@
 -include("types.hrl").
 
 -record(user, {
+        email,
         username :: username_type() | '_', %% Dialyzer and record MatchSpec warnings http://j.mp/vZ8670
         display_name,
         password,
@@ -8,7 +9,6 @@
         twitter_id,
         googleplus_id,
         auth,
-        email,
         avatar,
         name = undefined,
         surname = undefined,
