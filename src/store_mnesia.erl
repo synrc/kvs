@@ -18,11 +18,19 @@
 -compile(export_all).
 -define(CREATE_TAB(T), create_table(T, record_info(fields, T), [{storage, permanent}]) ).
 
-start() -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies).
+start() -> mnesia:start().
 stop() -> mnesia:stop().
+standalone() -> mnesia:change_table_copy_type(schema, node(), disc_copies).
+distributed(Node) ->
+    mnesia:change_config(extra_db_nodes, [Node]),
+    mnesia:change_table_copy_type(schema, node(), disc_copies),
+    [{Tb, mnesia:add_table_copy(Tb, node(), Type)}
+     || {Tb, [{Node, Type}]} <- [{T, mnesia:table_info(T, where_to_commit)}
+                               || T <- mnesia:system_info(tables)]].
 delete() -> mnesia:delete_schema([node()]).
 version() -> {version,"KVS MNESIA Embedded"}.
 initialize() ->
+    error_logger:info_msg("Mnesia Init"),
     mnesia:create_schema([node()]),
     ?CREATE_TAB(payment),
     ?CREATE_TAB(acl),
