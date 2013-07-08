@@ -44,6 +44,8 @@ add_indexes() ->
     add_table_index(user, twitter_id),
     add_table_index(user, email),
     ok.
+create_users() ->  ?CREATE_TAB(user).
+
 initialize() ->
     error_logger:info_msg("Mnesia Init"),
     mnesia:create_schema([node()]),

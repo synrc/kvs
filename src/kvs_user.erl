@@ -41,8 +41,8 @@ process_register(#user{email=E} = RegisterData0) ->
     kvs_account:create_account(E),
     {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
     kvs_account:transaction(E, quota, DefaultQuota, #tx_default_assignment{}),
-    init_mq(RegisterData),
-    mqs:notify([user, init], {E, RegisterData#user.feed}),
+%    init_mq(RegisterData),
+%    mqs:notify([user, init], {E, RegisterData#user.feed}),
     {ok, E}.
 
 check_username(Name, Fbid, Gid, Tid) ->

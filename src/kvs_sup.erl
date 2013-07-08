@@ -19,7 +19,7 @@ init([]) ->
   Type = worker,
 
   kvs:start(),
-  kvs:initialize(),
+ % kvs:initialize(),
 
   {ok, { {one_for_one, 5, 10}, []} }.
 
