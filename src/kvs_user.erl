@@ -26,7 +26,7 @@ register(#user{username=UserName, email=Email, facebook_id = FacebookId, googlep
         {ok, Name3} -> process_register(Registeration#user{username=Name3});
         Error -> Error end.
 
-process_register(#user{username=U} = RegisterData0) ->
+process_register(#user{email=E} = RegisterData0) ->
     HashedPassword = case RegisterData0#user.password of
         undefined -> undefined;
         PlainPassword -> kvs:sha(PlainPassword) end,
@@ -36,14 +36,14 @@ process_register(#user{username=U} = RegisterData0) ->
         pinned   = kvs_feed:create(),
         starred  = kvs_feed:create(),
         password = HashedPassword },
-    error_logger:info_msg("PUT USER ~p", [U]),
+    error_logger:info_msg("PUT USER ~p", [E]),
     kvs:put(RegisterData),
-    kvs_account:create_account(U),
+    kvs_account:create_account(E),
     {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
-    kvs_account:transaction(U, quota, DefaultQuota, #tx_default_assignment{}),
+    kvs_account:transaction(E, quota, DefaultQuota, #tx_default_assignment{}),
     init_mq(RegisterData),
-    mqs:notify([user, init], {U, RegisterData#user.feed}),
-    {ok, U}.
+    mqs:notify([user, init], {E, RegisterData#user.feed}),
+    {ok, E}.
 
 check_username(Name, Fbid, Gid, Tid) ->
     case kvs_user:get(Name) of
