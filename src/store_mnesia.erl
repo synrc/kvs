@@ -42,6 +42,7 @@ add_indexes() ->
     add_table_index(user, facebook_id),
     add_table_index(user, googleplus_id),
     add_table_index(user, twitter_id),
+    add_table_index(user, github_id),
     add_table_index(user, email),
     ok.
 create_users() ->  ?CREATE_TAB(user).

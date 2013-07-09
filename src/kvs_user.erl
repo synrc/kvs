@@ -9,8 +9,8 @@
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
-register(#user{username=UserName, email=Email, facebook_id = FacebookId, googleplus_id=GooglePlusId, twitter_id=TwitterId} = Registeration) ->
-    EmailUser = case check_username(UserName, FacebookId, GooglePlusId, TwitterId) of
+register(#user{username=UserName, email=Email} = Registration) ->
+    EmailUser = case check_username(UserName) of
         {error, Reason} -> {error, Reason};
         {ok, Name} -> case kvs_user:get({email, Email}) of
             {error, _} -> {ok, Name};
@@ -23,7 +23,7 @@ register(#user{username=UserName, email=Email, facebook_id = FacebookId, googlep
             {ok,_} -> {error, username_taken} end end,
 
     case GroupUser of
-        {ok, Name3} -> process_register(Registeration#user{username=Name3});
+        {ok, Name3} -> process_register(Registration#user{username=Name3});
         Error -> Error end.
 
 process_register(#user{email=E} = RegisterData0) ->
@@ -45,12 +45,10 @@ process_register(#user{email=E} = RegisterData0) ->
 %    mqs:notify([user, init], {E, RegisterData#user.feed}),
     {ok, RegisterData}.
 
-check_username(Name, Fbid, Gid, Tid) ->
+check_username(Name) ->
     case kvs_user:get(Name) of
         {error, _} -> {ok, Name};
-        {ok, User} when Fbid =/= undefined orelse Gid =/= undefined orelse Tid =/= undefined ->
-            check_username(User#user.username  ++ integer_to_list(crypto:rand_uniform(0,10)), Fbid, Gid, Tid);
-        {ok, _}-> {error, username_taken} end.
+        {ok, User} -> check_username(Name ++ integer_to_list(crypto:rand_uniform(0,10))) end.
 
 delete(UserName) ->
     case kvs_user:get(UserName) of

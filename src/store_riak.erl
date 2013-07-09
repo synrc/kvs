@@ -133,7 +133,10 @@ post_write_hooks(R,C) ->
                   _ -> C:put(make_object({googleplus, R#user.username, R#user.googleplus_id})) end,
                 case R#user.twitter_id of
                   undefined -> nothing;
-                  _ -> C:put(make_object({twitter, R#user.username, R#user.twitter_id})) end;
+                  _ -> C:put(make_object({twitter, R#user.username, R#user.twitter_id})) end,
+                case R#user.github_id of
+                  undefined -> nothing;
+                  _ -> C:put(make_object({github, R#user.username, R#user.github_id})) end;
         _ -> continue end.
 
 get(Tab, Key) ->
