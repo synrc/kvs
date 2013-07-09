@@ -20,8 +20,8 @@
 
 start() -> mnesia:start().
 stop() -> mnesia:stop().
-standalone() -> mnesia:change_table_copy_type(schema, node(), disc_copies).
-distributed(Node) ->
+single() -> mnesia:change_table_copy_type(schema, node(), disc_copies), initialize().
+join(Node) ->
     mnesia:change_config(extra_db_nodes, [Node]),
     mnesia:change_table_copy_type(schema, node(), disc_copies),
     [{Tb, mnesia:add_table_copy(Tb, node(), Type)}
