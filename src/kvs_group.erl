@@ -23,8 +23,8 @@ create(Creator, GroupName, GroupFullName, Desc, Publicity) ->
     Group = #group{id = GroupName, name = GroupFullName, description = Desc, scope = Publicity,
                    creator = Creator, created = Time, owner = Creator, feed = Feed},
     kvs:put(Group),
-    init_mq(Group),
-    mqs:notify([group, init], {GroupName, Feed}),
+%    init_mq(Group),
+%    mqs:notify([group, init], {GroupName, Feed}),
     add(Creator, GroupName, member),
     GroupName.
 
@@ -33,7 +33,7 @@ delete(GroupName) ->
     case kvs:get(group,GroupName) of 
         {error,_} -> ok;
         {ok, Group} ->
-            mqs:notify([feed, delete, GroupName], empty),
+%            mqs:notify([feed, delete, GroupName], empty),
             kvs:delete_by_index(group_subscription, <<"where_bin">>, GroupName),
             kvs:delete(feed, Group#group.feed),
             kvs:delete(group, GroupName),
