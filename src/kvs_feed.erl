@@ -17,36 +17,35 @@ create() ->
     ok = kvs:put(#feed{id = FId} ),
     FId.
 
-add_entry(FId, User, To, EntryId,Desc,Medias,Type,SharedBy) ->
+add_entry(FId, User, To, EntryId, Title, Desc,Medias,Type,SharedBy) ->
     case kvs:get(entry,{EntryId, FId}) of
         {ok, _} -> ok;
-        _ -> add_entry(FId, User, To, EntryId, Desc, Medias, Type, SharedBy, dont_check) end.
+        _ -> add_entry(FId, User, To, EntryId, Title, Desc, Medias, Type, SharedBy, dont_check) end.
 
-add_entry(FId, User, To, EntryId, Desc, Medias, Type, SharedBy, _) ->
-    {ok,Feed} = kvs:get(feed, erlang:integer_to_list(FId)),
+add_entry(FId, User, To, EntryId, Title, Desc, Medias, Type, SharedBy, _) ->
+  case kvs:get(feed, FId) of
+    {ok,Feed} ->
+      Id = {EntryId, FId},
+      Next = undefined,
+      Prev = case Feed#feed.top of
+        undefined -> undefined;
+        X -> case kvs:get(entry, X) of
+          {ok, TopEntry} -> EditedEntry = TopEntry#entry{next = Id}, kvs:put(EditedEntry), TopEntry#entry.id;
+          {error, _} -> undefined end end,
 
-    Id = {EntryId, FId},
-    Next = undefined,
-    Prev = case Feed#feed.top of
-               undefined -> undefined;
-               X -> case kvs:get(entry, X) of
-                       {ok, TopEntry} -> EditedEntry = TopEntry#entry{next = Id}, kvs:put(EditedEntry), TopEntry#entry.id;
-                       {error, _} -> undefined end end,
+      kvs:put(#feed{id = FId, top = {EntryId, FId}}), % update feed top with current
 
-    kvs:put(#feed{id = FId, top = {EntryId, FId}}), % update feed top with current
-
-    Entry  = #entry{id = {EntryId, FId}, entry_id = EntryId, feed_id = FId, from = User,
+      Entry  = #entry{id = {EntryId, FId}, entry_id = EntryId, feed_id = FId, from = User,
                     to = To, type = Type, media = Medias, created = now(),
-                    description = Desc, shared = SharedBy,
+                    title=Title, description = Desc, shared = SharedBy,
                     next = Next, prev = Prev},
 
-    ModEntry = case catch feedformat:format(Entry) of
-                   {_, Reason} -> ?ERROR("feedformat error: ~p", [Reason]), Entry;
-                   #entry{} = ME -> ME end,
-
-    kvs:put(ModEntry),
-
-    {ok, ModEntry}.
+      error_logger:info_msg("PUT ENTRY: ~p", [Entry]),
+      kvs:put(Entry),
+      {ok, Entry};
+    {error, not_found} ->
+      error_logger:info_msg("Add entry failed. No feed ~p", [FId])
+  end.
 
 entry_traversal(undefined, _) -> [];
 entry_traversal(_, 0) -> [];

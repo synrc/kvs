@@ -14,20 +14,25 @@
         user_price }).
 
 -record(product, {
-        id                     :: integer(), % auto
+        id,
         ext_id                 :: term(),    % ext
-        name                   :: binary(),  % admin (based on ext)
+        name                   :: string(),  % name
+        display_name           :: binary(),  % admin (based on ext)
         ext_name               :: binary(),  % ext
         vendor_id              :: integer(), % auto
         categories             :: list(integer()), % admin
+        creator,
+        owner,
         feed,
+        title,
+        description,
         description_short      :: binary(),  % admin (based on ext)
         description_long       :: binary(),  % admin (based on ext)
         image_small_url        :: binary(),  % admin (based on ext)
         image_big_url          :: binary(),  % admin (based on ext)
         publish_start_date     :: calendar:date_time(), % admin
         publish_end_date       :: calendar:date_time(), % admin
-        price                  :: integer(), % ext
+        price,
         retailer_price         :: integer(), % ext
         our_price              :: integer(), % auto
         enabled_on_site        :: boolean(), % admin

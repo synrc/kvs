@@ -11,6 +11,7 @@
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/purchases.hrl").
+-include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/translations.hrl").
@@ -69,6 +70,8 @@ initialize() ->
     ?CREATE_TAB(id_seq),
     ?CREATE_TAB(transaction),
     ?CREATE_TAB(translation),
+    ?CREATE_TAB(product),
+    ?CREATE_TAB(product_category),
     mnesia:wait_for_tables([comment,subscription,group,group_subscription,user,entry],5000),
     add_indexes(),
     ok.

@@ -12,6 +12,7 @@
 -include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
+-include_lib("kvs/include/products.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
