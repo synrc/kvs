@@ -25,11 +25,9 @@
         owner,
         feed,
         title,
+        brief,
         description,
-        description_short      :: binary(),  % admin (based on ext)
-        description_long       :: binary(),  % admin (based on ext)
-        image_small_url        :: binary(),  % admin (based on ext)
-        image_big_url          :: binary(),  % admin (based on ext)
+        title_picture,
         publish_start_date     :: calendar:date_time(), % admin
         publish_end_date       :: calendar:date_time(), % admin
         price,
