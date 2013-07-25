@@ -6,4 +6,5 @@
         file,
         thumb,
         owner,
+        date,
         data}).

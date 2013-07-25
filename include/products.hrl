@@ -30,7 +30,10 @@
         title_picture,
         publish_start_date     :: calendar:date_time(), % admin
         publish_end_date       :: calendar:date_time(), % admin
+        currency,
         price,
+        version,
+        file,
         retailer_price         :: integer(), % ext
         our_price              :: integer(), % auto
         enabled_on_site        :: boolean(), % admin

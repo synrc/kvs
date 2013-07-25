@@ -13,7 +13,7 @@
 register(#product{} = Registration) ->
     Id = kvs:next_id("product", 1),
     Product = Registration#product{id = Id, feed = kvs_feed:create()},
-    error_logger:info_msg("PUT PRODUCT ~p", [Product#product.id]),
+    error_logger:info_msg("PUT PRODUCT ~p", [Product]),
     kvs:put(Product),
 %    init_mq(Product),
 %    mqs:notify([product, init], {E, Product#product.feed}),
