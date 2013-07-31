@@ -12,7 +12,16 @@
 
 register(#product{} = Registration) ->
     Id = kvs:next_id("product", 1),
-    Product = Registration#product{id = Id, feed = kvs_feed:create()},
+    Product = Registration#product{id = Id,
+      feed = kvs_feed:create(),
+      blog = kvs_feed:create(),
+      features = kvs_feed:create(),
+      specs = kvs_feed:create(),
+      gallery = kvs_feed:create(),
+      videos = kvs_feed:create(),
+      bundles = kvs_feed:create(),
+      creation_date = erlang:now()
+    },
     error_logger:info_msg("PUT PRODUCT ~p", [Product]),
     kvs:put(Product),
 %    init_mq(Product),
@@ -125,4 +134,4 @@ handle_notice(["kvs_product", "update", _Who],
     kvs:put(NewProduct),
     {noreply, State};
 
-handle_notice(_Route, _Message, State) -> error_logger:info_msg("Unknown USERS notice").
+handle_notice(_Route, _Message, _State) -> error_logger:info_msg("Unknown USERS notice").
