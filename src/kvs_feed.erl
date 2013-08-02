@@ -180,9 +180,28 @@ purge_feed(FeedId) ->
     kvs:put(Feed#feed{top=undefined}).
 
 purge_unverified_feeds() ->
-    [purge_feed(FeedId) || #user{feed=FeedId,status=S,email=E} <- kvs:all(user), E==undefined].
+    [purge_feed(FeedId) || #user{feed=FeedId, email=E} <- kvs:all(user), E==undefined].
 
 %% MQ API
+
+handle_notice([kvs_feed, feed, product, To, entry, EntryId, add],
+              [Fid, From, Title, Desc, Medias, Type],
+              #product_state{feed=F, blog=B, features=Ft, specs=S, gallery=G, videos=V, bundles=Bn} = State) ->
+  Member = lists:member(Fid, [F,B,Ft,S,G,V,Bn]),
+  if Member ->
+    error_logger:info_msg("kvs feed add entry; ~p | ~n", [Fid]),
+    add_entry(Fid, From, To, EntryId, Title, Desc, Medias, Type, "");
+    true -> skip end,
+  {noreply, State};
+
+handle_notice([kvs_feed, feed, _, _Who, entry, {_, Fid}=Eid, edit],
+              [_, _, Title, Desc],
+              #product_state{feed=F, blog=B, features=Ft, specs=S, gallery=G, videos=V, bundles=Bn}=State) ->
+  Member = lists:member(Fid, [F,B,Ft,S,G,V,Bn]),
+  if Member ->
+    case kvs:get(entry, Eid) of {error, notfound}->skip; {ok, Entry} -> kvs:put(Entry#entry{title=Title, description=Desc}) end;
+  true -> skip end,
+  {noreply, State};
 
 handle_notice(["kvs_feed", "group", GroupId, "entry", EntryId, "add"] = Route, [From|_] = Message, #state{owner = Owner, feed = Feed} = State) ->
     ?INFO("feed(~p): group message: Owner=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
@@ -258,7 +277,7 @@ handle_notice(["feed", "user", UId, "post_note"] = Route,
     kvs_feed:add_entry(Feed, UId, [], Id, Note, [], {user, system_note}, ""),
     {noreply, State};
 
-handle_notice(["kvs_feed", _, WhoShares, "entry", NewEntryId, "share"] = Route,
+handle_notice(["kvs_feed", _, WhoShares, "entry", NewEntryId, "share"],
                 #entry{entry_id = _EntryId, description = Desc, media = Medias, to = Destinations,
                 from = From} = E, #state{feed = Feed, type = user} = State) ->
     %% FIXME: sharing is like posting to the wall
@@ -335,4 +354,4 @@ handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here be
     kvs_feed:add_like(FId, EId, UId),
     {noreply, State};
 
-handle_notice(Route, Message, State) -> error_logger:error_msg("Unknown FEED notice").
+handle_notice(_Route, _Message, _State) -> error_logger:error_msg("Unknown FEED notice").

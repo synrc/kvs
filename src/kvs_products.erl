@@ -25,7 +25,6 @@ register(#product{} = Registration) ->
     error_logger:info_msg("PUT PRODUCT ~p", [Product]),
     kvs:put(Product),
 %    init_mq(Product),
-%    mqs:notify([product, init], {E, Product#product.feed}),
     {ok, Product}.
 
 delete(Name) ->
