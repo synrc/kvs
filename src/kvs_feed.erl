@@ -203,6 +203,18 @@ handle_notice([kvs_feed, feed, _, _Who, entry, {_, Fid}=Eid, edit],
   true -> skip end,
   {noreply, State};
 
+handle_notice([kvs_feed, product, Owner, entry, {Eid, Fid}, delete],
+              [From|_], #product_state{feed=F, blog=B, features=Ft, specs=S, gallery=G, videos=V, bundles=Bn} = State) ->
+  %kvs_acl:check_access(From, {feature, admin})
+  Member = lists:member(Fid, [F,B,Ft,S,G,V,Bn]),
+  if From == Owner andalso Member == true ->
+      kvs_feed:remove_entry(Fid, Eid),
+      self() ! {feed_refresh, Fid, ?CACHED_ENTRIES};
+    true-> skip
+  end,
+  {noreply, State};
+
+
 handle_notice(["kvs_feed", "group", GroupId, "entry", EntryId, "add"] = Route, [From|_] = Message, #state{owner = Owner, feed = Feed} = State) ->
     ?INFO("feed(~p): group message: Owner=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
     [From, _Destinations, Desc, Medias] = Message,
