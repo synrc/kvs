@@ -17,9 +17,8 @@ add(FId, User, EntryId, ParentComment, CommentId, Content, Medias, _) ->
             {ok, Entry} = kvs:get(entry,{EntryId, FId}),
             {PrevC, E} = case Entry#entry.comments of
                         undefined -> {undefined, Entry#entry{comments_rear = FullId}};
-                        Id -> {ok, PrevTop} = kvs:get(comment, Id),
-                              kvs:put(PrevTop#comment{next = FullId}),
-                              {Id, Entry} end,
+                        Id ->  case kvs:get(comment, Id) of {ok, PrevTop} -> kvs:put(PrevTop#comment{next = FullId}); {error, not_found} -> skip end,
+                          {Id, Entry} end,
             kvs:put(E#entry{comments=FullId}),
             PrevC;
         _ ->

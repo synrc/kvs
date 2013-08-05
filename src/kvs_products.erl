@@ -13,6 +13,7 @@
 register(#product{} = Registration) ->
     Id = kvs:next_id("product", 1),
     Product = Registration#product{id = Id,
+      name = "product"++integer_to_list(Id),
       feed = kvs_feed:create(),
       blog = kvs_feed:create(),
       features = kvs_feed:create(),
@@ -31,12 +32,12 @@ delete(Name) ->
     case kvs:get(product, Name) of
         {ok, Product} ->
             GIds = kvs_group:participate(Name),
-            [ mqs:notify(["subscription", "product", Name, "remove_from_user"], {GId}) || GId <- GIds ],
+            [ mqs:notify(["subscription", "product", Name, "remove_from_group"], {GId}) || GId <- GIds ],
             F2U = [ {MeId, FrId} || #subscription{who = MeId, whom = FrId} <- subscriptions(Product) ],
             [ unsubscribe(MeId, FrId) || {MeId, FrId} <- F2U ],
             [ unsubscribe(FrId, MeId) || {MeId, FrId} <- F2U ],
-            kvs:delete(user_status, Name),
-            kvs:delete(user, Name),
+%            kvs:delete(user_status, Name),
+            kvs:delete(product, Name),
             {ok, Product};
         E -> E end.
 
@@ -64,8 +65,8 @@ subscription_mq(Type, Action, Who, Whom) ->
     case mqs:open([]) of
         {ok,Channel} ->
             case {Type,Action} of 
-                {user,add}     -> mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_user_feed(Whom));
-                {user,remove}  -> mqs_channel:unbind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_user_feed(Whom)) end,
+                {user,add}     -> mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_product_feed(Whom));
+                {user,remove}  -> mqs_channel:unbind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_product_feed(Whom)) end,
             mqs_channel:close(Channel);
         {error,Reason} -> ?ERROR("subscription_mq error: ~p",[Reason]) end.
 
@@ -84,16 +85,16 @@ init_mq(Product=#product{}) ->
 
 build_user_relations(Product, Groups) -> [
     mqs:key( [kvs_product, '*', Product]),
-    mqs:key( [kvs_feed, user, Product, '*', '*', '*']),
-    mqs:key( [kvs_feed, user, Product, '*'] ),
-    mqs:key( [kvs_payment, user, Product, '*']),
-    mqs:key( [kvs_account, user, Product, '*']),
-    mqs:key( [kvs_meeting, user, Product, '*']),
-    mqs:key( [kvs_purchase, user, Product, '*']) |
+    mqs:key( [kvs_feed, product, Product, '*', '*', '*']),
+    mqs:key( [kvs_feed, product, Product, '*'] ),
+    mqs:key( [kvs_payment, product, Product, '*']),
+    mqs:key( [kvs_account, product, Product, '*']),
+    mqs:key( [kvs_meeting, product, Product, '*']),
+    mqs:key( [kvs_purchase, product, Product, '*']) |
   [ mqs:key( [kvs_feed, group, G, '*', '*', '*']) || G <- Groups ]
     ].
 
-rk_user_feed(Product) -> mqs:key([kvs_feed, user, Product, '*', '*', '*']).
+rk_product_feed(Product) -> mqs:key([kvs_feed, product, Product, '*', '*', '*']).
 
 retrieve_connections(Id,Type) ->
     Friends = case Type of 
@@ -133,4 +134,6 @@ handle_notice(["kvs_product", "update", _Who],
     kvs:put(NewProduct),
     {noreply, State};
 
-handle_notice(_Route, _Message, _State) -> error_logger:info_msg("Unknown USERS notice").
+handle_notice(_Route, _Message, State) ->
+  %error_logger:info_msg("Unknown USERS notice"),
+  {noreply, State}.
