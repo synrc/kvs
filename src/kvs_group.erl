@@ -161,7 +161,9 @@ handle_notice(["kvs_group", "leave", GroupName] = Route,
 %    subscription_mq(group, remove, UserName, GroupName),
     {noreply, State};
 
-handle_notice(_Route, _Message, State) -> error_logger:info_msg("Unknown GROUP notice"), {noreply, State}.
+handle_notice(_Route, _Message, State) ->
+%  error_logger:info_msg("Unknown GROUP notice"),
+  {noreply, State}.
 
 build_group_relations(Group) -> [
     mqs:key( [kvs_group, create] ),
