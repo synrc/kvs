@@ -184,17 +184,16 @@ purge_unverified_feeds() ->
 
 %% MQ API
 
-handle_notice([kvs_feed, feed, product, To, entry, EntryId, add],
+handle_notice([kvs_feed, product, To, entry, EntryId, add],
               [Fid, From, Title, Desc, Medias, Type],
               #product_state{feed=F, blog=B, features=Ft, specs=S, gallery=G, videos=V, bundles=Bn} = State) ->
   Member = lists:member(Fid, [F,B,Ft,S,G,V,Bn]),
   if Member ->
-    error_logger:info_msg("kvs feed add entry; ~p | ~n", [Fid]),
     add_entry(Fid, From, To, EntryId, Title, Desc, Medias, Type, "");
     true -> skip end,
   {noreply, State};
 
-handle_notice([kvs_feed, feed, _, _Who, entry, {_, Fid}=Eid, edit],
+handle_notice([kvs_feed, _, _Who, entry, {_, Fid}=Eid, edit],
               [_, _, Title, Desc],
               #product_state{feed=F, blog=B, features=Ft, specs=S, gallery=G, videos=V, bundles=Bn}=State) ->
   Member = lists:member(Fid, [F,B,Ft,S,G,V,Bn]),
@@ -214,6 +213,14 @@ handle_notice([kvs_feed, product, Owner, entry, {Eid, Fid}, delete],
   end,
   {noreply, State};
 
+handle_notice([kvs_feed, product, _EntryOwner, comment, Cid, add],
+              [From, {Eid, FFid}, Parent, Content, Medias, _],
+              #product_state{feed=Fid} = State) ->
+  if FFid == Fid ->
+    error_logger:info_msg("Add comment: ~p ~p ~p", [Fid, Eid, Cid]),
+    kvs_comment:add(Fid, From, Eid, Parent, Cid, Content, Medias);
+    true -> skip end,
+  {noreply, State};
 
 handle_notice(["kvs_feed", "group", GroupId, "entry", EntryId, "add"] = Route, [From|_] = Message, #state{owner = Owner, feed = Feed} = State) ->
     ?INFO("feed(~p): group message: Owner=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
