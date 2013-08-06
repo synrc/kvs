@@ -208,14 +208,13 @@ handle_notice([kvs_feed, _, Toid, entry, {Eid,_}, edit],
     true -> skip end,
   {noreply, State};
 
-handle_notice([kvs_feed, product, Owner, entry, {Eid, Fid}, delete],
-              [From|_], #state{feed=F, blog=B, features=Ft, specs=S, gallery=G, videos=V, bundles=Bn} = State) ->
-  error_logger:info_msg("DELETE"),
-  %kvs_acl:check_access(From, {feature, admin})
-  Member = lists:member(Fid, [F,B,Ft,S,G,V,Bn]),
-  if From == Owner andalso Member == true ->
-      kvs_feed:remove_entry(Fid, Eid),
-      self() ! {feed_refresh, Fid, ?CACHED_ENTRIES};
+handle_notice([kvs_feed, Totype, Toid, entry, {Eid,Fid}, delete],
+              [_From|_], #state{owner=Owner, feed=Feed} = State) ->
+  if Owner == Toid ->
+    error_logger:info_msg("Delete: worker ~p entry ~p feed ~p", [Owner, Eid, Fid]),
+    FeedId = case Totype of product -> Fid; _ -> Feed end, %kvs_acl:check_access(From, {feature, admin})
+    kvs_feed:remove_entry(FeedId, Eid),
+    self() ! {feed_refresh, FeedId, ?CACHED_ENTRIES};
     true-> skip
   end,
   {noreply, State};
