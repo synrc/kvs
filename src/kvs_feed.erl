@@ -220,7 +220,7 @@ handle_notice([kvs_feed, Totype, Toid, entry, {Eid,Fid}, delete],
   {noreply, State};
 
 handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
-              [From, Parent, Content, Medias, _],
+              [From, Parent, Content, Medias, _, _],
               #state{owner=Owner, feed=Fid} = State) ->
   if FeedId == Fid ->
     [begin error_logger:info_msg("Comment: worker ~p entry ~p cid ~p",[Owner, Eid, Cid]),
