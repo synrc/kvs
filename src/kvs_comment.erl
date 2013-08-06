@@ -10,40 +10,38 @@ add(FId, User, EntryId, ParentComment, CommentId, Content, Medias) ->
          _ -> ok end.
 
 add(FId, User, EntryId, ParentComment, CommentId, Content, Medias, _) ->
-    FullId = {CommentId, {EntryId, FId}},
+  FullId = {CommentId, {EntryId, FId}},
 
-    Prev = case ParentComment of
-        undefined ->
-            {ok, Entry} = kvs:get(entry,{EntryId, FId}),
-            {PrevC, E} = case Entry#entry.comments of
-                        undefined -> {undefined, Entry#entry{comments_rear = FullId}};
-                        Id ->  case kvs:get(comment, Id) of {ok, PrevTop} -> kvs:put(PrevTop#comment{next = FullId}); {error, not_found} -> skip end,
-                          {Id, Entry} end,
-            kvs:put(E#entry{comments=FullId}),
-            PrevC;
-        _ ->
-            {ok, Parent} = kvs:get(comment, {{EntryId, FId}, ParentComment}),
-            {PrevC, CC} = case Parent#comment.comments of
-                        undefined -> {undefined, Parent#comment{comments_rear = FullId}};
-                        Id -> {ok, PrevTop} = kvs:get(comment, Id),
-                              kvs:put(PrevTop#comment{next = FullId}),
-                              {Id, Parent} end,
-            kvs:put(CC#comment{comments = FullId}),
-            PrevC end,
+  Prev = case ParentComment of
+    undefined ->
+      {ok, Entry} = kvs:get(entry,{EntryId, FId}),
+      {PrevC, E} = case Entry#entry.comments of
+        undefined -> {undefined, Entry#entry{comments_rear = FullId}};
+        Id ->  case kvs:get(comment, Id) of {ok, PrevTop} -> kvs:put(PrevTop#comment{next = FullId}); {error, not_found} -> skip end, {Id, Entry} end,
+      kvs:put(E#entry{comments=FullId}),
+      PrevC;
+    P ->
+      case kvs:get(comment, {P, {EntryId, FId}}) of
+        {ok, Parent} ->
+          {PrevC, CC} = case Parent#comment.comments of
+            undefined -> {undefined, Parent#comment{comments_rear = FullId}};
+            Id -> {ok, PrevTop} = kvs:get(comment, Id), kvs:put(PrevTop#comment{next = FullId}), {Id, Parent} end,
+          kvs:put(CC#comment{comments = FullId}),
+          PrevC;
+        {error, not_found} -> undefined end end,
 
-    Comment = #comment{id = FullId,
-                       author_id = User,
-                       comment_id = CommentId,
-                       entry_id = EntryId,
-                       content = Content,
-                       media = Medias,
-                       creation_time = now(),
-                       prev = Prev,
-                       next = undefined},
-
-    kvs:put(Comment),
-    {ok, Comment}.
-
+  Comment = #comment{id = FullId,
+                     author_id = User,
+                     comment_id = CommentId,
+                     entry_id = EntryId,
+                     content = Content,
+                     media = Medias,
+                     creation_time = now(),
+                     prev = Prev,
+                     next = undefined},
+  error_logger:info_msg("PUT: ~p", [Comment]),
+  kvs:put(Comment),
+  {ok, Comment}.
 
 read_comments(undefined) -> [];
 read_comments([#comment{comments = C} | Rest]) -> [read_comments(C) | read_comments(Rest)];
@@ -59,5 +57,5 @@ author_comments(Who) -> DBA=?DBA,DBA:author_comments(Who).
 
 remove(FId, EId) ->
     AllComments = feed_comments({EId, FId}),
-    [begin kvs:delete(comment, ID) end || #comment{id = ID, media = M} <- AllComments].
+    [begin kvs:delete(comment, ID) end || #comment{id = ID, media = _M} <- AllComments].
 

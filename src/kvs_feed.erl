@@ -219,12 +219,14 @@ handle_notice([kvs_feed, Totype, Toid, entry, {Eid,Fid}, delete],
   end,
   {noreply, State};
 
-handle_notice([kvs_feed, product, _EntryOwner, comment, Cid, add],
-              [From, {Eid, FFid}, Parent, Content, Medias, _],
-              #state{feed=Fid} = State) ->
-  if FFid == Fid ->
-    error_logger:info_msg("Add comment: ~p ~p ~p", [Fid, Eid, Cid]),
-    kvs_comment:add(Fid, From, Eid, Parent, Cid, Content, Medias);
+handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
+              [From, Parent, Content, Medias, _],
+              #state{owner=Owner, feed=Fid} = State) ->
+  if FeedId == Fid ->
+    [begin error_logger:info_msg("Comment: worker ~p entry ~p cid ~p",[Owner, Eid, Cid]),
+      kvs_comment:add(E#entry.feed_id, From, E#entry.entry_id, Parent, Cid, Content, Medias)
+    end || E <- kvs:all_by_index(entry, entry_id, Eid)];
+
     true -> skip end,
   {noreply, State};
 
@@ -269,20 +271,6 @@ handle_notice(["kvs_feed", _Type, EntryOwner, "entry", EntryId, "delete"] = Rout
         %% one of the friends has deleted some entry from his feed. Ignore
         _ -> ok end,
     self() ! {feed_refresh, State#state.feed, ?CACHED_ENTRIES},
-    {noreply, State};
-
-handle_notice(["kvs_feed", _Type, _EntryOwner, "entry", EntryId, "edit"] = Route,
-              Message, #state{owner = Owner, feed=Feed} = State) ->
-    [NewDescription|_] = Message,
-    error_logger:info_msg("feed(~p): edit: Owner=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
-    kvs_feed:edit_entry(Feed, EntryId, NewDescription),
-    {noreply, State};
-
-handle_notice(["kvs_feed", _Type, _EntryOwner, "comment", CommentId, "add"] = Route,
-              Message, #state{owner = Owner, feed=Feed} = State) ->
-    [From, EntryId, ParentComment, Content, Medias] = Message,
-    error_logger:info_msg("feed(~p): add comment: Owner=~p, Route=~p, Message=~p", [self(), Owner, Route, Message]),
-    kvs_comment:add(Feed, From, EntryId, ParentComment, CommentId, Content, Medias),
     {noreply, State};
 
 handle_notice(["kvs_feed", "user", UId, "count_entry_in_statistics"] = Route, 
