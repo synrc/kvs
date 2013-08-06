@@ -183,6 +183,7 @@ handle_notice([kvs_feed, Totype, Toid, entry, EntryId, add],
               #state{owner=Owner, feed=Feed}=State)->
   if Owner == Toid ->
     % handle user direct feed
+    error_logger:info_msg("Add: entry ~p worker ~p feed ~p", [EntryId, Owner, Feed]),
     add_entry(case Totype of product -> Fid; _ -> Feed end, From, {Toid, Totype}, EntryId, Title, Desc, Medias, EntryType, ""),
     case Totype of
       group ->
@@ -198,13 +199,13 @@ handle_notice([kvs_feed, Totype, Toid, entry, EntryId, add],
     true -> skip end,
   {noreply, State};
 
-handle_notice([kvs_feed, _, _Who, entry, {_, Fid}=Eid, edit],
+handle_notice([kvs_feed, _, Toid, entry, {Eid,_}, edit],
               [_, _, Title, Desc],
-              #state{feed=F, blog=B, features=Ft, specs=S, gallery=G, videos=V, bundles=Bn}=State) ->
-  Member = lists:member(Fid, [F,B,Ft,S,G,V,Bn]),
-  if Member ->
-    case kvs:get(entry, Eid) of {error, notfound}->skip; {ok, Entry} -> kvs:put(Entry#entry{title=Title, description=Desc}) end;
-  true -> skip end,
+              #state{owner=Owner, feed=Fid}=State) ->
+  if Owner == Toid ->
+    error_logger:info_msg("Edit: worker ~p entry ~p feed ~p" , [Owner, Eid, Fid] ),
+    case kvs:get(entry, {Eid, Fid}) of {error, not_found}-> skip; {ok, Entry} -> kvs:put(Entry#entry{title=Title, description=Desc}) end;
+    true -> skip end,
   {noreply, State};
 
 handle_notice([kvs_feed, product, Owner, entry, {Eid, Fid}, delete],
