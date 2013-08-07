@@ -179,7 +179,7 @@ purge_unverified_feeds() ->
 %% MQ API
 
 handle_notice([kvs_feed, Totype, Toid, entry, EntryId, add],
-              [Fid, From, Title, Desc, Medias, EntryType],
+              [Fid, From, Title, Desc, Medias, EntryType, _, _, _],
               #state{owner=Owner, feed=Feed}=State)->
   if Owner == Toid ->
     % handle user direct feed
