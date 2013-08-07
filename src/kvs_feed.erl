@@ -199,12 +199,12 @@ handle_notice([kvs_feed, Totype, Toid, entry, EntryId, add],
     true -> skip end,
   {noreply, State};
 
-handle_notice([kvs_feed, _, Toid, entry, {Eid,_}, edit],
+handle_notice([kvs_feed, Totype, Toid, entry, {Eid, Fid}, edit],
               [_, _, Title, Desc],
-              #state{owner=Owner, feed=Fid}=State) ->
+              #state{owner=Owner, feed=Feed}=State) ->
   if Owner == Toid ->
     error_logger:info_msg("Edit: worker ~p entry ~p feed ~p" , [Owner, Eid, Fid] ),
-    case kvs:get(entry, {Eid, Fid}) of {error, not_found}-> skip; {ok, Entry} -> kvs:put(Entry#entry{title=Title, description=Desc}) end;
+    case kvs:get(entry, {Eid, case Totype of product -> Fid; _ -> Feed end}) of {error, not_found}-> skip; {ok, Entry} -> error_logger:info_msg("ok!"),kvs:put(Entry#entry{title=Title, description=Desc}) end;
     true -> skip end,
   {noreply, State};
 
