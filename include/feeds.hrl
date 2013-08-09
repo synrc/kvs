@@ -3,6 +3,13 @@
         top,
         aclver}).
 
+-record(iterator, {
+        id,
+        object,
+        prev,
+        type,
+        next}).
+
 -record(entry, {
         id, % {entry_id, feed_id} we want to hold in key information about feed
         entry_id, % these fields 
