@@ -21,7 +21,7 @@ create(Creator, Id, Name, Desc, Publicity) ->
     Feed = kvs_feed:create(),
     Time = erlang:now(),
     Group = #group{id = Id, name = Name, description = Desc, scope = Publicity,
-                   creator = Creator, created = Time, owner = Creator, feed = Feed},
+                   creator = Creator, created = Time, owner = Creator, feed = Feed, products=kvs_feed:create()},
     error_logger:info_msg("PUT ~p", [Group]),
     kvs:put(Group),
 %    init_mq(Group),

@@ -180,11 +180,11 @@ purge_unverified_feeds() ->
 
 handle_notice([kvs_feed, Totype, Toid, entry, EntryId, add],
               [Fid, From, Title, Desc, Medias, EntryType, _, _, _],
-              #state{owner=Owner, feed=Feed}=State)->
+              #state{owner=Owner, feed=Feed, products=Products}=State)->
   if Owner == Toid ->
     % handle user direct feed
-    error_logger:info_msg("Add: entry ~p worker ~p feed ~p", [EntryId, Owner, Feed]),
-    add_entry(case Totype of product -> Fid; _ -> Feed end, From, {Toid, Totype}, EntryId, Title, Desc, Medias, EntryType, ""),
+    error_logger:info_msg("Add: entry ~p worker ~p feed ~p type ~p", [EntryId, Owner, Feed, Totype]),
+    add_entry(case Totype of product -> Fid; user-> Fid; {group, products}-> error_logger:info_msg("==>Group prods: ~p", [Products]),Products; _ -> Feed end, From, {Toid, Totype}, EntryId, Title, Desc, Medias, EntryType, ""),
     case Totype of
       group ->
           {ok, Group} = kvs:get(group, Toid),

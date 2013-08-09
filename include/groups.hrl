@@ -9,6 +9,7 @@
         created,
         owner,
         feed,
+        products,
         users_count = 0 :: integer(),   % we have to store this, counting would be very expensive and this number is sufficient for sorting and stuff
         entries_count = 0 :: integer() }).
 

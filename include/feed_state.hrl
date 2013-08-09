@@ -9,6 +9,7 @@
         gallery,
         videos,
         bundles,
+        products,
         callback=feed_server_api,  % tmp field\part of behaviour callback state
         cached_feed,
         cached_direct,
