@@ -45,8 +45,9 @@ check_quota(User, Amount) ->
 
 commit_transaction(#transaction{remitter = R, acceptor = A,  currency = Currency, amount = Amount} = TX) ->
     case change_accounts(R, A, Currency, Amount) of
-         ok -> mqs:notify([kvs_account, user, R, transaction], TX),
-               mqs:notify([kvs_account, user, A, transaction], TX);
+         ok -> %mqs:notify([kvs_account, user, R, transaction], TX),
+               %mqs:notify([kvs_account, user, A, transaction], TX);
+                xen;
          Error -> skip end.
 
 check_remitter_balance(RA, Amount) -> ok.

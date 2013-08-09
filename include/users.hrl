@@ -105,3 +105,5 @@
         }).
 
 -define(USER_EXCHANGE(UserId), list_to_binary("user_exchange."++UserId++".fanout")).
+
+-record(uploads, {key, counter}).

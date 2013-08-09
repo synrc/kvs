@@ -17,23 +17,24 @@ retrieve_groups(User) ->
                                    _ -> undefined end end || {UC, GId} <- UC_GId],
                [X||X<-Result,X/=undefined] end.
 
-create(Creator, GroupName, GroupFullName, Desc, Publicity) ->
+create(Creator, Id, Name, Desc, Publicity) ->
     Feed = kvs_feed:create(),
     Time = erlang:now(),
-    Group = #group{id = GroupName, name = GroupFullName, description = Desc, scope = Publicity,
+    Group = #group{id = Id, name = Name, description = Desc, scope = Publicity,
                    creator = Creator, created = Time, owner = Creator, feed = Feed},
+    error_logger:info_msg("PUT ~p", [Group]),
     kvs:put(Group),
-    init_mq(Group),
-    mqs:notify([group, init], {GroupName, Feed}),
-    add(Creator, GroupName, member),
-    GroupName.
+%    init_mq(Group),
+%    mqs:notify([group, init], {GroupName, Feed}),
+    add(Creator, Id, member),
+  {ok, Group}.
 
 
 delete(GroupName) ->
     case kvs:get(group,GroupName) of 
         {error,_} -> ok;
         {ok, Group} ->
-            mqs:notify([feed, delete, GroupName], empty),
+%            mqs:notify([feed, delete, GroupName], empty),
             kvs:delete_by_index(group_subscription, <<"where_bin">>, GroupName),
             kvs:delete(feed, Group#group.feed),
             kvs:delete(group, GroupName),
@@ -118,7 +119,7 @@ user_has_access(UserName, GroupName) ->
                 {private, member} -> true;
                 _ -> false end end.
 
-handle_notice(["kvs_group", "create"] = Route, 
+handle_notice([kvs_group, create] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): create_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {Creator, GroupName, FullName, Desc, Publicity} = Message,
@@ -145,22 +146,24 @@ handle_notice(["kvs_group", "remove", GroupName] = Route,
     delete(GroupName),
     {noreply, State};
 
-handle_notice(["kvs_group", "join", GroupName] = Route,
-    Message, #state{owner = Owner, type =Type} = State) ->
-    {GroupName, UserName, Type} = Message,
-    join(UserName, GroupName),
-    subscription_mq(group, add, UserName, GroupName),
-    {noreply, State};
+handle_notice([kvs_group, join, GroupName],
+    {UserName, Type}, #state{type=Type} = State) ->
+  error_logger:info_msg("Join group:  ~p State type:~p", [GroupName, Type]),
+  join(UserName, GroupName),
+%    subscription_mq(group, add, UserName, GroupName),
+  {noreply, State};
 
 handle_notice(["kvs_group", "leave", GroupName] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     ?INFO("queue_action(~p): remove_from_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UserName} = Message,
     leave(UserName,GroupName),
-    subscription_mq(group, remove, UserName, GroupName),
+%    subscription_mq(group, remove, UserName, GroupName),
     {noreply, State};
 
-handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown GROUP notice").
+handle_notice(_Route, _Message, State) ->
+%  error_logger:info_msg("Unknown GROUP notice"),
+  {noreply, State}.
 
 build_group_relations(Group) -> [
     mqs:key( [kvs_group, create] ),

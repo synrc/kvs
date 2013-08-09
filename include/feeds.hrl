@@ -9,6 +9,7 @@
         feed_id,  % are for secondary indexes
         from, % author
         to,
+        title,
         description,
         created, % time
         hidden,

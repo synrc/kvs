@@ -11,6 +11,7 @@
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/purchases.hrl").
+-include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/translations.hrl").
@@ -69,6 +70,8 @@ initialize() ->
     ?CREATE_TAB(id_seq),
     ?CREATE_TAB(transaction),
     ?CREATE_TAB(translation),
+    ?CREATE_TAB(product),
+    ?CREATE_TAB(product_category),
     mnesia:wait_for_tables([comment,subscription,group,group_subscription,user,entry],5000),
     add_indexes(),
     ok.
@@ -162,7 +165,7 @@ exec(Q) -> F = fun() -> qlc:e(Q) end, {atomic, Val} = mnesia:transaction(F), Val
 % index funs
 
 products(UId) -> all_by_index(user_product, #user_product.username, UId).
-subscriptions(UId) -> all_by_index(subsciption, #subscription.who, UId).
+subscriptions(UId) -> all_by_index(subscription, #subscription.who, UId).
 subscribed(Who) -> all_by_index(subscription, #subscription.whom, Who).
 participate(UserName) -> all_by_index(group_subscription, #group_subscription.who, UserName).
 members(GroupName) -> all_by_index(group_subscription, #group_subscription.where, GroupName).

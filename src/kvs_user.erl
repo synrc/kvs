@@ -176,4 +176,6 @@ handle_notice(["kvs_user", "update", Who] = Route,
     kvs:put(NewUser),
     {noreply, State};
 
-handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown USERS notice").
+handle_notice(Route, Message, State) -> 
+  %error_logger:info_msg("Unknown USERS notice"), 
+  {noreply, State}.
