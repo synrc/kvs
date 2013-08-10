@@ -212,13 +212,14 @@ handle_notice([kvs_feed,_, Owner, entry, {_,Fid}, delete],
   %    self() ! {feed_refresh, FeedId, ?CACHED_ENTRIES};
   {noreply, State};
 
-handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, add],
+handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
               [From, Parent, Content, Medias, _, _],
               #state{owner=Owner, feeds=Feeds} = State) ->
+
   HasFeed = lists:keyfind(FeedId,2,Feeds) /= false,
   if HasFeed ->
     [begin error_logger:info_msg("Comment: worker ~p entry ~p cid ",[Owner, Eid]),
-      kvs_comment:add(E#entry.feed_id, From, E#entry.entry_id, Parent, kvs:uuid(), Content, Medias)
+      kvs_comment:add(E#entry.feed_id, From, E#entry.entry_id, Parent, Cid, Content, Medias)
     end || E <- kvs:all_by_index(entry, entry_id, Eid)];
 
     true -> skip end,
