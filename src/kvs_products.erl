@@ -10,23 +10,11 @@
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
-register(#product{} = Registration) ->
-    Id = kvs:next_id("product", 1),
-    Product = Registration#product{id = Id,
-      name = "product"++integer_to_list(Id),
-      feed = kvs_feed:create(),
-      blog = kvs_feed:create(),
-      features = kvs_feed:create(),
-      specs = kvs_feed:create(),
-      gallery = kvs_feed:create(),
-      videos = kvs_feed:create(),
-      bundles = kvs_feed:create(),
-      creation_date = erlang:now()
-    },
-    error_logger:info_msg("PUT PRODUCT ~p", [Product]),
-    kvs:put(Product),
-%    init_mq(Product),
-    {ok, Product}.
+register(#product{feeds=Ch} = Registration) ->
+  P = Registration#product{id = kvs:uuid(), feeds= [{Feed, kvs_feed:create()} || Feed <- Ch], creation_date = erlang:now()},
+  kvs:put(P),
+  error_logger:info_msg("PUT PRODUCT: ~p feeds:~p", [P#product.id, P#product.feeds]),
+  {ok, P}.
 
 delete(Name) ->
     case kvs:get(product, Name) of
@@ -51,7 +39,7 @@ unsubscribe(Who, Whom) ->
         false -> skip end.
 
 subscriptions(undefined)-> [];
-subscriptions(#product{name = UId}) -> subscriptions(UId);
+subscriptions(#product{id = UId}) -> subscriptions(UId);
 
 subscriptions(UId) -> DBA=?DBA, DBA:subscriptions(UId).
 subscribed(Who) -> DBA=?DBA, DBA:subscribed(Who).
@@ -72,14 +60,14 @@ subscription_mq(Type, Action, Who, Whom) ->
 
 init_mq(Product=#product{}) ->
     Groups = kvs_group:participate(Product),
-    ProductExchange = ?USER_EXCHANGE(Product#product.name),
+    ProductExchange = ?USER_EXCHANGE(Product#product.id),
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
     case mqs:open([]) of
         {ok, Channel} ->
             ?INFO("Cration Exchange: ~p,",[{Channel,ProductExchange,ExchangeOptions}]),
             mqs_channel:create_exchange(Channel, ProductExchange, ExchangeOptions),
             Relations = build_user_relations(Product, Groups),
-            [ mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Product#product.name), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
+            [ mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Product#product.id), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
             mqs_channel:close(Channel);
         {error,Reason} -> ?ERROR("init_mq error: ~p",[Reason]) end.
 

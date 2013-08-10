@@ -69,10 +69,10 @@ initialize() ->
     ?CREATE_TAB(group),
     ?CREATE_TAB(id_seq),
     ?CREATE_TAB(transaction),
-    ?CREATE_TAB(translation),
+%    ?CREATE_TAB(translation),
     ?CREATE_TAB(product),
     ?CREATE_TAB(product_category),
-    mnesia:wait_for_tables([comment,subscription,group,group_subscription,user,entry],5000),
+    mnesia:wait_for_tables([comment,subscription,group,group_subscription,user,entry,product],5000),
     add_indexes(),
     ok.
 

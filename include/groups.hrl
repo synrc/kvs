@@ -8,10 +8,9 @@
         creator,
         created,
         owner,
-        feed,
-        products,
+        feeds,
         users_count = 0 :: integer(),   % we have to store this, counting would be very expensive and this number is sufficient for sorting and stuff
-        entries_count = 0 :: integer() }).
+        entries_count = 0}).
 
 -record(group_subscription, {
         key,

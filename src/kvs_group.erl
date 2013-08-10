@@ -17,18 +17,12 @@ retrieve_groups(User) ->
                                    _ -> undefined end end || {UC, GId} <- UC_GId],
                [X||X<-Result,X/=undefined] end.
 
-create(Creator, Id, Name, Desc, Publicity) ->
-    Feed = kvs_feed:create(),
-    Time = erlang:now(),
-    Group = #group{id = Id, name = Name, description = Desc, scope = Publicity,
-                   creator = Creator, created = Time, owner = Creator, feed = Feed, products=kvs_feed:create()},
-    error_logger:info_msg("PUT ~p", [Group]),
-    kvs:put(Group),
-%    init_mq(Group),
-%    mqs:notify([group, init], {GroupName, Feed}),
-    add(Creator, Id, member),
+register(#group{} = Register) ->
+  Group = Register#group{id = kvs:uuid(), created = erlang:now(), feeds=[{Feed, kvs_feed:create()} || Feed <- Register#group.feeds]},
+  kvs:put(Group),
+  error_logger:info_msg("PUT ~p", [Group]),
+  add(Group#group.creator, Group#group.id, member),
   {ok, Group}.
-
 
 delete(GroupName) ->
     case kvs:get(group,GroupName) of 
@@ -36,7 +30,7 @@ delete(GroupName) ->
         {ok, Group} ->
 %            mqs:notify([feed, delete, GroupName], empty),
             kvs:delete_by_index(group_subscription, <<"where_bin">>, GroupName),
-            kvs:delete(feed, Group#group.feed),
+            [kvs:delete(Feed, Fid) || {Feed, Fid} <- Group#group.feeds],
             kvs:delete(group, GroupName),
             case mqs:open([]) of
                 {ok, Channel} ->
@@ -118,13 +112,6 @@ user_has_access(UserName, GroupName) ->
                 {public, _} -> true;
                 {private, member} -> true;
                 _ -> false end end.
-
-handle_notice([kvs_group, create] = Route,
-    Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): create_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    {Creator, GroupName, FullName, Desc, Publicity} = Message,
-    create(Creator, GroupName, FullName, Desc, Publicity),
-    {noreply, State};
 
 handle_notice(["kvs_group", "update", GroupName] = Route, 
     Message, #state{owner=ThisGroupOwner, type=Type} = State) ->

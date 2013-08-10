@@ -2,13 +2,10 @@
         vendor_id,
         id,
         active,
-        name,
+        title,
+        brief,
         category,
         category_name,
-        short_descr,
-        long_descr,
-        small_image_url,
-        big_image_url,
         in_stock,
         retailer_price,
         user_price }).
@@ -16,20 +13,11 @@
 -record(product, {
         id,
         ext_id                 :: term(),    % ext
-        name                   :: string(),  % name
-        display_name           :: binary(),  % admin (based on ext)
-        ext_name               :: binary(),  % ext
         vendor_id              :: integer(), % auto
         categories             :: list(integer()), % admin
         creator,
         owner,
-        feed,
-        blog,
-        features,
-        specs,
-        gallery,
-        videos,
-        bundles,
+        feeds,
         title,
         brief,
         cover,

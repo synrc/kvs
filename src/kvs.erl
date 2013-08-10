@@ -40,7 +40,7 @@ init_db() ->
         {error,_} ->
             add_seq_ids(),
             kvs_account:create_account(system),
-            add_sample_users(),
+            %add_sample_users(),
             add_sample_packages(),
             add_sample_payments(),
             add_translations();
@@ -91,22 +91,17 @@ add_translations() ->
 
 add_sample_users() ->
 
-    Groups = [ #group{id="Clojure"},
-               #group{id="Haskell"},
-               #group{id="Erlang"} ],
+    Groups = [],
 
     UserList = [
         #user{username = "maxim", password="pass", name = "Maxim", surname = "Sokhatsky",
-            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
+            feeds=[{feed, kvs_feed:create()}, {direct, kvs_feed:create()},{starred,kvs_feed:create()},{pinned,kvs_feed:create()}], type = admin,
             sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="maxim@synrc.com"},
         #user{username = "doxtop", password="pass", name = "Andrii", surname = "Zadorozhnii",
-            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
+            feeds=[{feed, kvs_feed:create()}, {direct, kvs_feed:create()},{starred,kvs_feed:create()},{pinned,kvs_feed:create()}], type = admin,
             sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="doxtop@synrc.com"},
-        #user{username = "alice", password="pass", name = "Alice", surname = "Imagionary",
-            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
-            sex=f, status=ok, team = kvs_meeting:create_team("tours"),  email="alice@synrc.com"},
         #user{username = "akalenuk", password="pass", name = "Alexander", surname = "Kalenuk",
-            feed = kvs_feed:create(), type = admin, direct = kvs_feed:create(),
+            feeds=[{feed, kvs_feed:create()}, {direct, kvs_feed:create()},{starred,kvs_feed:create()},{pinned,kvs_feed:create()}], type = admin,
             sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="akalenuk@gmail.com"}
     ],
 
@@ -118,7 +113,7 @@ add_sample_users() ->
         [ kvs_group:join(Me#user.username,G#group.id) || G <- Groups ],
           kvs_account:create_account(Me#user.username),
           kvs_account:transaction(Me#user.username, quota, Quota, #tx_default_assignment{}),
-          kvs:put(Me#user{password = kvs:sha(Me#user.password), starred = kvs_feed:create(), pinned = kvs_feed:create()})
+          kvs:put(Me#user{password = kvs:sha(Me#user.password)})
       end || Me <- UserList ],
 
     kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
@@ -235,6 +230,22 @@ load(Key) ->
 
 coalesce(undefined, B) -> B;
 coalesce(A, _) -> A.
+
+
+uuid() ->
+  R1 = random:uniform(round(math:pow(2, 48))) - 1,
+  R2 = random:uniform(round(math:pow(2, 12))) - 1,
+  R3 = random:uniform(round(math:pow(2, 32))) - 1,
+  R4 = random:uniform(round(math:pow(2, 30))) - 1,
+  R5 = erlang:phash({node(), now()}, round(math:pow(2, 32))),
+
+  UUIDBin = <<R1:48, 4:4, R2:12, 2:2, R3:32, R4: 30>>,
+  <<TL:32, TM:16, THV:16, CSR:8, CSL:8, N:48>> = UUIDBin,
+
+  lists:flatten(io_lib:format("~8.16.0b-~4.16.0b-~4.16.0b-~2.16.0b~2.16.0b-~12.16.0b-~8.16.0b",
+                              [TL, TM, THV, CSR, CSL, N, R5])).
+uuname() ->
+  lists:flatten(io_lib:format("~8.16.0b",[erlang:phash2({node(), now()}, round(math:pow(2, 32)))])).
 
 sha(Raw) ->
     lists:flatten([io_lib:format("~2.16.0b", [N]) || <<N>> <= crypto:sha(Raw)]).

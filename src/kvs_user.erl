@@ -9,46 +9,17 @@
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
-register(#user{username=UserName, email=Email} = Registration) ->
-    EmailUser = case check_username(UserName) of
-        {error, Reason} -> {error, Reason};
-        {ok, Name} -> case kvs_user:get({email, Email}) of
-            {error, _} -> {ok, Name};
-            {ok, _} -> {error, email_taken} end end,
-
-    GroupUser = case EmailUser of
-        {error, Reason2} -> {error, Reason2};
-        {ok, Name2} -> case kvs:get(group, Name2) of
-            {error, _} -> {ok, Name2};
-            {ok,_} -> {error, username_taken} end end,
-
-    case GroupUser of
-        {ok, Name3} -> process_register(Registration#user{username=Name3});
-        Error -> Error end.
-
-process_register(#user{email=E} = RegisterData0) ->
-    HashedPassword = case RegisterData0#user.password of
-        undefined -> undefined;
-        PlainPassword -> kvs:sha(PlainPassword) end,
-    RegisterData = RegisterData0#user {
-        feed     = kvs_feed:create(),
-        direct   = kvs_feed:create(),
-        pinned   = kvs_feed:create(),
-        starred  = kvs_feed:create(),
-        password = HashedPassword },
-    error_logger:info_msg("PUT USER ~p", [E]),
+register(#user{email=Email, feeds=Ch} = Registration) ->
+  case kvs_user:get({email, Email}) of {ok, _} -> {error, email_taken};
+  {error, _} ->
+    HashedPassword = case Registration#user.password of undefined -> undefined; PlainPassword -> kvs:sha(PlainPassword) end,
+    RegisterData = Registration#user{name=kvs:uuname(), feeds=[{Feed, kvs_feed:create()} || Feed <- Ch], password = HashedPassword},
     kvs:put(RegisterData),
-%    kvs_account:create_account(E),
-%    {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
-%    kvs_account:transaction(E, quota, DefaultQuota, #tx_default_assignment{}),
-%    init_mq(RegisterData),
-%    mqs:notify([user, init], {E, RegisterData#user.feed}),
-    {ok, RegisterData}.
-
-check_username(Name) ->
-    case kvs_user:get(Name) of
-        {error, _} -> {ok, Name};
-        {ok, User} -> check_username(Name ++ integer_to_list(crypto:rand_uniform(0,10))) end.
+    error_logger:info_msg("PUT USER: ~p", [RegisterData]),
+    kvs_account:create_account(Email),
+    {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
+    kvs_account:transaction(Email, quota, DefaultQuota, #tx_default_assignment{}),
+    {ok, RegisterData} end.
 
 delete(UserName) ->
     case kvs_user:get(UserName) of

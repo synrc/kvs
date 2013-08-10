@@ -14,8 +14,8 @@ solvent(UId, ProductId) ->
     Credit >= Price.
 
 buy(UId, ProductId) ->
-    {ok, #product{price = Price, name = Name}} = kvs:get(product, ProductId),
-    kvs_accounts:transaction(UId, currency, -Price, "Buy " ++ Name ++ " for "++ integer_to_list(Price)),
+    {ok, #product{price = Price}} = kvs:get(product, ProductId),
+    kvs_accounts:transaction(UId, currency, -Price, "Buy " ++ ProductId ++ " for "++ integer_to_list(Price)),
     kvs:put(#user_product{username=UId, timestamp=now(), product_id = ProductId}).
 
 give(UId, ProductId) ->
@@ -37,4 +37,4 @@ handle_notice(["kvs_purchase", "user", UId, "give"] = Route,
     give(UId, GId),
     {noreply, State};
 
-handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown PURCHASE notice").
+handle_notice(_,_,_) -> error_logger:info_msg("Unknown PURCHASE notice").
