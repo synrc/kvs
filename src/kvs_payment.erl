@@ -135,7 +135,7 @@ payment_id() ->
     NextId = kvs:next_id("payment"),
     lists:concat([timestamp(), "_", NextId]).
 
-handle_notice(["kvs_payment", "user", _, "set_state"] = Route,
+handle_notice([kvs_payment, user, Owner, set_state] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     error_logger:info_msg("queue_action(~p): set_purchase_state: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),  
     {MPId, NewState, Info} = Message,
