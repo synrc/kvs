@@ -23,7 +23,7 @@
         cover,
         publish_start_date     :: calendar:date_time(), % admin
         publish_end_date       :: calendar:date_time(), % admin
-        price                  :: integer(),
+        price = 0              :: integer(),
         currency               :: integer(),  % currency charge
         retailer_price         :: integer(), % ext
         our_price              :: integer(), % auto
