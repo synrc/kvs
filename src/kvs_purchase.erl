@@ -37,4 +37,4 @@ handle_notice(["kvs_purchase", "user", UId, "give"] = Route,
     give(UId, GId),
     {noreply, State};
 
-handle_notice(_,_,_) -> error_logger:info_msg("Unknown PURCHASE notice").
+handle_notice(R,_,S) -> error_logger:info_msg("Unhandled PURCHASE notice ~p", [R]), {noreply, S}.

@@ -55,7 +55,7 @@ add_payment(#payment{} = MP, State0, Info) ->
 add_to_user(UserId,Payment) ->
     {ok,Team} = case kvs:get(user_payment, UserId) of
                      {ok,T} -> {ok,T};
-                     _ -> ?INFO("user_payment not found ~p. create top",[UserId]),
+                     _ -> error_logger:info_msg("user_payment not found ~p. create top",[UserId]),
                           Head = #user_payment{ user = UserId, top = undefined},
                           {kvs:put(Head),Head} end,
 
@@ -74,7 +74,7 @@ add_to_user(UserId,Payment) ->
 
     Entry  = Payment#payment{id = EntryId, user_id = UserId, next = Next, prev = Prev},
     case kvs:put(Entry) of ok -> {ok, EntryId};
-                           Error -> ?INFO("Cant write purchase"), {failure,Error} end.
+                           Error -> error_logger:info_msg("Cant write purchase"), {failure,Error} end.
 
 set_payment_state(MPId, NewState, Info) ->
     case kvs:get(payment, MPId) of 
@@ -102,7 +102,7 @@ set_payment_state(MPId, NewState, Info) ->
 
     ok;
 
-    Error -> ?INFO("Can't set purchase state, not yet in db"), Error
+    Error -> error_logger:info_msg("Can't set purchase state, not yet in db"), Error
     end.
 
 set_payment_info(MPId, Info) ->
@@ -123,35 +123,39 @@ list_payments(SelectOptions) ->
 
 payment_id() ->
     NextId = kvs:next_id("payment"),
-    lists:concat([kvs_membership:timestamp(), "_", NextId]).
+    lists:concat([timestamp(), "_", NextId]).
 
 handle_notice(["kvs_payment", "user", _, "set_state"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): set_purchase_state: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),  
+    error_logger:info_msg("queue_action(~p): set_purchase_state: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),  
     {MPId, NewState, Info} = Message,
     set_payment_state(MPId, NewState, Info),
     {noreply, State};
 
-handle_notice(["kvs_payment", "user", _, "add"] = Route,
+handle_notice([kvs_payment, user, Owner, add] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): add_purchase: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
+    error_logger:info_msg("queue_action(~p): add_purchase: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
     {MP} = Message,
     add_payment(MP),
     {noreply, State};
 
 handle_notice(["kvs_payment", "user", _, "set_external_id"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): set_purchase_external_id: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): set_purchase_external_id: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {PurchaseId, TxnId} = Message,
     set_payment_external_id(PurchaseId, TxnId),
     {noreply, State};
 
 handle_notice(["kvs_payment", "user", _, "set_info"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): set_purchase_info: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): set_purchase_info: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {OrderId, Info} = Message,
     set_payment_info(OrderId, Info),
     {noreply, State};
 
-handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown PAYMENTS notice").
+handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown PAYMENTS notice ~p for: ~p, ~p", [Route, State#state.owner, State#state.type]), {noreply, State}.
 
+timestamp()->
+  {Y, Mn, D} = erlang:date(),
+  {H, M, S} = erlang:time(),
+  lists:flatten(io_lib:format("~b~2..0b~2..0b_~2..0b~2..0b~2..0b", [Y, Mn, D, H, M, S])).

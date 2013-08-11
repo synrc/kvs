@@ -2,13 +2,11 @@
 -author('Vladimir Baranov <baranoff.vladimir@gmail.com>').
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
+-include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
-
--type package_id() :: integer().
--type list_options()::[{payment_type, payment_type()}|{available_for_sale, boolean()}].
 
 add_package(#membership{}=Package)->
     Id = generate_id(),
@@ -42,7 +40,7 @@ add_sample_data()->
     #membership{no = 7, amount = 50,  currency = 0,  quota = 90,  fee = 50},
     #membership{no = 8, amount = 100, currency = 40, quota = 120, fee = 60}],
     WithPaymentTypes = [
-        Package#membership{id = Package#membership.no, payment_type=Payment} ||
+        Package#membership{id = Package#membership.no} ||
             Payment <- [facebook, credit_card, wire_transfer, paypal, mobile],
             Package <- SamplePackages],
     Enabled = [P#membership{available_for_sale = true} || P <- WithPaymentTypes],
@@ -64,7 +62,7 @@ timestamp()->
 
 check_conditions(_, _, false) -> false;
 check_conditions([{available_for_sale, AS}|T], MP = #membership{available_for_sale = AS1}, _) -> check_conditions(T, MP, AS == AS1);
-check_conditions([{payment_type, PT}|T], MP = #membership{payment_type = PT1}, _) -> check_conditions(T, MP, PT == PT1);
+check_conditions([{payment_type, PT}|T], MP = #membership{}, _) -> check_conditions(T, MP, true);
 check_conditions([], _, true) -> true.
 
 delete_package(PackageId) -> kvs:delete(membership, PackageId).

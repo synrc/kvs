@@ -1,6 +1,6 @@
-
 -type payment_state() :: added | done | cancelled | pending | untracked |
                          failed | unknown | confirmed | discarded.
+-type payment_type():: credit_card | mobile | paypal | wire_transfer | facebook.
 
 -record(state_change, {
         time     :: erlang:now(),
@@ -11,8 +11,10 @@
         id              :: any(),
         external_id     :: any(),     % id of the purchase in external payment system if any
         user_id         :: any(),
+        payment_type    :: payment_type(),
         state           :: payment_state(),
-        membership      :: #membership{},
+        membership,
+        product,
         next            :: any(),
         prev            :: any(),
         start_time      :: erlang:now(),

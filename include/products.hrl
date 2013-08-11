@@ -23,11 +23,13 @@
         cover,
         publish_start_date     :: calendar:date_time(), % admin
         publish_end_date       :: calendar:date_time(), % admin
-        currency,
-        price,
+        price                  :: integer(),
+        currency               :: integer(),  % currency charge
         retailer_price         :: integer(), % ext
         our_price              :: integer(), % auto
-        enabled_on_site        :: boolean(), % admin
+        fee                    :: integer(),  % net membership fee
+        enabled                :: boolean(), % admin
+        for_sale               :: boolean(),
         creation_date          :: calendar:date_time(), % auto
         modify_date            :: calendar:date_time() }).
 
