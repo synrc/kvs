@@ -6,6 +6,16 @@
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
 
+payments(UserId) -> payments(UserId, undefined, 10000).
+payments(UserId, undefined, PageAmount) ->
+    case kvs:get(user_payment, UserId) of
+        {ok, O} when O#user_payment.top =/= undefined -> payments(UserId, O#user_payment.top, PageAmount);
+        {error, _} -> [] end;
+payments(UserId, StartFrom, Limit) ->
+    case kvs:get(payment, StartFrom) of
+        {ok, #payment{next = N}=P} -> [ P | kvs:traversal(payment, #payment.next, N, Limit)];
+        X -> [] end.
+
 user_paid(UId) ->
     case kvs:get(user_payment, UId) of
         {error,_} -> false;
@@ -153,7 +163,7 @@ handle_notice(["kvs_payment", "user", _, "set_info"] = Route,
     set_payment_info(OrderId, Info),
     {noreply, State};
 
-handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown PAYMENTS notice ~p for: ~p, ~p", [Route, State#state.owner, State#state.type]), {noreply, State}.
+handle_notice(Route, _, State) -> error_logger:info_msg("Unknown PAYMENTS notice ~p for: ~p, ~p", [Route, State#state.owner, State#state.type]), {noreply, State}.
 
 timestamp()->
   {Y, Mn, D} = erlang:date(),
