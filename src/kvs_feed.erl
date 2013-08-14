@@ -195,7 +195,7 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
   {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
-              [#entry{entry_id=Eid}=Entry,_,_],
+              #entry{entry_id=Eid}=Entry,
               #state{owner=Owner, feeds=Feeds}=S) ->
 
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
@@ -205,7 +205,7 @@ handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
   {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {_,Fid}, delete],
-              [#entry{entry_id=Eid},_|_], #state{owner=Owner, feeds=Feeds} = State) ->
+              [#entry{entry_id=Eid},_], #state{owner=Owner, feeds=Feeds} = State) ->
 
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
     {_,_} -> kvs_feed:remove_entry(Fid, Eid) end,
