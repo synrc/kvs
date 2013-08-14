@@ -18,37 +18,12 @@ register(#product{feeds=Ch} = Registration) ->
   {ok, P}.
 
 delete(Name) ->
-    case kvs:get(product, Name) of
-        {ok, Product} ->
-            GIds = kvs_group:participate(Name),
-            [ mqs:notify(["subscription", "product", Name, "remove_from_group"], {GId}) || GId <- GIds ],
-            F2U = [ {MeId, FrId} || #subscription{who = MeId, whom = FrId} <- subscriptions(Product) ],
-            [ unsubscribe(MeId, FrId) || {MeId, FrId} <- F2U ],
-            [ unsubscribe(FrId, MeId) || {MeId, FrId} <- F2U ],
-%            kvs:delete(user_status, Name),
-            kvs:delete(product, Name),
-            {ok, Product};
-        E -> E end.
-
-subscribe(Who, Whom) ->
-    Record = #subscription{key={Who,Whom}, who = Who, whom = Whom},
-    kvs:put(Record).
-
-unsubscribe(Who, Whom) ->
-    case subscribed(Who, Whom) of
-        true  -> kvs:delete(subscription, {Who, Whom});
-        false -> skip end.
-
-subscriptions(undefined)-> [];
-subscriptions(#product{id = UId}) -> subscriptions(UId);
-
-subscriptions(UId) -> DBA=?DBA, DBA:subscriptions(UId).
-subscribed(Who) -> DBA=?DBA, DBA:subscribed(Who).
-
-subscribed(Who, Whom) ->
-    case kvs:get(subscription, {Who, Whom}) of
-        {ok, _} -> true;
-        _ -> false end.
+  case kvs:get(product, Name) of
+    {ok, Product} ->
+      [kvs_group:leave(Name, Gid) || Gid <- kvs_group:participate(Name)],
+      kvs:delete(product, Name),
+      {ok, Product};
+    E -> E end.
 
 subscription_mq(Type, Action, Who, Whom) ->
     case mqs:open([]) of
@@ -67,12 +42,12 @@ init_mq(Product=#product{}) ->
         {ok, Channel} ->
             ?INFO("Cration Exchange: ~p,",[{Channel,ProductExchange,ExchangeOptions}]),
             mqs_channel:create_exchange(Channel, ProductExchange, ExchangeOptions),
-            Relations = build_user_relations(Product, Groups),
+            Relations = build_product_relations(Product, Groups),
             [ mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Product#product.id), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
             mqs_channel:close(Channel);
         {error,Reason} -> ?ERROR("init_mq error: ~p",[Reason]) end.
 
-build_user_relations(Product, Groups) -> [
+build_product_relations(Product, Groups) -> [
     mqs:key( [kvs_product, '*', Product]),
     mqs:key( [kvs_feed, product, Product, '*', '*', '*']),
     mqs:key( [kvs_feed, product, Product, '*'] ),
