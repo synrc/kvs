@@ -200,7 +200,13 @@ handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
 
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
     {_,_} -> case kvs:get(entry, {Eid, Fid}) of {error, not_found}-> skip; 
-        {ok, E} -> kvs:put(E#entry{title=Entry#entry.title, description=Entry#entry.description}) end end,
+        {ok, E} -> 
+          error_logger:info_msg("kvs_feed => Entry ~p updated in feed ~p", [Eid, Fid]),
+          kvs:put(E#entry{description=Entry#entry.description,
+                          title = Entry#entry.title,
+                          media = Entry#entry.media,
+                          etc   = Entry#entry.etc,
+                          type  = Entry#entry.type}) end end,
 
   {noreply, S};
 
