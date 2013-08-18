@@ -20,23 +20,23 @@ check(Keys) ->
         [] -> none;
         [#acl_entry{action = Action} | _] -> Action end.
 
-check_access(#user{username = UId, type = UType}, #feed{id = FId}) ->
+check_access(#user{email = UId, type = UType}, #feed{id = FId}) ->
     Feed = {feed, FId},
     Query = [ {{user, UId}, Feed}, {{user_type, UType}, Feed}, {default, Feed}],
     check(Query);
 
-check_access(#user{username = UId, type = UType}, #group{id = GId}) ->
+check_access(#user{email = UId, type = UType}, #group{id = GId}) ->
     Group = {group, GId},
     Query = [ {{user, UId}, Group}, {{user_type, UType}, Group}, {default, Group}],
     check(Query);
 
 
-check_access(#user{username = AId, type = AType}, #user{username = RId}) ->
+check_access(#user{email = AId, type = AType}, #user{email = RId}) ->
     User = {user, RId},
     Query = [ {{user, AId}, User}, {{user_type, AType}, User}, {default, User} ],
     check(Query);
 
-check_access({user_type, Type}, #user{username = RId}) ->
+check_access({user_type, Type}, #user{email = RId}) ->
     User = {user, RId},
     Query = [ {{user_type, Type}, User}, {default, User} ],
     check(Query);
@@ -55,12 +55,12 @@ check_access({ip, _Ip} = Accessor, {feature, _Feature} = Resource) ->
     Query = [{Accessor, Resource}, {default, Resource}],
     check(Query);
 
-check_access(#user{username = AId, type = AType}, {feature, _Feature} = R) ->
+check_access(#user{email = AId, type = AType}, {feature, _Feature} = R) ->
     Query = [ {{user, AId}, R}, {{user_type, AType}, R}, {default, R} ],
     check(Query);
 
 check_access(UId, {feature, _Feature} = Resource) ->
-    case kvs_users:get_user(UId) of
+    case kvs:get(user, UId) of
         {ok, User} -> check_access(User, Resource);
         E -> E
     end.
