@@ -65,78 +65,44 @@ check_access(UId, {feature, _Feature} = Resource) ->
         E -> E
     end.
 
-select_type(#user{username = UId}) -> {user, UId};
-select_type(#group{id = GId}) -> {group, GId};
-select_type(#feed{id = FId}) -> {feed, FId};
-select_type({user, UId}) -> {user, UId};
-select_type({group, name = GId}) -> {group, GId};
+select_type({user, Id}) -> {user, Id};
+select_type({group, Id}) -> {group, Id};
+select_type({product, Id}) -> {product, Id};
 select_type({feed, FId}) -> {feed, FId};
 select_type({feature, Feature}) ->  {feature, Feature}.
 
-acl_entries(AclId) ->
-    [AclStr] = io_lib:format("~p",[AclId]),
-    RA = kvs:get(acl, erlang:list_to_binary(AclStr)),
-    case RA of
-        {ok,RO} -> riak_read_acl_entries(RO#acl.top, []);
-        {error, _} -> [] end.
-
-riak_read_acl_entries(undefined, Result) -> Result;
-riak_read_acl_entries(Next, Result) ->
-    NextStr = io_lib:format("~p",[Next]),
-    RA = kvs:get(acl_entry,erlang:list_to_binary(NextStr)),
-    case RA of
-         {ok,RO} -> riak_read_acl_entries(RO#acl_entry.prev, Result ++ [RO]);
-         {error, _} -> Result end.
+entries(AclId) -> case kvs:get(acl, AclId) of {ok,RO} -> read_entries(RO#acl.top, []); {error, _} -> [] end.
+read_entries(undefined, Result) -> Result;
+read_entries(Next, Result) -> case kvs:get(acl_entry, Next) of {ok,RO} -> read_entries(RO#acl_entry.prev, Result ++ [RO]); {error, _} -> Result end.
 
 acl_add_entry(Resource, Accessor, Action) ->
-    Acl = case kvs:get(acl, Resource) of
-              {ok, A} ->
-                  A;
-              %% if acl record wasn't created already
-              {error, _} ->
-                  A = #acl{id = Resource, resource=Resource},
-                  kvs:put(A),
-                  A
-          end,
+  Acl = case kvs:get(acl, Resource) of {ok, A} -> A;
+    {error, _} -> A = #acl{id = Resource, resource=Resource}, kvs:put(A), A end,
 
-    EntryId = {Accessor, Resource},
+  EntryId = {Accessor, Resource},
 
-    case kvs:get(acl_entry, EntryId) of
-        %% there is no entries for specified Acl and Accessor, we have to add it
-        {error, _} ->
-            Next = undefined,
-            Prev = case Acl#acl.top of
-                       undefined ->
-                           undefined;
+  case kvs:get(acl_entry, EntryId) of {error, _} ->
+    Next = undefined,
+    Prev = case Acl#acl.top of undefined -> undefined;
+      Top -> case kvs:get(acl_entry, Top) of {ok, TopEntry} ->
+        EditedEntry = TopEntry#acl_entry{next = EntryId},
+        kvs:put(EditedEntry), % update prev entry
+        TopEntry#acl_entry.id;
+      {error, _} -> undefined end end,
 
-                       Top ->
-                           case kvs:get(acl_entry, Top) of
-                               {ok, TopEntry} ->
-                                   EditedEntry = TopEntry#acl_entry{next = EntryId},
-                                   kvs:put(EditedEntry), % update prev entry
-                                   TopEntry#acl_entry.id;
+    %% update acl with top of acl entries list
+    kvs:put(Acl#acl{top = EntryId}),
 
-                               {error, _} ->
-                                   undefined
-                           end
-                   end,
+    Entry  = #acl_entry{id = EntryId,
+                        entry_id = EntryId,
+                        accessor = Accessor,
+                        action = Action,
+                        next = Next,
+                        prev = Prev},
 
-            %% update acl with top of acl entries list
-            kvs:put(Acl#acl{top = EntryId}),
+    ok = kvs:put(Entry),
+    Entry;
 
-            Entry  = #acl_entry{id = EntryId,
-                                entry_id = EntryId,
-                                accessor = Accessor,
-                                action = Action,
-                                next = Next,
-                                prev = Prev},
-
-            ok = kvs:put(Entry),
-            Entry;
-
-        %% if acl entry for Accessor and Acl is defined - just change action
-        {ok, AclEntry} ->
-            kvs:put(AclEntry#acl_entry{action = Action}),
-            AclEntry
-    end.
+    %% if acl entry for Accessor and Acl is defined - just change action
+    {ok, AclEntry} -> kvs:put(AclEntry#acl_entry{action = Action}), AclEntry end.
 
