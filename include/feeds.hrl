@@ -1,7 +1,8 @@
 -record(feed, {
         id,
         top,
-        aclver}).
+        aclver,
+        entries_count=0}).
 
 -record(iterator, {
         id,

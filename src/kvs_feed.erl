@@ -18,35 +18,28 @@ create() ->
     FId.
 
 add_entry(E=#entry{}) ->
-  case kvs:get(feed, E#entry.feed_id) of
-    {error, not_found} -> error_logger:info_msg("Add entry failed, no feed ~p", [E#entry.feed_id]);
-    {ok, Feed} ->
-      Next = undefined,
-      Prev = case Feed#feed.top of undefined -> undefined;
-        X -> case kvs:get(entry, X) of {error,_} -> undefined;
-          {ok, Top} -> Edited = Top#entry{next=E#entry.id}, kvs:put(Edited), Top#entry.id end end,
-      kvs:put(#feed{id=E#entry.feed_id, top=E#entry.id}),
+  case kvs:get(entry, E#entry.id) of {ok, _} -> error_logger:info_msg("Add entry ~p failed. Already exist!", [E#entry.id]);
+    {error, not_found}-> case kvs:get(feed, E#entry.feed_id) of
+      {error, not_found} -> error_logger:info_msg("Add entry failed, no feed ~p", [E#entry.feed_id]);
+      {ok, Feed} ->
+        Next = undefined,
+        Prev = case Feed#feed.top of undefined -> undefined;
+          X -> case kvs:get(entry, X) of {error,_} -> undefined;
+            {ok, Top} -> Edited = Top#entry{next=E#entry.id}, kvs:put(Edited), Top#entry.id end end,
 
-      Entry  = E#entry{next = Next, prev = Prev},
-      kvs:put(Entry),
-      error_logger:info_msg("PUT entry: ~p", [Entry#entry.id]),
-      {ok, Entry}
-  end.
+        kvs:put(#feed{id=E#entry.feed_id, top=E#entry.id, entries_count=Feed#feed.entries_count+1}),
+
+        Entry  = E#entry{next = Next, prev = Prev},
+        kvs:put(Entry),
+        error_logger:info_msg("PUT entry: ~p", [Entry#entry.id]),
+        {ok, Entry} end end.
 
 entry_traversal(undefined, _) -> [];
 entry_traversal(_, 0) -> [];
 entry_traversal(Next, Count)->
-    case kvs:get(entry, Next) of
-        {error, _} -> [];
-        {ok, R} ->
-            Prev = element(#entry.prev, R),
-            Count1 = case Count of 
-                C when is_integer(C) -> case R#entry.type of
-                    {_, system} -> C; % temporal entries are entries too, but they shouldn't be counted
-                    {_, system_note} -> C;
-                    _ -> C - 1 end;
-                _-> Count end,
-            [R | entry_traversal(Prev, Count1)] end.
+  case kvs:get(entry, Next) of {error, _} -> [];
+    {ok, R} -> error_logger:info_msg("Prev -> ~p", [R#entry.prev]),
+      [R | entry_traversal(R#entry.prev, Count-1)] end.
 
 entries({_, FeedId}, undefined, PageAmount) ->
     case kvs:get(feed, FeedId) of
@@ -115,7 +108,7 @@ remove_entry(FeedId, EId) ->
         {ok, #entry{prev = Prev, next = Next}}->
             case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
             case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
-            case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev}); _ -> ok end;
+            case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1}); _ -> ok end;
         {error, _} -> error_logger:info_msg("Not found"), ok
     end,
     kvs:delete(entry, {EId, FeedId}).
