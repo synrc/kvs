@@ -27,25 +27,24 @@ default_if_undefined(Value, Undefined, Default) ->
         Undefined -> Default;
         _ -> Value end.
 
-charge_user_account(MP) ->
-
-    OrderId = MP#payment.id,
-    Package = MP#payment.membership,
-    UserId  = MP#payment.user_id,
-
-    Currency = Package#membership.currency,
-    Quota    = Package#membership.quota,
-
-    PaymentTransactionInfo = #tx_payment{id=MP#payment.id},
-
-    try
-        kvs_account:transaction(UserId, currency, Currency, PaymentTransactionInfo),
-        kvs_account:transaction(UserId, quota,    Quota,    PaymentTransactionInfo)
-    catch
-        _:E ->
-            ?ERROR("unable to charge user account. User=~p, OrderId=~p. Error: ~p",
-                   [UserId, OrderId, E])
-    end.
+charge_user_account(_MP) -> ok.
+%    OrderId = MP#payment.id,
+%    Package = MP#payment.membership,
+%    UserId  = MP#payment.user_id,
+%
+%    Currency = Package#membership.currency,
+%    Quota    = Package#membership.quota,
+%
+%    PaymentTransactionInfo = #tx_payment{id=MP#payment.id},
+%
+%    try
+%        kvs_account:transaction(UserId, currency, Currency, PaymentTransactionInfo),
+%        kvs_account:transaction(UserId, quota,    Quota,    PaymentTransactionInfo)
+%    catch
+%        _:E ->
+%            ?ERROR("unable to charge user account. User=~p, OrderId=~p. Error: ~p",
+%                   [UserId, OrderId, E])
+%    end.
 
 add_payment(#payment{} = MP) -> add_payment(#payment{} = MP, undefined, undefined).
 add_payment(#payment{} = MP, State0, Info) ->
