@@ -103,15 +103,17 @@ comments_count(Uid) ->
         {error, _} -> 0 end.
 
 remove_entry(FeedId, EId) ->
-    {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
-    case kvs:get(entry, {EId, FeedId}) of
-        {ok, #entry{prev = Prev, next = Next}}->
-            case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
-            case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
-            case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1}); _ -> ok end;
-        {error, _} -> error_logger:info_msg("Not found"), ok
-    end,
-    kvs:delete(entry, {EId, FeedId}).
+  {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
+
+  case kvs:get(entry, {EId, FeedId}) of
+    {ok, #entry{prev = Prev, next = Next}}->
+      case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
+      case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
+      case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1});
+        _ -> kvs:put(Feed#feed{entries_count=Feed#feed.entries_count-1}) end;
+    {error, _} -> error_logger:info_msg("Not found") end,
+
+  kvs:delete(entry, {EId, FeedId}).
 
 edit_entry(FeedId, EId, NewDescription) ->
     case kvs:get(entry,{EId, FeedId}) of
