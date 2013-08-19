@@ -38,8 +38,7 @@ entry_traversal(undefined, _) -> [];
 entry_traversal(_, 0) -> [];
 entry_traversal(Next, Count)->
   case kvs:get(entry, Next) of {error, _} -> [];
-    {ok, R} -> error_logger:info_msg("Prev -> ~p", [R#entry.prev]),
-      [R | entry_traversal(R#entry.prev, Count-1)] end.
+    {ok, R} -> [R | entry_traversal(R#entry.prev, Count-1)] end.
 
 entries({_, FeedId}, undefined, PageAmount) ->
     case kvs:get(feed, FeedId) of
