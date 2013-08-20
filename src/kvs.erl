@@ -72,6 +72,7 @@ add_seq_ids() ->
     Init("user_transaction"),
     Init("user_product"),
     Init("user_payment"),
+    Init("user_status"),
     Init("transaction"),
     Init("membership"),
     Init("payment"),
@@ -90,39 +91,27 @@ add_translations() ->
         kvs:put(#translation{english = English, lang = Lang,  word = Word}) end, ?URL_DICTIONARY).
 
 add_sample_users() ->
+  Groups = [],
+  UserList = [],
 
-    Groups = [],
+  kvs:put(Groups),
 
-    UserList = [
-        #user{username = "maxim", password="pass", name = "Maxim", surname = "Sokhatsky",
-            feeds=[{feed, kvs_feed:create()}, {direct, kvs_feed:create()},{starred,kvs_feed:create()},{pinned,kvs_feed:create()}], type = admin,
-            sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="maxim@synrc.com"},
-        #user{username = "doxtop", password="pass", name = "Andrii", surname = "Zadorozhnii",
-            feeds=[{feed, kvs_feed:create()}, {direct, kvs_feed:create()},{starred,kvs_feed:create()},{pinned,kvs_feed:create()}], type = admin,
-            sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="doxtop@synrc.com"},
-        #user{username = "akalenuk", password="pass", name = "Alexander", surname = "Kalenuk",
-            feeds=[{feed, kvs_feed:create()}, {direct, kvs_feed:create()},{starred,kvs_feed:create()},{pinned,kvs_feed:create()}], type = admin,
-            sex=m, status=ok, team = kvs_meeting:create_team("tours"),  email="akalenuk@gmail.com"}
-    ],
+  {ok, Quota} = kvs:get(config,"accounts/default_quota", 300),
 
-    kvs:put(Groups),
-
-    {ok, Quota} = kvs:get(config,"accounts/default_quota", 300),
-
-    [ begin
+  [ begin
         [ kvs_group:join(Me#user.username,G#group.id) || G <- Groups ],
           kvs_account:create_account(Me#user.username),
           kvs_account:transaction(Me#user.username, quota, Quota, #tx_default_assignment{}),
           kvs:put(Me#user{password = kvs:sha(Me#user.password)})
-      end || Me <- UserList ],
+    end || Me <- UserList ],
 
-    kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
-    kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
+  %kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
+  %kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
 
-    [ kvs_user:subscribe(Me#user.username, Her#user.username) || Her <- UserList, Me <- UserList, Her /= Me ],
-    [ kvs_user:init_mq(U) || U <- UserList ],
+  [ kvs_user:subscribe(Me#user.username, Her#user.username) || Her <- UserList, Me <- UserList, Her /= Me ],
+  [ kvs_user:init_mq(U) || U <- UserList ],
 
-    ok.
+  ok.
 
 version() -> DBA=?DBA, DBA:version().
 

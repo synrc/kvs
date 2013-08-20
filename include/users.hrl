@@ -30,13 +30,13 @@
         aclver}).
 
 -record(user_status,{
-        username :: username_type(),
+        email,
         last_login,
         show_splash = true :: boolean()
         }).
 
 -record(user_info,{
-        username :: username_type(),
+        email,
         name,
         surname,
         age,
@@ -46,7 +46,7 @@
         score = 0 :: integer()}).
 
 -record(user_address, {
-        username :: username_type(),
+        email,
         address = "",
         city = "",
         district = "",

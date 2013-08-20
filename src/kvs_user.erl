@@ -127,6 +127,17 @@ user_by_email(Email) ->
         {ok,{_,User,_}} -> kvs:get(user,User);
         Else -> Else end.
 
+handle_notice([kvs_user, login, user, Who, update_status],
+              Message,
+              #state{owner=Who} = State) ->
+  error_logger:info_msg("update status ~p", [Who]),
+  Update = case kvs:get(user_status, Who) of
+    {error, not_found} -> #user_status{email = Who, last_login = erlang:now()};
+    {ok, UserStatus} -> UserStatus#user_status{last_login = erlang:now()} end,
+  kvs:put(Update),
+
+  {noreply, State};
+
 handle_notice(["kvs_user", "subscribe", Who] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     {Whom} = Message,
