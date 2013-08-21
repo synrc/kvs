@@ -140,6 +140,9 @@ update(Record, Meta) ->
     DBA=?DBA,
     DBA:update(Record, Meta).
 
+get(user, Key) ->
+  DBA=?DBA,
+  case DBA:get(iterator, Key) of {ok, #iterator{object=O}} -> {ok, O}; E -> E end;
 get(RecordName, Key) ->
     DBA=?DBA,
     DBA:get(RecordName, Key).
@@ -165,6 +168,9 @@ delete_by_index(Tab, IndexId, IndexVal) -> DBA=?DBA,DBA:delete_by_index(Tab, Ind
 multi_select(RecordName, Keys) -> DBA=?DBA,DBA:multi_select(RecordName, Keys).
 select(From, PredicateFunction) -> ?INFO("db:select ~p, ~p",[From,PredicateFunction]), DBA=?DBA, DBA:select(From, PredicateFunction).
 count(RecordName) -> DBA=?DBA,DBA:count(RecordName).
+%all(user, Feed) ->
+%  case kvs:get(feed, Feed) of {error, not_found} -> [];
+%    {ok,F}-> traversal(iterator, #iterator.prev, F#feed.top, undefined) end.
 all(RecordName) -> DBA=?DBA,DBA:all(RecordName).
 all_by_index(RecordName, Index, IndexValue) -> DBA=?DBA,DBA:all_by_index(RecordName, Index, IndexValue).
 next_id(RecordName) -> DBA=?DBA,DBA:next_id(RecordName).

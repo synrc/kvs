@@ -3,18 +3,27 @@
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/config.hrl").
+-include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
-register(#user{email=Email, feeds=Ch} = Registration) ->
-  case kvs_user:get({email, Email}) of {ok, _} -> {error, email_taken};
+register(#user{email=Email, feeds=Ch} = Registration, Feed) ->
+  case kvs:get(iterator, Email) of {ok,_} -> {error, email_taken};
   {error, _} ->
     HashedPassword = case Registration#user.password of undefined -> undefined; PlainPassword -> kvs:sha(PlainPassword) end,
-    RegisterData = Registration#user{name=kvs:uuname(), feeds=[{Feed, kvs_feed:create()} || Feed <- Ch], password = HashedPassword},
-    kvs:put(RegisterData),
+    RegisterData = Registration#user{feeds=[{Feed, kvs_feed:create()} || Feed <- Ch], password = HashedPassword},
+
+    Next = undefined,
+    Prev = case Feed#feed.top of undefined -> undefined;
+      T -> case kvs:get(iterator, T) of {error,not_found} -> undefined;
+        {ok, Top} -> UpdTop = Top#iterator{next=Email}, kvs:put(UpdTop), UpdTop#iterator.id end end,
+
+    kvs:put(Feed#feed{top=Email, entries_count=Feed#feed.entries_count+1}),
+    Iterator = #iterator{id=Email, object=RegisterData, next=Next, prev=Prev},
+    kvs:put(Iterator),
+    kvs:put(RegisterData),%todo:  by_index support
     error_logger:info_msg("PUT USER: ~p", [RegisterData]),
     kvs_account:create_account(Email),
     {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
@@ -36,7 +45,6 @@ delete(UserName) ->
 
 get({facebook, FBId}) -> user_by_facebook_id(FBId);
 get({googleplus, GId}) -> user_by_googleplus_id(GId);
-get({email, Email}) -> user_by_email(Email);
 get(UId) -> kvs:get(user, UId).
 
 subscribe(Who, Whom) ->
@@ -66,7 +74,7 @@ subscription_mq(Type, Action, Who, Whom) ->
                 {user,add}     -> mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_user_feed(Whom));
                 {user,remove}  -> mqs_channel:unbind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_user_feed(Whom)) end,
             mqs_channel:close(Channel);
-        {error,Reason} -> ?ERROR("subscription_mq error: ~p",[Reason]) end.
+        {error,Reason} -> error_logger:info_msg("subscription_mq error: ~p",[Reason]) end.
 
 init_mq(User=#user{}) ->
     Groups = kvs_group:participate(User),
@@ -74,12 +82,12 @@ init_mq(User=#user{}) ->
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
     case mqs:open([]) of
         {ok, Channel} ->
-            ?INFO("Cration Exchange: ~p,",[{Channel,UserExchange,ExchangeOptions}]),
+            error_logger:info_msg("Cration Exchange: ~p,",[{Channel,UserExchange,ExchangeOptions}]),
             mqs_channel:create_exchange(Channel, UserExchange, ExchangeOptions),
             Relations = build_user_relations(User, Groups),
             [ mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(User#user.username), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
             mqs_channel:close(Channel);
-        {error,Reason} -> ?ERROR("init_mq error: ~p",[Reason]) end.
+        {error,Reason} -> error_logger:info_msg("init_mq error: ~p",[Reason]) end.
 
 build_user_relations(User, Groups) -> [
     mqs:key( [kvs_user, '*', User]),
@@ -119,11 +127,6 @@ user_by_facebook_id(FBId) ->
 
 user_by_googleplus_id(GId) ->
     case kvs:get(googleplus,GId) of
-        {ok,{_,User,_}} -> kvs:get(user,User);
-        Else -> Else end.
-
-user_by_email(Email) ->
-    case kvs:get(email,Email) of
         {ok,{_,User,_}} -> kvs:get(user,User);
         Else -> Else end.
 

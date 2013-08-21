@@ -44,7 +44,7 @@ add_indexes() ->
     add_table_index(user, googleplus_id),
     add_table_index(user, twitter_id),
     add_table_index(user, github_id),
-    add_table_index(user, email),
+%    add_table_index(user, email),
     ok.
 create_users() ->  ?CREATE_TAB(user).
 
@@ -55,6 +55,7 @@ initialize() ->
     ?CREATE_TAB(acl),
     ?CREATE_TAB(acl_entry),
     ?CREATE_TAB(feed),
+    ?CREATE_TAB(iterator),
     ?CREATE_TAB(team),
     ?CREATE_TAB(entry),
     ?CREATE_TAB(comment),
