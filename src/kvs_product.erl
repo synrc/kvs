@@ -11,12 +11,6 @@
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
-%register(#product{feeds=Ch} = Registration) ->
-%  P = Registration#product{id = kvs:uuid(), feeds= [{Feed, kvs_feed:create()} || Feed <- Ch], creation_date = erlang:now()},
-%  kvs:put(P),
- % error_logger:info_msg("PUT PRODUCT: ~p feeds:~p", [P#product.id, P#product.feeds]),
- % {ok, P}.
-
 delete(Name) ->
   case kvs:get(product, Name) of
     {ok, Product} ->

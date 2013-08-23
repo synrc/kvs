@@ -17,13 +17,6 @@ retrieve_groups(User) ->
                                    _ -> undefined end end || {UC, GId} <- UC_GId],
                [X||X<-Result,X/=undefined] end.
 
-%register(#group{} = Register) ->
-%  Group = Register#group{id=case Register#group.id of undefined -> kvs:uuid(); Id -> Id end, created = erlang:now(), feeds=[{Feed, kvs_feed:create()} || Feed <- Register#group.feeds]},
-%  kvs:put(Group),
-%  error_logger:info_msg("PUT ~p", [Group]),
-%  add(Group#group.creator, Group#group.id, member),
-%  {ok, Group}.
-
 delete(GroupName) ->
     case kvs:get(group,GroupName) of 
         {error,_} -> ok;

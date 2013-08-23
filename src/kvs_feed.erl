@@ -17,21 +17,6 @@ create() ->
     ok = kvs:put(#feed{id = FId} ),
     FId.
 
-entry_traversal(undefined, _) -> [];
-entry_traversal(_, 0) -> [];
-entry_traversal(Next, Count)->
-  case kvs:get(entry, Next) of {error, _} -> [];
-    {ok, R} -> [R | entry_traversal(R#entry.prev, Count-1)] end.
-
-entries({_, FeedId}, undefined, PageAmount) ->
-   case kvs:get(feed, FeedId) of
-       {ok, O} -> entry_traversal(O#feed.top, PageAmount);
-        {error, _} -> [] end;
-entries({_, FeedId}, StartFrom, PageAmount) ->
-    case kvs:get(entry,{StartFrom, FeedId}) of
-        {ok, #entry{prev = Prev}} -> entry_traversal(Prev, PageAmount);
-        _ -> [] end.
-
 add_like(Fid, Eid, Uid) ->
     Write_one_like = fun(Next) ->
         Self_id = kvs:next_id("one_like", 1),   
@@ -84,19 +69,6 @@ comments_count(Uid) ->
         {ok, UEC} -> UEC#user_etries_count.comments;
         {error, _} -> 0 end.
 
-%remove_entry(FeedId, EId) ->
-%  {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
-%
-%  case kvs:get(entry, {EId, FeedId}) of
-%    {ok, #entry{prev = Prev, next = Next}}->
-%      case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
-%      case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
-%      case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1});
-%        _ -> kvs:put(Feed#feed{entries_count=Feed#feed.entries_count-1}) end;
-%    {error, _} -> error_logger:info_msg("Not found") end,
-%
-%  kvs:delete(entry, {EId, FeedId}).
-
 edit_entry(FeedId, EId, NewDescription) ->
     case kvs:get(entry,{EId, FeedId}) of
         {ok, OldEntry} ->
@@ -135,15 +107,6 @@ user_likes(UserId, {Page, PageAmount}) ->
     case kvs:get(user_likes, UserId) of
         {ok, Likes} -> lists:nthtail((Page-1)*PageAmount, like_list(Likes#user_likes.one_like_head, PageAmount*Page));
         {error, _} -> [] end.
-
-%purge_feed(FeedId) ->
-%    {ok,Feed} = kvs:get(feed,FeedId),
-%    Removal = entry_traversal(Feed#feed.top, -1),
-%    [kvs:delete(entry,Id)||#entry{id=Id}<-Removal],
-%    kvs:put(Feed#feed{top=undefined}).
-
-%purge_unverified_feeds() ->
-%    [ [purge_feed(Fid)|| {_, Fid} <- Feeds ] || #user{feeds=Feeds, email=E} <- kvs:all(user), E==undefined].
 
 %% MQ API
 
@@ -189,10 +152,10 @@ handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
   {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {_,Fid}, delete],
-              [#entry{entry_id=Eid},_], #state{owner=Owner, feeds=Feeds} = State) ->
+              [#entry{id=Id, entry_id=Eid},_], #state{owner=Owner, feeds=Feeds} = State) ->
 
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
-    {_,_} -> kvs:remove(Fid, Eid) end,
+    {_,_} -> error_logger:info_msg("REMOVE from FID ~p", [Fid]),kvs:remove(entry, Id) end,
   %    self() ! {feed_refresh, FeedId, ?CACHED_ENTRIES};
   {noreply, State};
 

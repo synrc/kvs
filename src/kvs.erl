@@ -32,22 +32,28 @@ add(Record) when is_tuple(Record) ->
     {error, not_found} ->
         Type = element(1, Record),
         CName = element(#iterator.container, Record),
-        Cid = element(#iterator.feed_id, Record),
-
-        Container = case kvs:get(CName, Cid) of {ok,C} -> C; {error, not_found} ->
-            % shoud be general
+        Cid = case element(#iterator.feed_id, Record) of undefined -> ?FEED(Type); Fid -> Fid end,
+        error_logger:info_msg("check container ~p ~p", [CName, Cid]),
+        Container = case kvs:get(CName, Cid) of {ok,C} -> error_logger:info_msg("ok"),C;
+        {error, not_found} when Cid /= undefined ->
             case CName of
                 acl  -> A = #acl{ id = Cid}, kvs:put(A), A;
-                feed -> F = #feed{id = ?FEED(Type)}, kvs:put(F), F;
-                _ -> error end end,
+                _ -> F = #feed{id = Cid}, kvs:put(F), F end;
+        _ -> error end,
+
         if Container == error -> {error, no_container}; true ->
+            error_logger:info_msg("container ~p", [Container]),
             Next = undefined,
-            Prev = case element(#container.top, Container) of undefined -> undefined;
-              Tid -> case kvs:get(Type, Tid) of {error, not_found} -> undefined;
-                 {ok, Top} -> NewTop = setelement(#iterator.next, Top, Id), kvs:put(NewTop), element(#iterator.id, NewTop) end end,
+            Prev = case element(#container.top, Container) of undefined -> error_logger:info_msg("TOP undefined"), undefined;
+              Tid -> error_logger:info_msg("Current container top: ~p", [Tid]),
+                    case kvs:get(Type, Tid) of {error, not_found} -> error_logger:info_msg("No top element in db"),undefined;
+                 {ok, Top} -> error_logger:info_msg("Update top: old ~p", [Top]), NewTop = setelement(#iterator.next, Top, Id), kvs:put(NewTop), element(#iterator.id, NewTop) end end,
+            error_logger:info_msg("Next ~p Prev ~p",[Next,Prev]),
 
             C1 = setelement(#container.top, Container, Id),
             C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)+1),
+            error_logger:info_msg("Update container ~p top ~p", [Container, Id]),
+            error_logger:info_msg("New container: ~p", [C2]),
             kvs:put(C2),
 
             R  = setelement(#iterator.feeds, Record, [{F1, kvs_feed:create()} || F1 <- element(#iterator.feeds, Record)]),
@@ -59,55 +65,28 @@ add(Record) when is_tuple(Record) ->
             {ok, R3} end end.
 
 remove(RecordName, RecordId) ->
+    error_logger:info_msg("Remove ~p ~p", [RecordName, RecordId]),
     case kvs:get(RecordName, RecordId) of {error, not_found} -> error_logger:info_msg("not found");
     {ok, E} ->
+        error_logger:info_msg("going to remove ~p", [E]),
         Id = element(#iterator.id, E),
         CName = element(#iterator.container, E),
         Cid = element(#iterator.feed_id, E),
-        error_logger:info_msg("Remove entry ~p from {~p, ~p}", [Id, CName, Cid]),
+        error_logger:info_msg("Remove entry ~p from {~p, Feed: ~p}", [Id, CName, Cid]),
 
         {ok, Container} = kvs:get(CName, Cid),
         Top = element(#container.top, Container),
 
         Next = element(#iterator.next, E),
         Prev = element(#iterator.prev, E),
-        case kvs:get(RecordName, Next) of {ok, NE} -> NewNext = setelement(#iterator.prev, Prev, NE), kvs:put(NewNext); _ -> ok end,
-        case kvs:get(RecordName, Prev) of {ok, PE} -> NewPrev = setelement(#iterator.next, Next, PE), kvs:put(NewPrev); _ -> ok end,
+        case kvs:get(RecordName, Next) of {ok, NE} -> NewNext = setelement(#iterator.prev, NE, Prev), kvs:put(NewNext); _ -> ok end,
+        case kvs:get(RecordName, Prev) of {ok, PE} -> NewPrev = setelement(#iterator.next, PE, Next), kvs:put(NewPrev); _ -> ok end,
 
         C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
         C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
         kvs:put(C2),
         error_logger:info_msg("Remove record ~p id: ~p", [RecordName, Id]),
         kvs:delete(RecordName, Id) end.
-
-%remove(FeedId, EId) ->
-%  {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
-%
-%  case kvs:get(entry, {EId, FeedId}) of
-%    {ok, #entry{prev = Prev, next = Next}}->
-%      case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
-%      case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
-%      case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1});
-%        _ -> kvs:put(Feed#feed{entries_count=Feed#feed.entries_count-1}) end;
-%    {error, _} -> error_logger:info_msg("Not found") end,
-%
-%  kvs:delete(entry, {EId, FeedId}).
-
-
-%entry_traversal(undefined, _) -> [];
-%entry_traversal(_, 0) -> [];
-%entry_traversal(Next, Count)->
-%  case kvs:get(entry, Next) of {error, _} -> [];
-%    {ok, R} -> [R | entry_traversal(R#entry.prev, Count-1)] end.
-
-%entries({_, FeedId}, undefined, PageAmount) ->
-%    case kvs:get(feed, FeedId) of
-%        {ok, O} -> entry_traversal(O#feed.top, PageAmount);
-%        {error, _} -> [] end;
-%entries({_, FeedId}, StartFrom, PageAmount) ->
-%    case kvs:get(entry,{StartFrom, FeedId}) of
-%        {ok, #entry{prev = Prev}} -> entry_traversal(Prev, PageAmount);
-%        _ -> [] end.
 
 %purge_feed(FeedId) ->
 %    {ok,Feed} = kvs:get(feed,FeedId),
@@ -117,16 +96,24 @@ remove(RecordName, RecordId) ->
 %purge_unverified_feeds() ->
 %    [ [purge_feed(Fid)|| {_, Fid} <- Feeds ] || #user{feeds=Feeds, email=E} <- kvs:all(user), E==undefined].
 
-traversal( _, _, undefined, _) -> [];
-traversal(_, _, _, 0) -> [];
-traversal(RecordType, PrevPos, Next, Count)->
-    case kvs:get(RecordType, Next) of
-        {error,_} -> [];
-        {ok, R} ->
-            Prev = element(PrevPos, R),
-            Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
-            [R | traversal(RecordType, PrevPos, Prev, Count1)]
-    end.
+traversal( _,undefined,_) -> [];
+traversal(_,_,0) -> [];
+traversal(RecordType, Start, Count)->
+    case kvs:get(RecordType, Start) of {error,_} -> [];
+    {ok, R} ->  Prev = element(#iterator.prev, R),
+                Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
+                [R | traversal(RecordType, Prev, Count1)] end.
+
+entries(Container, RecordType) -> entries(Container, RecordType, undefined).
+entries({ok, Container}, RecordType, Count) -> entries(Container, RecordType, Count);
+
+entries({_, FeedId}, undefined, Count) -> entries(kvs:get(feed, FeedId), entry, Count);
+entries({_, FeedId}, StartFrom, Count) ->
+    case kvs:get(entry,{StartFrom, FeedId}) of {error,not_found}->[];
+    {ok, E} -> traversal(entry, element(#iterator.prev, E), Count) end;
+
+entries(Container, RecordType, Count) ->
+    traversal(RecordType, element(#container.top, Container), Count).
 
 init_db() ->
     case kvs:get(user,"joe") of
