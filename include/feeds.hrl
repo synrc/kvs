@@ -23,9 +23,9 @@
         deleted,
         likes,
         likes_count,
-        comments,
-        comments_rear,
-        comments_count,
+%        comments,
+%        comments_rear,
+%        comments_count,
         media = [], %% for oembed
         etc,       %% field to link additional info
         type = {user, normal}
@@ -45,7 +45,7 @@
         type :: {atom(), atom() | string()},
         thumbnail_height}).
 
--record(comment, {?ITERATOR(entry),
+-record(comment, {?ITERATOR(feed),
 %        id,          %% {comment_id, entry_id}
         comment_id,  %% generowane przez id_seq
         entry_id,    %% index
@@ -53,9 +53,9 @@
         author_id,
         creation_time,
         media = [],  %% for oembed
-        parent,
-        comments,
-        comments_rear
+        parent
+%        comments,
+%        comments_rear
 }).
 
 

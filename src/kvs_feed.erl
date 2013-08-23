@@ -116,7 +116,7 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
     case lists:keyfind(Fid,2,Feeds) of false -> skip;
       {_,_} ->
         EntryId = case Eid of new -> kvs:uuid(); _-> Eid end,
-        E = Entry#entry{id = {EntryId, Fid}, entry_id = EntryId },
+        E = Entry#entry{id = {EntryId, Fid}, entry_id = EntryId, feeds=[comments] },
         kvs:add(E),
 
         % todo: group entry counts should be counted for each feed
@@ -166,7 +166,35 @@ handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
   HasFeed = lists:keyfind(FeedId,2,Feeds) /= false,
   if HasFeed ->
     [begin error_logger:info_msg("Comment: worker ~p entry ~p cid ",[Owner, Eid]),
-      kvs_comment:add(E#entry.feed_id, From, E#entry.entry_id, Parent, Cid, Content, Medias)
+    {_, CFid} = lists:keyfind(comments, 1, E#entry.feeds),
+    error_logger:info_msg("Add comment to entry ~p~n----------------~n", [E#entry.id]),
+    error_logger:info_msg("Comments feed id: ~p", [CFid]),
+    error_logger:info_msg("Comment parent ~p", [Parent]),
+    FeedId2 = case Parent of undefined -> CFid;
+    Id ->
+        case kvs:get(comment, {Parent, {E#entry.entry_id, E#entry.feed_id}}) of {error, not_found} -> error_logger:info_msg("NO PARENT COMMENT"),CFid;
+            {ok, C} -> {_, PCFid} = lists:keyfind(comments, 1, C#comment.feeds), PCFid end
+    end,
+
+    error_logger:info_msg("Target feed id: ~p", [FeedId2]),
+
+    EntryId = E#entry.entry_id,
+    FullId = {Cid, {EntryId, E#entry.feed_id}},
+    User = From,
+
+    Comment = #comment{id = FullId,
+                     author_id = User,
+                     comment_id = Cid,
+                     entry_id = EntryId,
+                     feed_id =  FeedId2, % entry commens or parent comment comments
+                     content = Content,
+                     media = Medias,
+                     creation_time = now(),
+                     feeds = [comments]},
+    error_logger:info_msg("Comment ~p ready to put.", [Comment]),
+    kvs:add(Comment)
+%      kvs_comment:add(E#entry.feed_id, From, E#entry.entry_id, Parent, Cid, Content, Medias)
+
     end || E <- kvs:all_by_index(entry, entry_id, Eid)];
 
     true -> skip end,
