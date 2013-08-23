@@ -55,7 +55,6 @@ initialize() ->
     ?CREATE_TAB(acl),
     ?CREATE_TAB(acl_entry),
     ?CREATE_TAB(feed),
-    ?CREATE_TAB(iterator),
     ?CREATE_TAB(team),
     ?CREATE_TAB(entry),
     ?CREATE_TAB(comment),

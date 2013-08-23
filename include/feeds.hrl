@@ -1,20 +1,16 @@
--record(feed, {
-        id,
-        top,
-        aclver,
-        entries_count=0}).
+-include("kvs.hrl").
 
--record(iterator, {
-        id,
-        object,
-        prev,
-        type,
-        next}).
+-record(feed, {?CONTAINER, aclver}).
+%        id,
+%        top,
+%        aclver
+%        entries_count=0
+%}).
 
--record(entry, {
-        id, % {entry_id, feed_id} we want to hold in key information about feed
+-record(entry, {?ITERATOR(feed),
+%        id, % {entry_id, feed_id} we want to hold in key information about feed
         entry_id, % these fields 
-        feed_id,  % are for secondary indexes
+%        feed_id,  % are for secondary indexes
         from, % author
         to,
         title,
@@ -31,10 +27,9 @@
         comments_rear,
         comments_count,
         media = [], %% for oembed
-        etc,        %% field to link additional info
-        type = {user, normal},
-        next,
-        prev}).
+        etc,       %% field to link additional info
+        type = {user, normal}
+}).
 
 -record(id_seq, {thing, id}).
 
@@ -50,8 +45,8 @@
         type :: {atom(), atom() | string()},
         thumbnail_height}).
 
--record(comment, {
-        id,          %% {comment_id, entry_id}
+-record(comment, {?ITERATOR(entry),
+%        id,          %% {comment_id, entry_id}
         comment_id,  %% generowane przez id_seq
         entry_id,    %% index
         content,     %% text of comment
@@ -60,9 +55,8 @@
         media = [],  %% for oembed
         parent,
         comments,
-        comments_rear,
-        next,
-        prev }).
+        comments_rear
+}).
 
 
 -record(entry_likes, {

@@ -7,36 +7,35 @@
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
 
-define_access(default  = Accessor, Resource, Action) -> do_define_access(Accessor, Resource, Action);
-define_access({user, _Username} = Accessor, Resource, Action) -> do_define_access(Accessor, Resource, Action);
-define_access({user_type, _Usertype} = Accessor, Resource, Action) -> do_define_access(Accessor, Resource, Action);
-define_access({ip, _Ip} = Accessor, Resource, Action) -> do_define_access(Accessor, Resource, Action).
-
-do_define_access(Accessor, Resource, Action) -> acl_add_entry(select_type(Resource), Accessor, Action).
+define_access(Accessor, Resource, Action) -> 
+    Entry = #acl_entry{ id = {Accessor, Resource},
+                        accessor= Accessor,
+                        action  = Action,
+                        feed_id = Resource},
+    case kvs:add(Entry) of {error, exist} -> kvs:put(Entry#acl_entry{action=Action}); {ok, E} -> E end.
 
 check(Keys) ->
     Acls = [Acl || {ok, Acl = #acl_entry{}} <- [kvs:get(acl_entry, Key) || Key <- Keys]],
-    case Acls of
-        [] -> none;
+    case Acls of [] -> none;
         [#acl_entry{action = Action} | _] -> Action end.
 
-check_access(#user{email = UId, type = UType}, #feed{id = FId}) ->
+check_access(#user{id = UId, type = UType}, #feed{id = FId}) ->
     Feed = {feed, FId},
     Query = [ {{user, UId}, Feed}, {{user_type, UType}, Feed}, {default, Feed}],
     check(Query);
 
-check_access(#user{email = UId, type = UType}, #group{id = GId}) ->
+check_access(#user{id = UId, type = UType}, #group{id = GId}) ->
     Group = {group, GId},
     Query = [ {{user, UId}, Group}, {{user_type, UType}, Group}, {default, Group}],
     check(Query);
 
 
-check_access(#user{email = AId, type = AType}, #user{email = RId}) ->
+check_access(#user{id = AId, type = AType}, #user{id = RId}) ->
     User = {user, RId},
     Query = [ {{user, AId}, User}, {{user_type, AType}, User}, {default, User} ],
     check(Query);
 
-check_access({user_type, Type}, #user{email = RId}) ->
+check_access({user_type, Type}, #user{id = RId}) ->
     User = {user, RId},
     Query = [ {{user_type, Type}, User}, {default, User} ],
     check(Query);
@@ -55,7 +54,7 @@ check_access({ip, _Ip} = Accessor, {feature, _Feature} = Resource) ->
     Query = [{Accessor, Resource}, {default, Resource}],
     check(Query);
 
-check_access(#user{email = AId, type = AType}, {feature, _Feature} = R) ->
+check_access(#user{id = AId, type = AType}, {feature, _Feature} = R) ->
     Query = [ {{user, AId}, R}, {{user_type, AType}, R}, {default, R} ],
     check(Query);
 
@@ -65,44 +64,6 @@ check_access(UId, {feature, _Feature} = Resource) ->
         E -> E
     end.
 
-select_type({user, Id}) -> {user, Id};
-select_type({group, Id}) -> {group, Id};
-select_type({product, Id}) -> {product, Id};
-select_type({feed, FId}) -> {feed, FId};
-select_type({feature, Feature}) ->  {feature, Feature}.
-
 entries(AclId) -> case kvs:get(acl, AclId) of {ok,RO} -> read_entries(RO#acl.top, []); {error, _} -> [] end.
 read_entries(undefined, Result) -> Result;
 read_entries(Next, Result) -> case kvs:get(acl_entry, Next) of {ok,RO} -> read_entries(RO#acl_entry.prev, Result ++ [RO]); {error, _} -> Result end.
-
-acl_add_entry(Resource, Accessor, Action) ->
-  Acl = case kvs:get(acl, Resource) of {ok, A} -> A;
-    {error, _} -> A = #acl{id = Resource, resource=Resource}, kvs:put(A), A end,
-
-  EntryId = {Accessor, Resource},
-
-  case kvs:get(acl_entry, EntryId) of {error, _} ->
-    Next = undefined,
-    Prev = case Acl#acl.top of undefined -> undefined;
-      Top -> case kvs:get(acl_entry, Top) of {ok, TopEntry} ->
-        EditedEntry = TopEntry#acl_entry{next = EntryId},
-        kvs:put(EditedEntry), % update prev entry
-        TopEntry#acl_entry.id;
-      {error, _} -> undefined end end,
-
-    %% update acl with top of acl entries list
-    kvs:put(Acl#acl{top = EntryId}),
-
-    Entry  = #acl_entry{id = EntryId,
-                        entry_id = EntryId,
-                        accessor = Accessor,
-                        action = Action,
-                        next = Next,
-                        prev = Prev},
-
-    ok = kvs:put(Entry),
-    Entry;
-
-    %% if acl entry for Accessor and Acl is defined - just change action
-    {ok, AclEntry} -> kvs:put(AclEntry#acl_entry{action = Action}), AclEntry end.
-

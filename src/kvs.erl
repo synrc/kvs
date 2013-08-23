@@ -16,6 +16,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
+-define(r, {sr, record_info(fields, acl)}).
 
 start() -> DBA = ?DBA, DBA:start().
 dir() -> DBA = ?DBA, DBA:dir().
@@ -23,6 +24,98 @@ stop() -> DBA = ?DBA, DBA:stop().
 initialize() -> DBA = ?DBA, DBA:initialize().
 delete() -> DBA = ?DBA, DBA:delete().
 init_indexes() -> DBA = ?DBA, DBA:init_indexes().
+
+add(Record) when is_tuple(Record) ->
+    Id = element(#iterator.id, Record),
+
+    case kvs:get(element(1,Record), Id) of {ok, _} -> error_logger:info_msg("Exist: ~p", [Id]),{error, exist};
+    {error, not_found} ->
+        Type = element(1, Record),
+        CName = element(#iterator.container, Record),
+        Cid = element(#iterator.feed_id, Record),
+
+        Container = case kvs:get(CName, Cid) of {ok,C} -> C; {error, not_found} ->
+            % shoud be general
+            case CName of
+                acl  -> A = #acl{ id = Cid}, kvs:put(A), A;
+                feed -> F = #feed{id = ?FEED(Type)}, kvs:put(F), F;
+                _ -> error end end,
+        if Container == error -> {error, no_container}; true ->
+            Next = undefined,
+            Prev = case element(#container.top, Container) of undefined -> undefined;
+              Tid -> case kvs:get(Type, Tid) of {error, not_found} -> undefined;
+                 {ok, Top} -> NewTop = setelement(#iterator.next, Top, Id), kvs:put(NewTop), element(#iterator.id, NewTop) end end,
+
+            C1 = setelement(#container.top, Container, Id),
+            C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)+1),
+            kvs:put(C2),
+
+            R  = setelement(#iterator.feeds, Record, [{F1, kvs_feed:create()} || F1 <- element(#iterator.feeds, Record)]),
+            R1 = setelement(#iterator.next,  R,  Next),
+            R2 = setelement(#iterator.prev,  R1, Prev),
+            R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
+            kvs:put(R3),
+            error_logger:info_msg("PUT: ~p", [R3]),
+            {ok, R3} end end.
+
+remove(RecordName, RecordId) ->
+    case kvs:get(RecordName, RecordId) of {error, not_found} -> error_logger:info_msg("not found");
+    {ok, E} ->
+        Id = element(#iterator.id, E),
+        CName = element(#iterator.container, E),
+        Cid = element(#iterator.feed_id, E),
+        error_logger:info_msg("Remove entry ~p from {~p, ~p}", [Id, CName, Cid]),
+
+        {ok, Container} = kvs:get(CName, Cid),
+        Top = element(#container.top, Container),
+
+        Next = element(#iterator.next, E),
+        Prev = element(#iterator.prev, E),
+        case kvs:get(RecordName, Next) of {ok, NE} -> NewNext = setelement(#iterator.prev, Prev, NE), kvs:put(NewNext); _ -> ok end,
+        case kvs:get(RecordName, Prev) of {ok, PE} -> NewPrev = setelement(#iterator.next, Next, PE), kvs:put(NewPrev); _ -> ok end,
+
+        C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
+        C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
+        kvs:put(C2),
+        error_logger:info_msg("Remove record ~p id: ~p", [RecordName, Id]),
+        kvs:delete(RecordName, Id) end.
+
+%remove(FeedId, EId) ->
+%  {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
+%
+%  case kvs:get(entry, {EId, FeedId}) of
+%    {ok, #entry{prev = Prev, next = Next}}->
+%      case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
+%      case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
+%      case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1});
+%        _ -> kvs:put(Feed#feed{entries_count=Feed#feed.entries_count-1}) end;
+%    {error, _} -> error_logger:info_msg("Not found") end,
+%
+%  kvs:delete(entry, {EId, FeedId}).
+
+
+%entry_traversal(undefined, _) -> [];
+%entry_traversal(_, 0) -> [];
+%entry_traversal(Next, Count)->
+%  case kvs:get(entry, Next) of {error, _} -> [];
+%    {ok, R} -> [R | entry_traversal(R#entry.prev, Count-1)] end.
+
+%entries({_, FeedId}, undefined, PageAmount) ->
+%    case kvs:get(feed, FeedId) of
+%        {ok, O} -> entry_traversal(O#feed.top, PageAmount);
+%        {error, _} -> [] end;
+%entries({_, FeedId}, StartFrom, PageAmount) ->
+%    case kvs:get(entry,{StartFrom, FeedId}) of
+%        {ok, #entry{prev = Prev}} -> entry_traversal(Prev, PageAmount);
+%        _ -> [] end.
+
+%purge_feed(FeedId) ->
+%    {ok,Feed} = kvs:get(feed,FeedId),
+%    Removal = entry_traversal(Feed#feed.top, -1),
+%    [kvs:delete(entry,Id)||#entry{id=Id}<-Removal],
+%    kvs:put(Feed#feed{top=undefined}).
+%purge_unverified_feeds() ->
+%    [ [purge_feed(Fid)|| {_, Fid} <- Feeds ] || #user{feeds=Feeds, email=E} <- kvs:all(user), E==undefined].
 
 traversal( _, _, undefined, _) -> [];
 traversal(_, _, _, 0) -> [];
@@ -41,8 +134,8 @@ init_db() ->
             add_seq_ids(),
             kvs_account:create_account(system),
             %add_sample_users(),
-            add_sample_packages(),
-            add_sample_payments(),
+%            add_sample_packages(),
+%            add_sample_payments(),
             add_translations();
         {ok,_} -> ignore end.
 
@@ -140,9 +233,6 @@ update(Record, Meta) ->
     DBA=?DBA,
     DBA:update(Record, Meta).
 
-get(user, Key) ->
-  DBA=?DBA,
-  case DBA:get(iterator, Key) of {ok, #iterator{object=O}} -> {ok, O}; E -> E end;
 get(RecordName, Key) ->
     DBA=?DBA,
     DBA:get(RecordName, Key).
@@ -168,9 +258,6 @@ delete_by_index(Tab, IndexId, IndexVal) -> DBA=?DBA,DBA:delete_by_index(Tab, Ind
 multi_select(RecordName, Keys) -> DBA=?DBA,DBA:multi_select(RecordName, Keys).
 select(From, PredicateFunction) -> ?INFO("db:select ~p, ~p",[From,PredicateFunction]), DBA=?DBA, DBA:select(From, PredicateFunction).
 count(RecordName) -> DBA=?DBA,DBA:count(RecordName).
-%all(user, Feed) ->
-%  case kvs:get(feed, Feed) of {error, not_found} -> [];
-%    {ok,F}-> traversal(iterator, #iterator.prev, F#feed.top, undefined) end.
 all(RecordName) -> DBA=?DBA,DBA:all(RecordName).
 all_by_index(RecordName, Index, IndexValue) -> DBA=?DBA,DBA:all_by_index(RecordName, Index, IndexValue).
 next_id(RecordName) -> DBA=?DBA,DBA:next_id(RecordName).

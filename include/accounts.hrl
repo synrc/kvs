@@ -1,3 +1,5 @@
+-include("kvs.hrl").
+
 -type currency()         :: internal | quota | game_points | money | bonus.
 -type account_id()       :: {string(), currency()}. %% {username, currency}.
 -type transaction_id()   :: string().
@@ -14,14 +16,17 @@
 
 -type transaction_info() :: #tx_payment{} | #tx_admin_change{} | #tx_default_assignment{}.
 
--record(user_transaction, {user,top}).
--record(transaction, {
-        id :: transaction_id(),
+-record(user_transaction, {?CONTAINER, user
+%,top
+}).
+-record(transaction, {?ITERATOR(user_transaction),
+%        id :: transaction_id(),
         commit_time :: erlang:now(),
         amount :: integer(),    %% amount to move between accounts
         remitter :: account_id(), %% accout that gives money/points
         acceptor :: account_id(), %% account receive money/points
         currency :: currency(),   %% some of the points or money
-        info :: transaction_info(),
-        next,
-        prev }).
+        info :: transaction_info()
+%        next,
+ %       prev 
+}).

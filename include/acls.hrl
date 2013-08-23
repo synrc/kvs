@@ -1,15 +1,11 @@
--record(acl, {
-        id,
-        resource,
-        top}).
+-include("kvs.hrl").
 
--record(acl_entry, {
-        id,
+-record(acl, {?CONTAINER}).
+
+-record(acl_entry, {?ITERATOR(acl),
         entry_id,
         acl_id,
         accessor,
-        action,
-        next,
-        prev}).
+        action}).
 
 -record(feature, {name, id, aclver}).

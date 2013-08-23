@@ -9,27 +9,6 @@
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
-register(#user{email=Email, feeds=Ch} = Registration, Feed) ->
-  case kvs:get(iterator, Email) of {ok,_} -> {error, email_taken};
-  {error, _} ->
-    HashedPassword = case Registration#user.password of undefined -> undefined; PlainPassword -> kvs:sha(PlainPassword) end,
-    RegisterData = Registration#user{feeds=[{Feed, kvs_feed:create()} || Feed <- Ch], password = HashedPassword},
-
-    Next = undefined,
-    Prev = case Feed#feed.top of undefined -> undefined;
-      T -> case kvs:get(iterator, T) of {error,not_found} -> undefined;
-        {ok, Top} -> UpdTop = Top#iterator{next=Email}, kvs:put(UpdTop), UpdTop#iterator.id end end,
-
-    kvs:put(Feed#feed{top=Email, entries_count=Feed#feed.entries_count+1}),
-    Iterator = #iterator{id=Email, object=RegisterData, next=Next, prev=Prev},
-    kvs:put(Iterator),
-    kvs:put(RegisterData),%todo:  by_index support
-    error_logger:info_msg("PUT USER: ~p", [RegisterData]),
-    kvs_account:create_account(Email),
-    {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
-    kvs_account:transaction(Email, quota, DefaultQuota, #tx_default_assignment{}),
-    {ok, RegisterData} end.
-
 delete(UserName) ->
     case kvs_user:get(UserName) of
         {ok, User} ->
@@ -44,8 +23,7 @@ delete(UserName) ->
         E -> E end.
 
 get({facebook, FBId}) -> user_by_facebook_id(FBId);
-get({googleplus, GId}) -> user_by_googleplus_id(GId);
-get(UId) -> kvs:get(user, UId).
+get({googleplus, GId}) -> user_by_googleplus_id(GId).
 
 subscribe(Who, Whom) ->
     Record = #subscription{key={Who,Whom}, who = Who, whom = Whom},
@@ -129,6 +107,13 @@ user_by_googleplus_id(GId) ->
     case kvs:get(googleplus,GId) of
         {ok,{_,User,_}} -> kvs:get(user,User);
         Else -> Else end.
+
+handle_notice([kvs_user, user, registered], {_,_,#user{id=Who}=U}, #state{owner=Who}=State)->
+    error_logger:info_msg("Notification about registered me ~p", [U]),
+    kvs_account:create_account(Who),
+    {ok, DefaultQuota} = kvs:get(config, "accounts/default_quota",  300),
+    kvs_account:transaction(Who, quota, DefaultQuota, #tx_default_assignment{}),
+    {noreply, State};
 
 handle_notice([kvs_user, login, user, Who, update_status],
               Message,

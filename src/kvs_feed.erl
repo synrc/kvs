@@ -17,23 +17,6 @@ create() ->
     ok = kvs:put(#feed{id = FId} ),
     FId.
 
-add_entry(E=#entry{}) ->
-  case kvs:get(entry, E#entry.id) of {ok, _} -> error_logger:info_msg("Add entry ~p failed. Already exist!", [E#entry.id]);
-    {error, not_found}-> case kvs:get(feed, E#entry.feed_id) of
-      {error, not_found} -> error_logger:info_msg("Add entry failed, no feed ~p", [E#entry.feed_id]);
-      {ok, Feed} ->
-        Next = undefined,
-        Prev = case Feed#feed.top of undefined -> undefined;
-          X -> case kvs:get(entry, X) of {error,_} -> undefined;
-            {ok, Top} -> Edited = Top#entry{next=E#entry.id}, kvs:put(Edited), Top#entry.id end end,
-
-        kvs:put(#feed{id=E#entry.feed_id, top=E#entry.id, entries_count=Feed#feed.entries_count+1}),
-
-        Entry  = E#entry{next = Next, prev = Prev},
-        kvs:put(Entry),
-        error_logger:info_msg("PUT entry: ~p", [Entry#entry.id]),
-        {ok, Entry} end end.
-
 entry_traversal(undefined, _) -> [];
 entry_traversal(_, 0) -> [];
 entry_traversal(Next, Count)->
@@ -41,8 +24,8 @@ entry_traversal(Next, Count)->
     {ok, R} -> [R | entry_traversal(R#entry.prev, Count-1)] end.
 
 entries({_, FeedId}, undefined, PageAmount) ->
-    case kvs:get(feed, FeedId) of
-        {ok, O} -> entry_traversal(O#feed.top, PageAmount);
+   case kvs:get(feed, FeedId) of
+       {ok, O} -> entry_traversal(O#feed.top, PageAmount);
         {error, _} -> [] end;
 entries({_, FeedId}, StartFrom, PageAmount) ->
     case kvs:get(entry,{StartFrom, FeedId}) of
@@ -101,18 +84,18 @@ comments_count(Uid) ->
         {ok, UEC} -> UEC#user_etries_count.comments;
         {error, _} -> 0 end.
 
-remove_entry(FeedId, EId) ->
-  {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
-
-  case kvs:get(entry, {EId, FeedId}) of
-    {ok, #entry{prev = Prev, next = Next}}->
-      case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
-      case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
-      case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1});
-        _ -> kvs:put(Feed#feed{entries_count=Feed#feed.entries_count-1}) end;
-    {error, _} -> error_logger:info_msg("Not found") end,
-
-  kvs:delete(entry, {EId, FeedId}).
+%remove_entry(FeedId, EId) ->
+%  {ok, #feed{top = TopId} = Feed} = kvs:get(feed,FeedId),
+%
+%  case kvs:get(entry, {EId, FeedId}) of
+%    {ok, #entry{prev = Prev, next = Next}}->
+%      case kvs:get(entry, Next) of {ok, NE} -> kvs:put(NE#entry{prev = Prev});  _ -> ok end,
+%      case kvs:get(entry, Prev) of {ok, PE} -> kvs:put(PE#entry{next = Next});  _ -> ok end,
+%      case TopId of {EId, FeedId} -> kvs:put(Feed#feed{top = Prev, entries_count=Feed#feed.entries_count-1});
+%        _ -> kvs:put(Feed#feed{entries_count=Feed#feed.entries_count-1}) end;
+%    {error, _} -> error_logger:info_msg("Not found") end,
+%
+%  kvs:delete(entry, {EId, FeedId}).
 
 edit_entry(FeedId, EId, NewDescription) ->
     case kvs:get(entry,{EId, FeedId}) of
@@ -153,14 +136,14 @@ user_likes(UserId, {Page, PageAmount}) ->
         {ok, Likes} -> lists:nthtail((Page-1)*PageAmount, like_list(Likes#user_likes.one_like_head, PageAmount*Page));
         {error, _} -> [] end.
 
-purge_feed(FeedId) ->
-    {ok,Feed} = kvs:get(feed,FeedId),
-    Removal = entry_traversal(Feed#feed.top, -1),
-    [kvs:delete(entry,Id)||#entry{id=Id}<-Removal],
-    kvs:put(Feed#feed{top=undefined}).
+%purge_feed(FeedId) ->
+%    {ok,Feed} = kvs:get(feed,FeedId),
+%    Removal = entry_traversal(Feed#feed.top, -1),
+%    [kvs:delete(entry,Id)||#entry{id=Id}<-Removal],
+%    kvs:put(Feed#feed{top=undefined}).
 
-purge_unverified_feeds() ->
-    [ [purge_feed(Fid)|| {_, Fid} <- Feeds ] || #user{feeds=Feeds, email=E} <- kvs:all(user), E==undefined].
+%purge_unverified_feeds() ->
+%    [ [purge_feed(Fid)|| {_, Fid} <- Feeds ] || #user{feeds=Feeds, email=E} <- kvs:all(user), E==undefined].
 
 %% MQ API
 
@@ -171,7 +154,7 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
       {_,_} ->
         EntryId = case Eid of new -> kvs:uuid(); _-> Eid end,
         E = Entry#entry{id = {EntryId, Fid}, entry_id = EntryId },
-        add_entry(E),
+        kvs:add(E),
 
         % todo: group entry counts should be counted for each feed
         case RouteType of group ->
@@ -180,9 +163,10 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
           error_logger:info_msg("count: ~p", [GE]),
           kvs:put(Group#group{entries_count = GE+1}),
 
-          {ok, Subs} = kvs:get(group_subscription, {E#entry.from, Owner}),
-          SE = Subs#group_subscription.posts_count,
-          kvs:put(Subs#group_subscription{posts_count = SE+1});
+        case kvs:get(group_subscription, {E#entry.from, Owner}) of 
+            {ok, Subs} -> SE = Subs#group_subscription.posts_count,
+                kvs:put(Subs#group_subscription{posts_count = SE+1});
+            {error,not_found} -> error_logger:info_msg("no group subscription found") end;
           _ -> skip end
  end,
 % self() ! {feed_refresh, Fid, ?CACHED_ENTRIES};
@@ -208,7 +192,7 @@ handle_notice([kvs_feed,_, Owner, entry, {_,Fid}, delete],
               [#entry{entry_id=Eid},_], #state{owner=Owner, feeds=Feeds} = State) ->
 
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
-    {_,_} -> kvs_feed:remove_entry(Fid, Eid) end,
+    {_,_} -> kvs:remove(Fid, Eid) end,
   %    self() ! {feed_refresh, FeedId, ?CACHED_ENTRIES};
   {noreply, State};
 

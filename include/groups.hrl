@@ -1,14 +1,15 @@
 -include("types.hrl").
+-include("kvs.hrl").
 
--record(group,{
-        id,
+-record(group,{?ITERATOR(feed),
+%        id,
         name,
         description,
         scope :: public | private,
         creator,
         created,
         owner,
-        feeds,
+%        feeds,
         users_count = 0 :: integer(),   % we have to store this, counting would be very expensive and this number is sufficient for sorting and stuff
         entries_count = 0}).
 

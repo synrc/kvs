@@ -1,3 +1,5 @@
+-include("kvs.hrl").
+
 -record(ext_product_info, {
         vendor_id,
         id,
@@ -10,14 +12,12 @@
         retailer_price,
         user_price }).
 
--record(product, {
-        id,
+-record(product, {?ITERATOR(feed),
         ext_id                 :: term(),    % ext
         vendor_id              :: integer(), % auto
         categories             :: list(integer()), % admin
         creator,
         owner,
-        feeds,
         title,
         brief,
         cover,
