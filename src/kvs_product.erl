@@ -5,7 +5,6 @@
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/accounts.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("mqs/include/mqs.hrl").
@@ -26,7 +25,7 @@ subscription_mq(Type, Action, Who, Whom) ->
                 {user,add}     -> mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_product_feed(Whom));
                 {user,remove}  -> mqs_channel:unbind_exchange(Channel, ?USER_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_product_feed(Whom)) end,
             mqs_channel:close(Channel);
-        {error,Reason} -> ?ERROR("subscription_mq error: ~p",[Reason]) end.
+        {error,Reason} -> error_logger:info_msg("subscription_mq error: ~p",[Reason]) end.
 
 init_mq(Product=#product{}) ->
     Groups = kvs_group:participate(Product),
@@ -34,12 +33,12 @@ init_mq(Product=#product{}) ->
     ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
     case mqs:open([]) of
         {ok, Channel} ->
-            ?INFO("Cration Exchange: ~p,",[{Channel,ProductExchange,ExchangeOptions}]),
+            error_logger:info_msg("Cration Exchange: ~p,",[{Channel,ProductExchange,ExchangeOptions}]),
             mqs_channel:create_exchange(Channel, ProductExchange, ExchangeOptions),
             Relations = build_product_relations(Product, Groups),
             [ mqs_channel:bind_exchange(Channel, ?USER_EXCHANGE(Product#product.id), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
             mqs_channel:close(Channel);
-        {error,Reason} -> ?ERROR("init_mq error: ~p",[Reason]) end.
+        {error,Reason} -> error_logger:info_msg("init_mq error: ~p",[Reason]) end.
 
 build_product_relations(Product, Groups) -> [
     mqs:key( [kvs_product, '*', Product]),

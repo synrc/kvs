@@ -63,7 +63,3 @@ check_access(UId, {feature, _Feature} = Resource) ->
         {ok, User} -> check_access(User, Resource);
         E -> E
     end.
-
-entries(AclId) -> case kvs:get(acl, AclId) of {ok,RO} -> read_entries(RO#acl.top, []); {error, _} -> [] end.
-read_entries(undefined, Result) -> Result;
-read_entries(Next, Result) -> case kvs:get(acl_entry, Next) of {ok,RO} -> read_entries(RO#acl_entry.prev, Result ++ [RO]); {error, _} -> Result end.

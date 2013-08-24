@@ -1,19 +1,18 @@
 -module(kvs_payment).
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
 
-payments(UserId) -> payments(UserId, undefined, 10000).
-payments(UserId, undefined, PageAmount) ->
+payments(UserId) -> payments(UserId, undefined).
+payments(UserId, PageAmount) ->
     case kvs:get(user_payment, UserId) of
-        {ok, O} when O#user_payment.top =/= undefined -> payments(UserId, O#user_payment.top, PageAmount);
-        {error, _} -> [] end;
+        {ok, O} -> kvs:entries(O, payment, PageAmount);
+        {error, _} -> [] end.
 payments(UserId, StartFrom, Limit) ->
     case kvs:get(payment, StartFrom) of
-        {ok, #payment{next = N}=P} -> [ P | kvs:traversal(payment, #payment.next, N, Limit)];
+        {ok, P} ->  kvs:traversal(payment, P, Limit);
         X -> [] end.
 
 user_paid(UId) ->
@@ -42,48 +41,21 @@ charge_user_account(_MP) -> ok.
 %        kvs_account:transaction(UserId, quota,    Quota,    PaymentTransactionInfo)
 %    catch
 %        _:E ->
-%            ?ERROR("unable to charge user account. User=~p, OrderId=~p. Error: ~p",
+%            error_logger:info_msg("unable to charge user account. User=~p, OrderId=~p. Error: ~p",
 %                   [UserId, OrderId, E])
 %    end.
 
 add_payment(#payment{} = MP) -> add_payment(#payment{} = MP, undefined, undefined).
 add_payment(#payment{} = MP, State0, Info) ->
-    case kvs:get(payment, MP#payment.id) of
-        {ok, _} -> {error, already_bought_that_one};
-        {error, _} ->
-            Start = now(),
-            State = default_if_undefined(State0, undefined, ?MP_STATE_ADDED),
-            StateLog = case Info of
-                           undefined -> [#state_change{time = Start, state = State, info = system_change}];
-                           _ -> [#state_change{time = Start, state = State, info = Info}] end,
+    error_logger:info_msg("ADD PAYMENT"),
+    Start = now(),
+    State = default_if_undefined(State0, undefined, ?MP_STATE_ADDED),
+    StateLog = case Info of
+        undefined -> [#state_change{time = Start, state = State, info = system_change}];
+        _ -> [#state_change{time = Start, state = State, info = Info}] end,
 
-            Id = default_if_undefined(MP#payment.id, undefined, payment_id()),
-            Purchase = MP#payment{id = Id, state = State, start_time = Start, state_log = StateLog},
-            add_to_user(Purchase#payment.user_id, Purchase) end.
-
-add_to_user(UserId,Payment) ->
-    {ok,Team} = case kvs:get(user_payment, UserId) of
-                     {ok,T} -> {ok,T};
-                     _ -> error_logger:info_msg("user_payment not found ~p. create top",[UserId]),
-                          Head = #user_payment{ user = UserId, top = undefined},
-                          {kvs:put(Head),Head} end,
-
-    EntryId = Payment#payment.id,
-    Prev = undefined,
-    case Team#user_payment.top of
-        undefined -> Next = undefined;
-        X -> case kvs:get(payment, X) of
-                {ok, TopEntry} ->
-                     Next = TopEntry#payment.id,
-                     EditedEntry = TopEntry#payment{next = TopEntry#payment.next, prev = EntryId},
-                     kvs:put(EditedEntry);
-                {error, _} -> Next = undefined end end,
-
-    kvs:put(#user_payment{ user = UserId, top = EntryId}), % update team top with current
-
-    Entry  = Payment#payment{id = EntryId, user_id = UserId, next = Next, prev = Prev},
-    case kvs:put(Entry) of ok -> {ok, EntryId};
-                           Error -> error_logger:info_msg("Cant write purchase"), {failure,Error} end.
+    Id = default_if_undefined(MP#payment.id, undefined, payment_id()),
+    kvs:add(MP#payment{id = Id, state = State, start_time = Start, state_log = StateLog, feed_id=MP#payment.user_id}).
 
 set_payment_state(MPId, NewState, Info) ->
     case kvs:get(payment, MPId) of 
@@ -101,6 +73,7 @@ set_payment_state(MPId, NewState, Info) ->
     Purchase = MP#payment{state = NewState, end_time = EndTime, state_log = NewStateLog},
 
     mqs:notify([kvs_payment,user,Purchase#payment.user_id,notify],Purchase),
+
     NewMP=MP#payment{state = NewState, end_time = EndTime, state_log = NewStateLog},
     kvs:put(NewMP),
 
@@ -145,6 +118,7 @@ handle_notice([kvs_payment, user, Owner, add] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
     error_logger:info_msg("queue_action(~p): add_purchase: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
     {MP} = Message,
+    error_logger:info_msg("Add payment: ~p", [MP]),
     add_payment(MP),
     {noreply, State};
 
@@ -162,7 +136,9 @@ handle_notice(["kvs_payment", "user", _, "set_info"] = Route,
     set_payment_info(OrderId, Info),
     {noreply, State};
 
-handle_notice(Route, _, State) -> error_logger:info_msg("Unknown PAYMENTS notice ~p for: ~p, ~p", [Route, State#state.owner, State#state.type]), {noreply, State}.
+handle_notice(Route, _, State) -> 
+    %error_logger:info_msg("Unknown PAYMENTS notice ~p for: ~p, ~p", [Route, State#state.owner, State#state.type]), 
+    {noreply, State}.
 
 timestamp()->
   {Y, Mn, D} = erlang:date(),

@@ -2,7 +2,6 @@
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
 
@@ -82,7 +81,7 @@ tx_list(UserId, StartFrom, Limit) ->
 
 handle_notice(["kvs_account", "user", User, "transaction"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): add_transaction: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
+    error_logger:info_msg("queue_action(~p): add_transaction: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
     MP = Message,
     add_transaction_to_user(User,MP),
     {noreply, State};
@@ -94,7 +93,7 @@ handle_notice(Route, Message, State) -> error_logger:info_msg("Unknown ACCOUNTS 
 add_transaction_to_user(UserId,Purchase) ->
     {ok,Top} = case kvs:get(user_transaction, UserId) of
                      {ok,T} -> {ok,T};
-                     _ -> ?INFO("user_transaction not found"),
+                     _ -> error_logger:info_msg("user_transaction not found"),
                           Head = #user_transaction{ user = UserId, top = undefined},
                           {kvs:put(Head),Head}
                 end,
@@ -132,4 +131,4 @@ add_transaction_to_user(UserId,Purchase) ->
                            prev = Prev},
 
     case kvs:put(Entry) of ok -> kvs:put(#user_transaction{ user = UserId, top = EntryId}), {ok, EntryId};
-                              Error -> ?INFO("Cant write transaction"), {failure,Error} end.
+                              Error -> error_logger:info_msg("Cant write transaction"), {failure,Error} end.

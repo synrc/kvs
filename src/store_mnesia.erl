@@ -13,7 +13,6 @@
 -include_lib("kvs/include/purchases.hrl").
 -include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/accounts.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/translations.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
@@ -172,5 +171,5 @@ members(GroupName) -> all_by_index(group_subscription, #group_subscription.where
 user_tournaments(UId) -> all_by_index(play_record, #play_record.who, UId).
 tournament_users(TId) -> all_by_index(play_record, #play_record.tournament, TId).
 author_comments(Who) ->
-    EIDs = [E || #comment{entry_id=E} <- all_by_index(comment,#comment.author_id, Who) ],
+    EIDs = [E || #comment{entry_id=E} <- all_by_index(comment,#comment.from, Who) ],
     lists:flatten([ all_by_index(entry, #entry.id,EID) || EID <- EIDs]).

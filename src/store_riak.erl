@@ -12,7 +12,6 @@
 -include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/purchases.hrl").
 -include_lib("kvs/include/accounts.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
 
@@ -71,7 +70,7 @@ make_indices(#payment{id=Id,user_id=UId}) -> [
     {<<"payment_bin">>, key_to_bin(Id)},
     {<<"user_bin">>, key_to_bin(UId)}];
 
-make_indices(#comment{id={CID,EID},author_id=Who}) -> [
+make_indices(#comment{id={CID,EID},from=Who}) -> [
     {<<"comment_bin">>, key_to_bin({CID,EID})},
     {<<"author_bin">>, key_to_bin(Who)}];
 

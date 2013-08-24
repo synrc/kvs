@@ -8,6 +8,11 @@
 
 -define(CONTAINER, id, top, entries_count=0).
 -define(ITERATOR(Container), id, container=Container, feed_id, prev, next, feeds=[]).
+-define(CONTAINERS, [
+    {feed,              record_info(fields, feed)},
+    {acl,               record_info(fields, acl)},
+    {user_transaction,  record_info(fields, user_transaction)},
+    {user_payment,      record_info(fields, user_payment)} ]).
 
 -record(container, {?CONTAINER}).
 -record(iterator,  {?ITERATOR(undefined)}).

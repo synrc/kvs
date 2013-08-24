@@ -3,7 +3,6 @@
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/products.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
@@ -71,11 +70,11 @@ delete_package(PackageId) -> kvs:delete(membership, PackageId).
 
 handle_notice(["kvs_membership","system", "add_package"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): add_package: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): add_package: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {MP} = Message,
     case add_package(MP) of
         {ok, _} -> ok;
-        {error, Reason} -> ?ERROR("Unable to add membership package: ~p, Reason ~p", [MP, Reason])
+        {error, Reason} -> error_logger:info_msg("Unable to add membership package: ~p, Reason ~p", [MP, Reason])
     end,
     {noreply, State};
 

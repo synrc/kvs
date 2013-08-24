@@ -1,5 +1,4 @@
 -include("kvs.hrl").
-
 -record(acl, {?CONTAINER}).
 
 -record(acl_entry, {?ITERATOR(acl),

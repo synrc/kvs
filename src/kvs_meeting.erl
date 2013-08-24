@@ -2,7 +2,6 @@
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/meetings.hrl").
 -include_lib("kvs/include/feed_state.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/config.hrl").
 -compile(export_all).
 
@@ -42,34 +41,34 @@ lost() -> lists:usort([erlang:element(3, I) || I <- kvs:all(play_record)]).
 
 handle_notice(["kvs_meeting", "user", UId, "create"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): create: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): create: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
     case kvs_meeting:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
         {error,X} -> 
-            ?ERROR("Error creating tournament: ~p", X);
+            error_logger:info_msg("Error creating tournament: ~p", X);
         TId -> skip end,
     {noreply, State};
 
 handle_notice(["kvs_meeting", "user", UId, "create_and_join"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): create_and_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): create_and_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType} = Message,
     case kvs_meeting:create(UId, TourName, TourDesc, {Y,M,D}, Time, MaxPlayers, Quota, Award, TourType, GameType) of
         {error,X} -> 
-            ?ERROR("Error creating tournament: ~p", X);
+            error_logger:info_msg("Error creating tournament: ~p", X);
         TId -> kvs_meeting:join(UId, TId) end,
     {noreply, State};
 
 handle_notice(["kvs_meeting", "user", UId, "join"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): tournament_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): tournament_join: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UId, TId} = Message,
     kvs_meeting:join(UId, TId),
     {noreply, State};
 
 handle_notice(["kvs_meeting", "user", UId, "leave"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): tournament_remove: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): tournament_remove: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UId, TId} = Message,
     kvs_meeting:leave(UId, TId),
     {noreply, State};
@@ -95,7 +94,7 @@ join_tournament(UserId, TournamentId) ->
                  points = GP,
                  quota = Q});
         _ ->
-            ?INFO(" User ~p not found for joining tournament ~p", [UserId, TournamentId])
+            error_logger:info_msg(" User ~p not found for joining tournament ~p", [UserId, TournamentId])
     end.
 
 leave_tournament(UserId, TournamentId) ->

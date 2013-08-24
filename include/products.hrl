@@ -30,7 +30,7 @@
         fee                    :: integer(),  % net membership fee
         enabled                :: boolean(), % admin
         for_sale               :: boolean(),
-        creation_date          :: calendar:date_time(), % auto
+        created                :: calendar:date_time(), % auto
         modify_date            :: calendar:date_time() }).
 
 -record(product_category, {

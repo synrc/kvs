@@ -2,7 +2,6 @@
 -copyright('Synrc Research Center s.r.o.').
 -include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/purchases.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
@@ -25,14 +24,14 @@ products(UId) -> DBA=?DBA, DBA:products(UId).
 
 handle_notice(["kvs_purchase", "user", UId, "buy"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO(" queue_action(~p): buy_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg(" queue_action(~p): buy_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {GId} = Message,
     buy(UId, GId),
     {noreply, State};
 
 handle_notice(["kvs_purchase", "user", UId, "give"] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO(" queue_action(~p): give_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg(" queue_action(~p): give_gift: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {GId} = Message,
     give(UId, GId),
     {noreply, State};

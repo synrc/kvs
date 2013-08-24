@@ -3,7 +3,6 @@
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/config.hrl").
 -include_lib("mqs/include/mqs.hrl").
@@ -30,7 +29,7 @@ delete(GroupName) ->
                     Routes = kvs_users:rk_group_feed(GroupName),
                     kvs_users:unbind_group_exchange(Channel, GroupName, Routes),
                     mqs_channel:close(Channel);
-                {error,Reason} -> ?ERROR("delete group failed: ~p",[Reason]) end end.
+                {error,Reason} -> error_logger:info_msg("delete group failed: ~p",[Reason]) end end.
 
 participate(UserName) -> DBA=?DBA,DBA:participate(UserName).
 members(GroupName) -> DBA=?DBA,DBA:members(GroupName).
@@ -73,7 +72,7 @@ join(UserName,GroupName) ->
 leave(UserName,GroupName) ->
     kvs:delete(group_subscription, {UserName, GroupName}),
     case kvs:get(group, GroupName) of
-        {error,_} -> ?ERROR("Remove ~p from group failed reading group ~p", [UserName, GroupName]);
+        {error,_} -> error_logger:info_msg("Remove ~p from group failed reading group ~p", [UserName, GroupName]);
         {ok,Group} -> kvs:put(Group#group{users_count = Group#group.users_count - 1}) end.
 
 approve_request(UserName, GroupName) -> add(UserName, GroupName, member).
@@ -108,7 +107,7 @@ user_has_access(UserName, GroupName) ->
 
 handle_notice(["kvs_group", "update", GroupName] = Route, 
     Message, #state{owner=ThisGroupOwner, type=Type} = State) ->
-    ?INFO("queue_action(~p): update_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, ThisGroupOwner}, Route, Message]),    
+    error_logger:info_msg("queue_action(~p): update_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, ThisGroupOwner}, Route, Message]),    
     {_UId, _GroupUsername, Name, Description, Owner, Publicity} = Message,
     case kvs:get(group, GroupName) of
         {ok, Group} ->
@@ -117,12 +116,12 @@ handle_notice(["kvs_group", "update", GroupName] = Route,
                 scope = coalesce(Publicity,Group#group.scope),
                 owner = coalesce(Owner,Group#group.owner)},
             kvs:put(NewGroup);
-        {error,Reason} -> ?ERROR("Cannot update group ~p",[Reason]) end,
+        {error,Reason} -> error_logger:info_msg("Cannot update group ~p",[Reason]) end,
     {noreply, State};
 
 handle_notice(["kvs_group", "remove", GroupName] = Route, 
     Message, #state{owner = Owner, type = Type} = State) ->
-    ?INFO("queue_action(~p): remove_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): remove_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     delete(GroupName),
     {noreply, State};
 
@@ -135,7 +134,7 @@ handle_notice([kvs_group, join, GroupName],
 
 handle_notice(["kvs_group", "leave", GroupName] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    ?INFO("queue_action(~p): remove_from_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
+    error_logger:info_msg("queue_action(~p): remove_from_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {UserName} = Message,
     leave(UserName,GroupName),
 %    subscription_mq(group, remove, UserName, GroupName),
@@ -165,7 +164,7 @@ init_mq(Group=#group{}) ->
             Relations = build_group_relations(Group),
             [mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Group#group.id), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
             mqs_channel:close(Channel);
-        {error, Reason} -> ?ERROR("init_mq error: ~p",[Reason]) end.
+        {error, Reason} -> error_logger:info_msg("init_mq error: ~p",[Reason]) end.
 
 rk_group_feed(Group) -> mqs_lib:list_to_key([kvs_feed, group, Group, '*', '*', '*']).
 
@@ -176,4 +175,4 @@ subscription_mq(Type, Action, Who, Where) ->
                 {group,add}     -> mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where));
                 {groupr,remove}  -> mqs_channel:unbind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where)) end,
             mqs_channel:close(Channel);
-        {error,Reason} -> ?ERROR("subscription_mq error: ~p",[Reason]) end.
+        {error,Reason} -> error_logger:info_msg("subscription_mq error: ~p",[Reason]) end.

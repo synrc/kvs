@@ -9,14 +9,12 @@
 -include_lib("kvs/include/invites.hrl").
 -include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/accounts.hrl").
--include_lib("kvs/include/log.hrl").
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/products.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
--define(r, {sr, record_info(fields, acl)}).
 
 start() -> DBA = ?DBA, DBA:start().
 dir() -> DBA = ?DBA, DBA:dir().
@@ -36,24 +34,23 @@ add(Record) when is_tuple(Record) ->
         error_logger:info_msg("check container ~p ~p", [CName, Cid]),
         Container = case kvs:get(CName, Cid) of {ok,C} -> error_logger:info_msg("ok"),C;
         {error, not_found} when Cid /= undefined ->
-            case CName of
-                acl  -> A = #acl{ id = Cid}, kvs:put(A), A;
-                _ -> F = #feed{id = Cid}, kvs:put(F), F end;
+            NC =  setelement(#container.id, erlang:list_to_tuple([CName|proplists:get_value(CName, ?CONTAINERS)]), Cid),
+            NC1 = setelement(#container.entries_count, NC, 0),
+            error_logger:info_msg("Create top: ~p", [NC1]),
+            kvs:put(NC1),NC1;
         _ -> error end,
 
         if Container == error -> {error, no_container}; true ->
             error_logger:info_msg("container ~p", [Container]),
             Next = undefined,
-            Prev = case element(#container.top, Container) of undefined -> error_logger:info_msg("TOP undefined"), undefined;
-              Tid -> error_logger:info_msg("Current container top: ~p", [Tid]),
-                    case kvs:get(Type, Tid) of {error, not_found} -> error_logger:info_msg("No top element in db"),undefined;
-                 {ok, Top} -> error_logger:info_msg("Update top: old ~p", [Top]), NewTop = setelement(#iterator.next, Top, Id), kvs:put(NewTop), element(#iterator.id, NewTop) end end,
-            error_logger:info_msg("Next ~p Prev ~p",[Next,Prev]),
+            Prev = case element(#container.top, Container) of undefined -> undefined;
+              Tid -> case kvs:get(Type, Tid) of {error, not_found} -> undefined;
+                {ok, Top} -> NewTop = setelement(#iterator.next, Top, Id), kvs:put(NewTop), element(#iterator.id, NewTop) end end,
+            error_logger:info_msg("next ~p | prev ~p",[Next,Prev]),
 
             C1 = setelement(#container.top, Container, Id),
             C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)+1),
-            error_logger:info_msg("Update container ~p top ~p", [Container, Id]),
-            error_logger:info_msg("New container: ~p", [C2]),
+            error_logger:info_msg("updated container: ~p", [C2]),
             kvs:put(C2),
 
             R  = setelement(#iterator.feeds, Record, [{F1, kvs_feed:create()} || F1 <- element(#iterator.feeds, Record)]),
@@ -64,49 +61,13 @@ add(Record) when is_tuple(Record) ->
             error_logger:info_msg("PUT: ~p", [R3]),
             {ok, R3} end end.
 
-%add(FId, User, EntryId, ParentComment, CommentId, Content, Medias, _) ->
-%  FullId = {CommentId, {EntryId, FId}},
-
-%  Prev = case ParentComment of
-%    undefined ->
-%      {ok, Entry} = kvs:get(entry,{EntryId, FId}),
-%      {PrevC, E} = case Entry#entry.comments of
-%        undefined -> {undefined, Entry#entry{comments_rear = FullId}};
-%        Id ->  case kvs:get(comment, Id) of {ok, PrevTop} -> kvs:put(PrevTop#comment{next = FullId}); {error, not_found} -> skip end, {Id, Entry} end,
-%      kvs:put(E#entry{comments=FullId}),
-%      PrevC;
-%    P ->
-%      case kvs:get(comment, {P, {EntryId, FId}}) of
-%        {ok, Parent} ->
-%          {PrevC, CC} = case Parent#comment.comments of
-%            undefined -> {undefined, Parent#comment{comments_rear = FullId}};
-%            Id -> {ok, PrevTop} = kvs:get(comment, Id), kvs:put(PrevTop#comment{next = FullId}), {Id, Parent} end,
-%          kvs:put(CC#comment{comments = FullId}),
-%          PrevC;
-%        {error, not_found} -> undefined end end,
-
-%  Comment = #comment{id = FullId,
-%                     author_id = User,
-%                     comment_id = CommentId,
-%                     entry_id = EntryId,
-%                     content = Content,
-%                     media = Medias,
-%                     creation_time = now(),
-%                     prev = Prev,
-%                     next = undefined},
-%  error_logger:info_msg("PUT: ~p", [Comment]),
-%  kvs:put(Comment),
-%  {ok, Comment}.
-
 remove(RecordName, RecordId) ->
     error_logger:info_msg("Remove ~p ~p", [RecordName, RecordId]),
     case kvs:get(RecordName, RecordId) of {error, not_found} -> error_logger:info_msg("not found");
     {ok, E} ->
-        error_logger:info_msg("going to remove ~p", [E]),
         Id = element(#iterator.id, E),
         CName = element(#iterator.container, E),
         Cid = element(#iterator.feed_id, E),
-        error_logger:info_msg("Remove entry ~p from {~p, Feed: ~p}", [Id, CName, Cid]),
 
         {ok, Container} = kvs:get(CName, Cid),
         Top = element(#container.top, Container),
@@ -146,8 +107,7 @@ entries({_, FeedId}, StartFrom, Count) ->
     case kvs:get(entry,{StartFrom, FeedId}) of {error,not_found}->[];
     {ok, E} -> traversal(entry, element(#iterator.prev, E), Count) end;
 
-entries(Container, RecordType, Count) ->
-    traversal(RecordType, element(#container.top, Container), Count).
+entries(Container, RecordType, Count) -> traversal(RecordType, element(#container.top, Container), Count).
 
 init_db() ->
     case kvs:get(user,"joe") of
@@ -160,20 +120,20 @@ init_db() ->
             add_translations();
         {ok,_} -> ignore end.
 
-add_sample_packages() -> kvs_membership:add_sample_data().
+%add_sample_packages() -> kvs_membership:add_sample_data().
 
-add_sample_payments() ->
-    {ok, Pkg1} = kvs:get(membership,1),
-    {ok, Pkg2} = kvs:get(membership,2),
-    {ok, Pkg3} = kvs:get(membership,3),
-    {ok, Pkg4} = kvs:get(membership,4),
-    PList = [{"doxtop", Pkg1},{"maxim", Pkg2},{"maxim",Pkg4}, {"kate", Pkg3} ],
-    [ok = add_payment(U, P) || {U, P} <- PList],
-    ok.
+%add_sample_payments() ->
+%    {ok, Pkg1} = kvs:get(membership,1),
+%    {ok, Pkg2} = kvs:get(membership,2),
+%    {ok, Pkg3} = kvs:get(membership,3),
+%    {ok, Pkg4} = kvs:get(membership,4),
+%    PList = [{"doxtop", Pkg1},{"maxim", Pkg2},{"maxim",Pkg4}, {"kate", Pkg3} ],
+%    [ok = add_payment(U, P) || {U, P} <- PList],
+%    ok.
 
-add_payment(UserId, Package) ->
-    {ok, MPId} = kvs_payment:add_payment(#payment{user_id=UserId, membership=Package}),
-    kvs_payment:set_payment_state(MPId, ?MP_STATE_DONE, undefined).
+%add_payment(UserId, Package) ->
+%    {ok, MPId} = kvs_payment:add_payment(#payment{user_id=UserId, membership=Package}),
+%    kvs_payment:set_payment_state(MPId, ?MP_STATE_DONE, undefined).
 
 add_seq_ids() ->
     Init = fun(Key) ->
@@ -266,18 +226,18 @@ get(RecordName, Key, Default) ->
     DBA=?DBA,
     case DBA:get(RecordName, Key) of
         {ok,{RecordName,Key,Value}} ->
-            ?INFO("db:get config value ~p,", [{RecordName, Key, Value}]),
+            error_logger:info_msg("db:get config value ~p,", [{RecordName, Key, Value}]),
             {ok,Value};
         {error, _B} ->
-            ?INFO("db:get new config value ~p,", [{RecordName, Key, Default}]),
+            error_logger:info_msg("db:get new config value ~p,", [{RecordName, Key, Default}]),
             DBA:put({RecordName,Key,Default}),
             {ok,Default} end.
 
 delete(Keys) -> DBA=?DBA, DBA:delete(Keys).
-delete(Tab, Key) -> ?INFO("db:delete ~p:~p",[Tab, Key]), DBA=?DBA,DBA:delete(Tab, Key).
+delete(Tab, Key) -> error_logger:info_msg("db:delete ~p:~p",[Tab, Key]), DBA=?DBA,DBA:delete(Tab, Key).
 delete_by_index(Tab, IndexId, IndexVal) -> DBA=?DBA,DBA:delete_by_index(Tab, IndexId, IndexVal).
 multi_select(RecordName, Keys) -> DBA=?DBA,DBA:multi_select(RecordName, Keys).
-select(From, PredicateFunction) -> ?INFO("db:select ~p, ~p",[From,PredicateFunction]), DBA=?DBA, DBA:select(From, PredicateFunction).
+select(From, PredicateFunction) -> error_logger:info_msg("db:select ~p, ~p",[From,PredicateFunction]), DBA=?DBA, DBA:select(From, PredicateFunction).
 count(RecordName) -> DBA=?DBA,DBA:count(RecordName).
 all(RecordName) -> DBA=?DBA,DBA:all(RecordName).
 all_by_index(RecordName, Index, IndexValue) -> DBA=?DBA,DBA:all_by_index(RecordName, Index, IndexValue).
@@ -285,11 +245,11 @@ next_id(RecordName) -> DBA=?DBA,DBA:next_id(RecordName).
 next_id(RecordName, Incr) -> DBA=?DBA,DBA:next_id(RecordName, Incr).
 next_id(RecordName, Default, Incr) -> DBA=?DBA,DBA:next_id(RecordName, Default, Incr).
 
+author_comments(Who) -> DBA=?DBA,DBA:author_comments(Who).
+
 make_admin(User) ->
     {ok,U} = kvs:get(user, User),
-    kvs:put(U#user{type = admin}),
-    kvs_acl:define_access({user, U#user.username}, {feature, admin}, allow),
-    kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
+    kvs_acl:define_access({user, U#user.id}, {feature, admin}, allow),
     ok.
 
 make_rich(User) -> 

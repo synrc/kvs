@@ -8,8 +8,6 @@
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feed_state.hrl").
--include_lib("kvs/include/log.hrl").
-
 -define(CACHED_ENTRIES, 20).
 
 create() ->
@@ -117,20 +115,19 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
       {_,_} ->
         EntryId = case Eid of new -> kvs:uuid(); _-> Eid end,
         E = Entry#entry{id = {EntryId, Fid}, entry_id = EntryId, feeds=[comments] },
-        kvs:add(E),
+        kvs:add(E)
 
         % todo: group entry counts should be counted for each feed
-        case RouteType of group ->
-          {ok, Group} = kvs:get(group, Owner),
-          GE = Group#group.entries_count,
-          error_logger:info_msg("count: ~p", [GE]),
-          kvs:put(Group#group{entries_count = GE+1}),
-
-        case kvs:get(group_subscription, {E#entry.from, Owner}) of 
-            {ok, Subs} -> SE = Subs#group_subscription.posts_count,
-                kvs:put(Subs#group_subscription{posts_count = SE+1});
-            {error,not_found} -> error_logger:info_msg("no group subscription found") end;
-          _ -> skip end
+%        case RouteType of group ->
+%          {ok, Group} = kvs:get(group, Owner),
+%          GE = Group#group.entries_count,
+%          error_logger:info_msg("count: ~p", [GE]),
+%          kvs:put(Group#group{entries_count = GE+1}),
+%        case kvs:get(group_subscription, {E#entry.from, Owner}) of 
+%            {ok, Subs} -> SE = Subs#group_subscription.posts_count,
+%                kvs:put(Subs#group_subscription{posts_count = SE+1});
+%            {error,not_found} -> error_logger:info_msg("no group subscription found") end;
+%          _ -> skip end
  end,
 % self() ! {feed_refresh, Fid, ?CACHED_ENTRIES};
   {noreply, S};
@@ -183,17 +180,16 @@ handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
     User = From,
 
     Comment = #comment{id = FullId,
-                     author_id = User,
+                     from = User,
                      comment_id = Cid,
                      entry_id = EntryId,
                      feed_id =  FeedId2, % entry commens or parent comment comments
                      content = Content,
                      media = Medias,
-                     creation_time = now(),
+                     created = now(),
                      feeds = [comments]},
     error_logger:info_msg("Comment ~p ready to put.", [Comment]),
     kvs:add(Comment)
-%      kvs_comment:add(E#entry.feed_id, From, E#entry.entry_id, Parent, Cid, Content, Medias)
 
     end || E <- kvs:all_by_index(entry, entry_id, Eid)];
 
