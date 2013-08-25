@@ -108,6 +108,7 @@ entries({_, FeedId}, StartFrom, Count) ->
     {ok, E} -> traversal(entry, element(#iterator.prev, E), Count) end;
 
 entries(Container, RecordType, Count) -> traversal(RecordType, element(#container.top, Container), Count).
+entries(CName, Cid, RecordType, Count) -> case kvs:get(CName, Cid) of {ok, C}-> entries(C, RecordType, Count); {error, _} -> [] end.
 
 init_db() ->
     case kvs:get(user,"joe") of
