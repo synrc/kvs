@@ -113,7 +113,7 @@ user_likes(UserId, {Page, PageAmount}) ->
 %% MQ API
 
 handle_notice([kvs_feed, _, Owner, entry, Eid, add],
-              [#entry{feed_id=Fid, to={RouteType, _}}=Entry,_,_,_,_],
+              [#entry{feed_id=Fid, to={RouteType, _}}=Entry,_,_,_,_,_],
               #state{owner=Owner, feeds=Feeds} = S) ->
     case lists:keyfind(Fid,2,Feeds) of false -> skip;
       {_,_} ->
