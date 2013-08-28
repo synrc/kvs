@@ -8,18 +8,19 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-  RestartStrategy = one_for_one,
-  MaxRestarts = 1000,
-  MaxSecondsBetweenRestarts = 3600,
+    RestartStrategy = one_for_one,
+    MaxRestarts = 1000,
+    MaxSecondsBetweenRestarts = 3600,
 
-  SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
+    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-  Restart = permanent,
-  Shutdown = 2000,
-  Type = worker,
+    Restart = permanent,
+    Shutdown = 2000,
+    Type = worker,
 
-  kvs:start(),
- % kvs:initialize(),
+    kvs:start(),
+ %  kvs:initialize(),
+    kvs:wait_for_tables(),
 
-  {ok, { {one_for_one, 5, 10}, []} }.
+    {ok, { {one_for_one, 5, 10}, []} }.
 

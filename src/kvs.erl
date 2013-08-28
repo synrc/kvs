@@ -22,6 +22,7 @@ stop() -> DBA = ?DBA, DBA:stop().
 initialize() -> DBA = ?DBA, DBA:initialize().
 delete() -> DBA = ?DBA, DBA:delete().
 init_indexes() -> DBA = ?DBA, DBA:init_indexes().
+wait_for_tables() -> DBA=?DBA, DBA:wait_for_tables().
 
 add(Record) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
@@ -31,12 +32,12 @@ add(Record) when is_tuple(Record) ->
         Type = element(1, Record),
         CName = element(#iterator.container, Record),
         Cid = case element(#iterator.feed_id, Record) of undefined -> ?FEED(Type); Fid -> Fid end,
-        error_logger:info_msg("check container ~p ~p", [CName, Cid]),
+%        error_logger:info_msg("check container ~p ~p", [CName, Cid]),
         Container = case kvs:get(CName, Cid) of {ok,C} -> error_logger:info_msg("ok"),C;
         {error, not_found} when Cid /= undefined ->
             NC =  setelement(#container.id, erlang:list_to_tuple([CName|proplists:get_value(CName, ?CONTAINERS)]), Cid),
             NC1 = setelement(#container.entries_count, NC, 0),
-            error_logger:info_msg("Create top: ~p", [NC1]),
+%            error_logger:info_msg("Create top: ~p", [NC1]),
             kvs:put(NC1),NC1;
         _ -> error end,
 
@@ -46,11 +47,11 @@ add(Record) when is_tuple(Record) ->
             Prev = case element(#container.top, Container) of undefined -> undefined;
               Tid -> case kvs:get(Type, Tid) of {error, not_found} -> undefined;
                 {ok, Top} -> NewTop = setelement(#iterator.next, Top, Id), kvs:put(NewTop), element(#iterator.id, NewTop) end end,
-            error_logger:info_msg("next ~p | prev ~p",[Next,Prev]),
+%            error_logger:info_msg("next ~p | prev ~p",[Next,Prev]),
 
             C1 = setelement(#container.top, Container, Id),
             C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)+1),
-            error_logger:info_msg("updated container: ~p", [C2]),
+%            error_logger:info_msg("updated container: ~p", [C2]),
             kvs:put(C2),
 
             R  = setelement(#iterator.feeds, Record, [{F1, kvs_feed:create()} || F1 <- element(#iterator.feeds, Record)]),
@@ -83,6 +84,24 @@ remove(RecordName, RecordId) ->
         error_logger:info_msg("Remove record ~p id: ~p", [RecordName, Id]),
         kvs:delete(RecordName, Id) end.
 
+remove(E) when is_tuple(E) ->
+    Id = element(#iterator.id, E),
+    CName = element(#iterator.container, E),
+    Cid = element(#iterator.feed_id, E),
+
+    {ok, Container} = kvs:get(CName, Cid),
+    Top = element(#container.top, Container),
+
+    Next = element(#iterator.next, E),
+    Prev = element(#iterator.prev, E),
+    case kvs:get(element(1,E), Next) of {ok, NE} -> NewNext = setelement(#iterator.prev, NE, Prev), kvs:put(NewNext); _ -> ok end,
+    case kvs:get(element(1,E), Prev) of {ok, PE} -> NewPrev = setelement(#iterator.next, PE, Next), kvs:put(NewPrev); _ -> ok end,
+
+    C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
+    C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
+    kvs:put(C2),
+%    error_logger:info_msg("Remove record ~p", [E]),
+    kvs:delete(E).
 %purge_feed(FeedId) ->
 %    {ok,Feed} = kvs:get(feed,FeedId),
 %    Removal = entry_traversal(Feed#feed.top, -1),

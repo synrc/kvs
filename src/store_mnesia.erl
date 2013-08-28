@@ -68,12 +68,14 @@ initialize() ->
     ?CREATE_TAB(group),
     ?CREATE_TAB(id_seq),
     ?CREATE_TAB(transaction),
-%    ?CREATE_TAB(translation),
     ?CREATE_TAB(product),
     ?CREATE_TAB(product_category),
-    mnesia:wait_for_tables([comment,subscription,group,group_subscription,user,entry,product],5000),
+    wait_for_tables(),
     add_indexes(),
     ok.
+
+wait_for_tables() ->
+    mnesia:wait_for_tables([user,product,group,entry,comment,subscription,group_subscription],5000).
 
 dir() ->
     Tables = mnesia:system_info(local_tables),
