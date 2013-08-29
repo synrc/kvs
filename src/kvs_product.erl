@@ -14,7 +14,7 @@ delete(Name) ->
   case kvs:get(product, Name) of
     {ok, Product} ->
       [kvs_group:leave(Name, Gid) || Gid <- kvs_group:participate(Name)],
-      kvs:delete(product, Name),
+      kvs:remove(product, Name),
       {ok, Product};
     E -> E end.
 
