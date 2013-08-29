@@ -126,7 +126,8 @@ entries({_, FeedId}, StartFrom, Count) ->
     case kvs:get(entry,{StartFrom, FeedId}) of {error,not_found}->[];
     {ok, E} -> traversal(entry, element(#iterator.prev, E), Count) end;
 
-entries(Container, RecordType, Count) -> traversal(RecordType, element(#container.top, Container), Count).
+entries(Container, RecordType, Count) when is_tuple(Container)-> traversal(RecordType, element(#container.top, Container), Count);
+entries(_,_,_) -> [].
 entries(CName, Cid, RecordType, Count) -> case kvs:get(CName, Cid) of {ok, C}-> entries(C, RecordType, Count); {error, _} -> [] end.
 
 init_db() ->
