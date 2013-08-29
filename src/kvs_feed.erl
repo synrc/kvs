@@ -113,28 +113,14 @@ user_likes(UserId, {Page, PageAmount}) ->
 %% MQ API
 
 handle_notice([kvs_feed, _, Owner, entry, Eid, add],
-              [#entry{feed_id=Fid, to={RouteType, _}}=Entry,_,_,_,_,_],
-              #state{owner=Owner, feeds=Feeds} = S) ->
-    case lists:keyfind(Fid,2,Feeds) of false -> skip;
+              [#entry{feed_id=Fid}=Entry|_],
+              #state{owner=Owner} = S) ->
+    case lists:keyfind(Fid,2, S#state.feeds) of false -> skip;
       {_,_} ->
         EntryId = case Eid of new -> kvs:uuid(); _-> Eid end,
-        E = Entry#entry{id = {EntryId, Fid}, entry_id = EntryId, feeds=[comments] },
-        kvs:add(E)
-
-        % todo: group entry counts should be counted for each feed
-%        case RouteType of group ->
-%          {ok, Group} = kvs:get(group, Owner),
-%          GE = Group#group.entries_count,
-%          error_logger:info_msg("count: ~p", [GE]),
-%          kvs:put(Group#group{entries_count = GE+1}),
-%        case kvs:get(group_subscription, {E#entry.from, Owner}) of 
-%            {ok, Subs} -> SE = Subs#group_subscription.posts_count,
-%                kvs:put(Subs#group_subscription{posts_count = SE+1});
-%            {error,not_found} -> error_logger:info_msg("no group subscription found") end;
-%          _ -> skip end
- end,
-% self() ! {feed_refresh, Fid, ?CACHED_ENTRIES};
-  {noreply, S};
+        E = Entry#entry{id = {EntryId, Fid}, entry_id = EntryId, feeds=[comments]},
+        kvs:add(E) end,
+    {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
               #entry{entry_id=Eid}=Entry,
@@ -164,26 +150,18 @@ handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
               [From, Parent, Content, Medias, _, _],
               #state{owner=Owner, feeds=Feeds} = State) ->
 
-  HasFeed = lists:keyfind(FeedId,2,Feeds) /= false,
-  if HasFeed ->
-    [begin error_logger:info_msg("Comment: worker ~p entry ~p cid ",[Owner, Eid]),
-    {_, CFid} = lists:keyfind(comments, 1, E#entry.feeds),
-    error_logger:info_msg("Add comment to entry ~p~n----------------~n", [E#entry.id]),
-    error_logger:info_msg("Comments feed id: ~p", [CFid]),
-    error_logger:info_msg("Comment parent ~p", [Parent]),
-    FeedId2 = case Parent of undefined -> CFid;
-    Id ->
-        case kvs:get(comment, {Parent, {E#entry.entry_id, E#entry.feed_id}}) of {error, not_found} -> error_logger:info_msg("NO PARENT COMMENT"),CFid;
-            {ok, C} -> {_, PCFid} = lists:keyfind(comments, 1, C#comment.feeds), PCFid end
-    end,
+    HasFeed = lists:keyfind(FeedId,2,Feeds) /= false,
+    if HasFeed -> [begin
+        {_, CFid} = lists:keyfind(comments, 1, E#entry.feeds),
+        FeedId2 = case Parent of undefined -> CFid;
+        Id -> case kvs:get(comment, {Parent, {E#entry.entry_id, E#entry.feed_id}}) of {error, not_found} -> CFid;
+            {ok, C} -> {_, PCFid} = lists:keyfind(comments, 1, C#comment.feeds), PCFid end end,
 
-    error_logger:info_msg("Target feed id: ~p", [FeedId2]),
+        EntryId = E#entry.entry_id,
+        FullId = {Cid, {EntryId, E#entry.feed_id}},
+        User = From,
 
-    EntryId = E#entry.entry_id,
-    FullId = {Cid, {EntryId, E#entry.feed_id}},
-    User = From,
-
-    Comment = #comment{id = FullId,
+        Comment = #comment{id = FullId,
                      from = User,
                      comment_id = Cid,
                      entry_id = EntryId,
@@ -192,14 +170,11 @@ handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
                      media = Medias,
                      created = now(),
                      feeds = [comments]},
-    error_logger:info_msg("Comment ~p ready to put.", [Comment]),
-    kvs:add(Comment)
+        kvs:add(Comment)
 
-    end || E <- kvs:all_by_index(entry, entry_id, Eid)];
+        end || E <- kvs:all_by_index(entry, entry_id, Eid)]; true -> skip end,
 
-    true -> skip end,
-
-  {noreply, State};
+    {noreply, State};
 
 handle_notice(["kvs_feed", "user", UId, "count_entry_in_statistics"] = Route, 
     Message, #state{owner = Owner, type =Type} = State) ->
