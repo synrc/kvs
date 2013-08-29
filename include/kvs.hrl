@@ -13,6 +13,7 @@
 -define(CONTAINERS, [
     {feed,              record_info(fields, feed)},
     {acl,               record_info(fields, acl)},
+    {entry_views,       record_info(fields, acl_views)},
     {user_transaction,  record_info(fields, user_transaction)},
     {user_payment,      record_info(fields, user_payment)} ]).
 

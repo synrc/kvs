@@ -42,6 +42,8 @@
         media = [],
         parent}).
 
+-record(entry_views, {?CONTAINER}).
+-record(user_view,   {?ITERATOR(entry_views), user}).
 
 -record(entry_likes, {
         entry_id,       % this is a general entry_id. Every same entry in different feeds has the same id
