@@ -112,6 +112,11 @@ user_likes(UserId, {Page, PageAmount}) ->
 
 %% MQ API
 
+handle_notice([kvs_feed,_,Owner,entry,_,add], [#entry{feed_id=undefined}=E|_], #state{owner=Owner}=S)->
+    GE = E#entry{id={E#entry.entry_id, ?FEED(entry)}, feed_id=undefined},
+    error_logger:info_msg("=> entry to generic feed: ~p", [GE#entry.id]),
+    kvs:add(GE),
+    {noreply, S};
 handle_notice([kvs_feed, _, Owner, entry, Eid, add],
               [#entry{feed_id=Fid}=Entry|_],
               #state{owner=Owner} = S) ->
@@ -174,18 +179,6 @@ handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
 
         end || E <- kvs:all_by_index(entry, entry_id, Eid)]; true -> skip end,
 
-    {noreply, State};
-
-handle_notice(["kvs_feed", "user", UId, "count_entry_in_statistics"] = Route, 
-    Message, #state{owner = Owner, type =Type} = State) ->
-    error_logger:info_msg("queue_action(~p): count_entry_in_statistics: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    case kvs:get(user_etries_count, UId) of
-        {ok, UEC} -> 
-            kvs:put(UEC#user_etries_count{entries = UEC#user_etries_count.entries+1 }),
-            kvs_users:attempt_active_user_top(UId, UEC#user_etries_count.entries+1);
-        {error, _} ->
-            kvs:put(#user_etries_count{user_id = UId, entries = 1 }),
-            kvs_users:attempt_active_user_top(UId, 1) end,
     {noreply, State};
 
 handle_notice(["kvs_feed", "user", UId, "count_comment_in_statistics"] = Route, 
