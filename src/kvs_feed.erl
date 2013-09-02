@@ -113,7 +113,7 @@ user_likes(UserId, {Page, PageAmount}) ->
 %% MQ API
 
 handle_notice([kvs_feed,_,Owner,entry,_,add], [#entry{feed_id=undefined}=E|_], #state{owner=Owner}=S)->
-    GE = E#entry{id={E#entry.entry_id, ?FEED(entry)}, feed_id=undefined},
+    GE = E#entry{id={E#entry.entry_id, ?FEED(entry)}, feed_id=undefined, feeds=[comments]},
     error_logger:info_msg("=> entry to generic feed: ~p", [GE#entry.id]),
     kvs:add(GE),
     {noreply, S};
@@ -148,46 +148,18 @@ handle_notice([kvs_feed,_, Owner, entry, {_,Fid}, delete],
 
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
     {_,_} -> error_logger:info_msg("REMOVE from FID ~p", [Fid]),kvs:remove(entry, Id) end,
-  %    self() ! {feed_refresh, FeedId, ?CACHED_ENTRIES};
   {noreply, State};
 
-handle_notice([kvs_feed, entry, {Eid, FeedId}, comment, Cid, add],
-              [From, Parent, Content, Medias, _, _],
-              #state{owner=Owner, feeds=Feeds} = State) ->
-
-    HasFeed = lists:keyfind(FeedId,2,Feeds) /= false,
-    if HasFeed -> [begin
-        {_, CFid} = lists:keyfind(comments, 1, E#entry.feeds),
-        FeedId2 = case Parent of undefined -> CFid;
-        Id -> case kvs:get(comment, {Parent, {E#entry.entry_id, E#entry.feed_id}}) of {error, not_found} -> CFid;
-            {ok, C} -> {_, PCFid} = lists:keyfind(comments, 1, C#comment.feeds), PCFid end end,
-
-        EntryId = E#entry.entry_id,
-        FullId = {Cid, {EntryId, E#entry.feed_id}},
-        User = From,
-
-        Comment = #comment{id = FullId,
-                     from = User,
-                     comment_id = Cid,
-                     entry_id = EntryId,
-                     feed_id =  FeedId2, % entry commens or parent comment comments
-                     content = Content,
-                     media = Medias,
-                     created = now(),
-                     feeds = [comments]},
-        kvs:add(Comment)
-
-        end || E <- kvs:all_by_index(entry, entry_id, Eid)]; true -> skip end,
-
-    {noreply, State};
-
-handle_notice(["kvs_feed", "user", UId, "count_comment_in_statistics"] = Route, 
-    Message, #state{owner = Owner, type =Type} = State) ->
-    error_logger:info_msg("queue_action(~p): count_comment_in_statistics: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    case kvs:get(user_etries_count, UId) of
-        {ok, UEC} -> kvs:put(UEC#user_etries_count{comments = UEC#user_etries_count.comments+1 });
-        {error, _} -> kvs:put(#user_etries_count{ user_id = UId, comments = 1 }) end,
-    {noreply, State};
+handle_notice([kvs_feed,_,Owner,comment,Cid,add],
+              [#comment{feed_id=undefined, entry_id={Eid,EFid}}=C,_,_],
+              #state{owner=Owner}=S) ->
+    kvs:add(C#comment{id={Cid, {Eid, EFid}}, feed_id=?FEED(comments)}),
+    {noreply, S};
+handle_notice([kvs_feed,_,Owner,comment,_,add],
+              [#comment{entry_id={_,EFid}}=C,_,_],
+              #state{owner=Owner, feeds=Feeds} = S) ->
+    case lists:keyfind(EFid,2,Feeds) of false -> skip; {_,_}-> kvs:add(C) end,
+    {noreply, S};
 
 handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here beacause of the same message used for comet update
     Message, #state{owner = Owner, type =Type} = State) ->

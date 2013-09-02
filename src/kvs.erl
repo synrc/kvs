@@ -26,35 +26,29 @@ wait_for_tables() -> DBA=?DBA, DBA:wait_for_tables().
 
 add(Record) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
-
-    case kvs:get(element(1,Record), Id) of {ok, _} -> error_logger:info_msg("Exist: ~p", [Id]),{error, exist};
+    case kvs:get(element(1,Record), Id) of {ok, _} -> error_logger:info_msg("Entry exist: ~p", [Id]),{error, exist};
     {error, not_found} ->
         Type = element(1, Record),
         CName = element(#iterator.container, Record),
         Cid = case element(#iterator.feed_id, Record) of undefined -> ?FEED(Type); Fid -> Fid end,
-%        error_logger:info_msg("check container ~p ~p", [CName, Cid]),
-        Container = case kvs:get(CName, Cid) of {ok,C} -> error_logger:info_msg("ok"),C;
+        Container = case kvs:get(CName, Cid) of {ok,C} -> C;
         {error, not_found} when Cid /= undefined ->
             NC =  setelement(#container.id, erlang:list_to_tuple([CName|proplists:get_value(CName, ?CONTAINERS)]), Cid),
             NC1 = setelement(#container.entries_count, NC, 0),
-%            error_logger:info_msg("Create top: ~p", [NC1]),
             kvs:put(NC1),NC1;
         _ -> error end,
 
         if Container == error -> {error, no_container}; true ->
-            error_logger:info_msg("container ~p", [Container]),
             Next = undefined,
             Prev = case element(#container.top, Container) of undefined -> undefined;
               Tid -> case kvs:get(Type, Tid) of {error, not_found} -> undefined;
                 {ok, Top} -> NewTop = setelement(#iterator.next, Top, Id), kvs:put(NewTop), element(#iterator.id, NewTop) end end,
-%            error_logger:info_msg("next ~p | prev ~p",[Next,Prev]),
 
             C1 = setelement(#container.top, Container, Id),
             C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)+1),
-%            error_logger:info_msg("updated container: ~p", [C2]),
             kvs:put(C2),
 
-            R  = setelement(#iterator.feeds, Record, [{F1, kvs_feed:create()} || F1 <- element(#iterator.feeds, Record)]),
+            R  = setelement(#iterator.feeds, Record, [ case F1 of {FN, Fd} -> {FN, Fd} ; _-> {F1, kvs_feed:create()} end || F1 <- element(#iterator.feeds, Record)]),
             R1 = setelement(#iterator.next,  R,  Next),
             R2 = setelement(#iterator.prev,  R1, Prev),
             R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
