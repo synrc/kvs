@@ -1,7 +1,7 @@
 -include("types.hrl").
 -include("kvs.hrl").
 
--record(group,{?ITERATOR(feed),
+-record(group,{?ITERATOR(feed, true),
         name,
         description,
         scope :: public | private,

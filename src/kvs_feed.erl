@@ -112,11 +112,6 @@ user_likes(UserId, {Page, PageAmount}) ->
 
 %% MQ API
 
-handle_notice([kvs_feed,_,Owner,entry,_,add], [#entry{feed_id=undefined}=E|_], #state{owner=Owner}=S)->
-    GE = E#entry{id={E#entry.entry_id, ?FEED(entry)}, feed_id=undefined, feeds=[comments]},
-    error_logger:info_msg("=> entry to generic feed: ~p", [GE#entry.id]),
-    kvs:add(GE),
-    {noreply, S};
 handle_notice([kvs_feed, _, Owner, entry, Eid, add],
               [#entry{feed_id=Fid}=Entry|_],
               #state{owner=Owner} = S) ->
@@ -150,11 +145,6 @@ handle_notice([kvs_feed,_, Owner, entry, {_,Fid}, delete],
     {_,_} -> error_logger:info_msg("REMOVE from FID ~p", [Fid]),kvs:remove(entry, Id) end,
   {noreply, State};
 
-handle_notice([kvs_feed,_,Owner,comment,Cid,add],
-              [#comment{feed_id=undefined, entry_id={Eid,EFid}}=C,_,_],
-              #state{owner=Owner}=S) ->
-    kvs:add(C#comment{id={Cid, {Eid, EFid}}, feed_id=?FEED(comments)}),
-    {noreply, S};
 handle_notice([kvs_feed,_,Owner,comment,_,add],
               [#comment{entry_id={_,EFid}}=C,_,_],
               #state{owner=Owner, feeds=Feeds} = S) ->

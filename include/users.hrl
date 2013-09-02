@@ -1,7 +1,7 @@
 -include("types.hrl").
 -include("kvs.hrl").
 
--record(user, {?ITERATOR(feed),
+-record(user, {?ITERATOR(feed, true),
         email,
         username :: username_type() | '_', %% Dialyzer and record MatchSpec warnings http://j.mp/vZ8670
         display_name,

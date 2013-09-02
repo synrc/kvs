@@ -12,7 +12,7 @@
         retailer_price,
         user_price }).
 
--record(product, {?ITERATOR(feed),
+-record(product, {?ITERATOR(feed, true),
         ext_id                 :: term(),    % ext
         vendor_id              :: integer(), % auto
         categories             :: list(integer()), % admin

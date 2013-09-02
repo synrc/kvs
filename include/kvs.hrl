@@ -9,7 +9,8 @@
 -define(FEED(Type), case Type of user -> ?USR_FEED; product -> ?PRD_FEED; group -> ?GRP_FEED; entry-> ?ENT_FEED; comment-> ?CMT_FEED;_-> undefined end).
 
 -define(CONTAINER, id, top, entries_count=0).
--define(ITERATOR(Container), id, container=Container, feed_id, prev, next, feeds=[]).
+-define(ITERATOR(Container, Guard), id, container=Container, feed_id, prev, next, feeds=[], guard=Guard).
+-define(ITERATOR(Container), ?ITERATOR(Container, false)).
 -define(CONTAINERS, [
     {feed,              record_info(fields, feed)},
     {acl,               record_info(fields, acl)},
