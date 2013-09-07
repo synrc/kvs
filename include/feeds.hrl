@@ -13,8 +13,8 @@
         shared,
         starred,
         deleted,
-        likes,
-        likes_count,
+%        likes,
+%        likes_count,
         media = [],
         etc,       %% field to link additional info
         type = {user, normal}}).
@@ -43,7 +43,8 @@
         parent}).
 
 -record(entry_views, {?CONTAINER}).
--record(user_view,   {?ITERATOR(entry_views), user}).
+-record(user_view,   {?ITERATOR(entry_views), user, created}).
+-record(like, {?ITERATOR(feed), user_id, entry_id, created}).
 
 -record(entry_likes, {
         entry_id,       % this is a general entry_id. Every same entry in different feeds has the same id
@@ -57,13 +58,14 @@
         total_count
         }).
 
+
 -record(one_like, {
         id,              % just a number
         user_id,        % who likes
         entry_id,       % what
         feed_id,        % where
         created_time,   % when
-        next            
+        next
         }).
 
 -record(hidden_feed, {id}).
