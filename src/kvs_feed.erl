@@ -21,7 +21,7 @@ comments_count([], Acc) -> Acc;
 comments_count([E|T], Acc) ->
     C = case lists:keyfind(comments, 1, element(#iterator.feeds, E)) of false -> 0;
     {_, Fid} -> case kvs:get(feed, Fid) of {error,_} -> 0;
-        {ok, Feed } -> Feed#feed.entries_count + comments_count(kvs:entries(Feed, comment), 0) end end,
+        {ok, Feed } -> Feed#feed.entries_count + comments_count(kvs:entries(Feed, comment, undefined), 0) end end,
     comments_count(T,  C + Acc).
 
 add_like(Fid, Eid, Uid) ->
