@@ -53,11 +53,10 @@ add(Record) when is_tuple(Record) ->
             R2 = setelement(#iterator.prev,  R1, Prev),
             R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
             kvs:put(R3),
-            error_logger:info_msg("PUT: ~p", [R3]),
+            error_logger:info_msg("[kvs] PUT: ~p", [element(#container.id,R3)]),
             {ok, R3} end end.
 
 remove(RecordName, RecordId) ->
-    error_logger:info_msg("Remove ~p ~p", [RecordName, RecordId]),
     case kvs:get(RecordName, RecordId) of {error, not_found} -> error_logger:info_msg("not found");
     {ok, E} ->
         Id = element(#iterator.id, E),
@@ -75,42 +74,27 @@ remove(RecordName, RecordId) ->
         C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
         C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
         kvs:put(C2),
-        error_logger:info_msg("Remove record ~p id: ~p", [RecordName, Id]),
+        error_logger:info_msg("[kvs] DELETE: ~p id: ~p", [RecordName, Id]),
         kvs:delete(RecordName, Id) end.
 
 remove(E) when is_tuple(E) ->
     Id = element(#iterator.id, E),
-    error_logger:info_msg("================> REMOVE ~p", [Id]),
     CName = element(#iterator.container, E),
     Cid = element(#iterator.feed_id, E),
-    error_logger:info_msg(" container: ~p ~p", [CName, Cid]),
     {ok, Container} = kvs:get(CName, Cid),
     Top = element(#container.top, Container),
-    error_logger:info_msg("Container top:~p", [Top]),
 
     Next = element(#iterator.next, E),
     Prev = element(#iterator.prev, E),
-    error_logger:info_msg("Prev: ~p Next: ~p", [Prev, Next]),
 
-    case kvs:get(element(1,E), Next) of {ok, NE} ->
-        NewNext = setelement(#iterator.prev, NE, Prev),
-        error_logger:info_msg("Next element prev field became ~p", [Prev]),
-        kvs:put(NewNext); _ -> ok end,
-    case kvs:get(element(1,E), Prev) of {ok, PE} -> 
-        NewPrev = setelement(#iterator.next, PE, Next),
-        error_logger:info_msg("Prev element next field became ~p", [Next]),
-        kvs:put(NewPrev); _ -> ok end,
+    case kvs:get(element(1,E), Next) of {ok, NE} -> NewNext = setelement(#iterator.prev, NE, Prev), kvs:put(NewNext); _ -> ok end,
+    case kvs:get(element(1,E), Prev) of {ok, PE} -> NewPrev = setelement(#iterator.next, PE, Next), kvs:put(NewPrev); _ -> ok end,
 
-    C1 = case Top of Id ->
-        error_logger:info_msg("Update container top to~p", [Prev]),
-        setelement(#container.top, Container, Prev);
-    _ -> Container end,
-
+    C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
     C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
-    error_logger:info_msg("Dec elemnt count ~p", [element(#container.entries_count, C2)]),
     kvs:put(C2),
-    
-    error_logger:info_msg("========================>Remove record ~p", [Id]),
+
+    error_logger:info_msg("[kvs] DELETE: ~p", [Id]),
     kvs:delete(E).
 %purge_feed(FeedId) ->
 %    {ok,Feed} = kvs:get(feed,FeedId),
