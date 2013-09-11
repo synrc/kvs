@@ -139,7 +139,7 @@ handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
   {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, Fid, delete],
-              [#entry{id=Id, entry_id=Eid}|_], #state{owner=Owner, feeds=Feeds} = State) ->
+              [#entry{id=Id}|_], #state{owner=Owner, feeds=Feeds} = State) ->
 
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
     {_,_} -> error_logger:info_msg("kvs_feed => Remove entry ~p from feed ~p", [Id, Fid]), kvs:remove(entry, Id) end,
