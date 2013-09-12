@@ -1,6 +1,20 @@
 KVS: Data Framework for KV Stores
 =================================
 
+Features
+--------
+
+* Polymorphic Tuples
+* Managing Linked-Lists
+* Various Backends Support: KAI, Mnesia, Riak, CouchDB
+* Sequential Consistency via Feed Server
+* Basic Schema for Social Sites and Accounting
+* Extendable Schema
+* Supports Secondary Indexes for KAI, Mnesia and Riak
+* Change Backends on-the-fly
+* Supports Multiple backends at the same time
+* Xen Ready
+
 Overview
 --------
 
