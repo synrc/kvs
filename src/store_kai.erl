@@ -16,7 +16,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
 
-start() -> kai_store:start(), ok.
+start() -> kai:start(), ok.
 stop() -> kai_store:stop(), ok.
 version() -> {version,"KVS KAI PURE XEN"}.
 join() -> initialize(), ok.
