@@ -122,11 +122,41 @@ of containers:
     3 top           -- pointer to the list's head
     4 entries_count -- number of elements in list
 
+Extending Schema
+----------------
+
+Usually you need only specify custom mnesia indexes and tables tuning.
+Riak and KAI backends don't need it. Group you table into table packages
+represented as modules with handle_notice API.
+
+    -module(kvs_box).
+    -record(box,{id,user,email}).
+    -record(box_subscription,{who,whom}).
+    init(Backend=store_mnesia) ->
+        ?CREATE_TAB(box),
+        ?CREATE_TAB(box_subscription),
+        Backend:add_table_index(box, user),
+        Backend:add_table_index(box, email),
+        Backend:add_table_index(box_subscription, who),
+        Backend:add_table_index(box_subscription, whom);
+    init(_) -> ok.
+
+And plug it into schema config:
+
+    {kvs, {schema,[kvs_user,kvs_acl,kvs_account,...,kvs_box]}},
+
+And on database init
+
+    1> kvs:join().
+
+It will create your custom schema.
+
 Credits
 -------
 
 * Maxim Sokhatsky
 * Andrii Zadorozhnii
+* Vladimir Kirillov
 * Alex Kalenuk
 * Sergey Polkovnikov
 
