@@ -1,6 +1,7 @@
 -module(store_kai).
 -author('Maxim Sokhatsky <maxim@synrc.com>').
 -copyright('Synrc Research Center s.r.o.').
+-include_lib("kai/include/kai.hrl").
 -include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
@@ -15,25 +16,34 @@
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
 
-start() -> ok.
-stop() -> ok.
+start() -> kai_store:start(), ok.
+stop() -> kai_store:stop(), ok.
 version() -> {version,"KVS KAI PURE XEN"}.
 join() -> initialize(), ok.
 join(Node) -> initialize(), ok.
-
 initialize() -> ok.
-
-dir() -> ok.
+dir() -> kvs:modules().
 
 put(Records) when is_list(Records) -> lists:foreach(fun kai_put/1, Records);
 put(Record) -> kai_put(Record).
 
-kai_put(Record) -> ok.
+kai_put(Record) ->
+    Data = #data{key = element(2,Record), bucket = table_to_num(element(1,Record)),
+        last_modified = now(), checksum = erlang:md5(term_to_binary(Record)),
+        vector_clocks = vclock:fresh(), value = Record },
+    kai_store:put(Data).
 
 update(Record, Object) -> ok.
 
 get(Tab, Key) ->
-    ok.
+    Data = #data{key=Key,bucket=table_to_num(Tab)},
+    kai_get(Data).
+
+kai_get(Data) ->
+    case kai_store:get(Data) of
+         #data{value=Value} -> Value;
+         undefined -> {error,not_found};
+         E -> {error,E} end.
 
 delete(Tab, Key) ->
     ok.
@@ -46,10 +56,10 @@ key_to_bin(Key) ->
        true ->  [ListKey] = io_lib:format("~p", [Key]), erlang:list_to_binary(ListKey) end.
 
 all(RecordName) ->
-    [].
+    {list_of_data,List} = kai_store:list(table_to_num(RecordName)),
+    [ kai_get(Data) || Data <- List ].
 
 all_by_index(Tab, IndexId, IndexVal) -> [].
-
 
 % index funs
 
@@ -63,3 +73,24 @@ tournament_users(TId) -> all_by_index(play_record, <<"play_record_tournament_bin
 author_comments(Who) ->
     EIDs = [E || #comment{entry_id=E} <- all_by_index(comment,<<"author_bin">>, Who) ],
     lists:flatten([ all_by_index(entry,<<"entry_bin">>,EID) || EID <- EIDs]).
+
+table_to_num(user) -> 10;
+table_to_num(user_status) -> 20;
+table_to_num(subscription) -> 30;
+table_to_num(group) -> 40;
+table_to_num(group_subscription) -> 50;
+table_to_num(payment) -> 60;
+table_to_num(user_payment) -> 70;
+table_to_num(account) -> 80;
+table_to_num(transaction) -> 90;
+table_to_num(id_seq) -> 100;
+table_to_num(team) -> 110;
+table_to_num(membership) -> 120;
+table_to_num(product) -> 130;
+table_to_num(product_category) -> 140;
+table_to_num(user_product) -> 150;
+table_to_num(acl) -> 160;
+table_to_num(acl_entry) -> 170;
+table_to_num(feed) -> 180;
+table_to_num(entry) -> 190;
+table_to_num(comment) -> 200.

@@ -32,12 +32,7 @@ version() -> {version,"KVS MNESIA Embedded"}.
 initialize() ->
     error_logger:info_msg("Mnesia Init"),
     mnesia:create_schema([node()]),
-    Modules = case kvs:config(schema) of
-        [] -> [ kvs_user, kvs_product, kvs_membership,
-                kvs_payment, kvs_feed, kvs_acl,
-                kvs_account, kvs_group ];
-        E  -> E end,
-    [ Module:init(store_mnesia) || Module <- Modules ],
+    [ Module:init(store_mnesia) || Module <- kvs:modules() ],
     wait_for_tables(),
     ok.
 

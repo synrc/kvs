@@ -97,13 +97,6 @@ remove(E) when is_tuple(E) ->
 
     error_logger:info_msg("[kvs] DELETE: ~p", [Id]),
     kvs:delete(E).
-%purge_feed(FeedId) ->
-%    {ok,Feed} = kvs:get(feed,FeedId),
-%    Removal = entry_traversal(Feed#feed.top, -1),
-%    [kvs:delete(entry,Id)||#entry{id=Id}<-Removal],
-%    kvs:put(Feed#feed{top=undefined}).
-%purge_unverified_feeds() ->
-%    [ [purge_feed(Fid)|| {_, Fid} <- Feeds ] || #user{feeds=Feeds, email=E} <- kvs:all(user), E==undefined].
 
 traversal( _,undefined,_,_) -> [];
 traversal(_,_,0,_) -> [];
@@ -126,26 +119,8 @@ init_db() ->
         {error,_} ->
             add_seq_ids(),
             kvs_account:create_account(system),
-            %add_sample_users(),
-%            add_sample_packages(),
-%            add_sample_payments(),
             add_translations();
         {ok,_} -> ignore end.
-
-%add_sample_packages() -> kvs_membership:add_sample_data().
-
-%add_sample_payments() ->
-%    {ok, Pkg1} = kvs:get(membership,1),
-%    {ok, Pkg2} = kvs:get(membership,2),
-%    {ok, Pkg3} = kvs:get(membership,3),
-%    {ok, Pkg4} = kvs:get(membership,4),
-%    PList = [{"doxtop", Pkg1},{"maxim", Pkg2},{"maxim",Pkg4}, {"kate", Pkg3} ],
-%    [ok = add_payment(U, P) || {U, P} <- PList],
-%    ok.
-
-%add_payment(UserId, Package) ->
-%    {ok, MPId} = kvs_payment:add_payment(#payment{user_id=UserId, membership=Package}),
-%    kvs_payment:set_payment_state(MPId, ?MP_STATE_DONE, undefined).
 
 add_seq_ids() ->
     Init = fun(Key) ->
@@ -190,9 +165,6 @@ add_sample_users() ->
           kvs_account:transaction(Me#user.username, quota, Quota, #tx_default_assignment{}),
           kvs:put(Me#user{password = kvs:sha(Me#user.password)})
     end || Me <- UserList ],
-
-  %kvs_acl:define_access({user, "maxim"},    {feature, admin}, allow),
-  %kvs_acl:define_access({user_type, admin}, {feature, admin}, allow),
 
   [ kvs_user:subscribe(Me#user.username, Her#user.username) || Her <- UserList, Me <- UserList, Her /= Me ],
   [ kvs_user:init_mq(U) || U <- UserList ],
@@ -334,3 +306,10 @@ config(App,Key) -> config(App,Key, "").
 config(App, Key, Default) -> case application:get_env(App,Key) of
                               undefined -> Default;
                               {ok,V} -> V end.
+
+modules() -> Modules = case kvs:config(schema) of
+        [] -> [ kvs_user, kvs_product, kvs_membership,
+                kvs_payment, kvs_feed, kvs_acl,
+                kvs_account, kvs_group ];
+        E  -> E end.
+
