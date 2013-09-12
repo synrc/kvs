@@ -50,9 +50,17 @@ Try to check it:
     2> kvs:version().
     {version,"KVS KAI PURE XEN"}
 
+Create database for single node:
+
+    3> kvs:join().
+
+Create database joining to existing cluster:
+
+    3> kvs:join('kvs@synrc.com').
+
 Check table packages included into the schema:
 
-    3> kvs:dir().
+    4> kvs:dir().
     [kvs_user,kvs_product,kvs_membership,kvs_payment,kvs_feed,
      kvs_acl,kvs_account,kvs_group]
 
@@ -130,6 +138,7 @@ Riak and KAI backends don't need it. Group you table into table packages
 represented as modules with handle_notice API.
 
     -module(kvs_box).
+    -inclue_lib("kvs/include/kvs.hrl").
     -record(box,{id,user,email}).
     -record(box_subscription,{who,whom}).
     init(Backend=store_mnesia) ->
