@@ -1,9 +1,14 @@
 -module(kvs_meeting).
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/meetings.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/config.hrl").
 -compile(export_all).
+
+init(Backend) ->
+    ?CREATE_TAB(team),
+    ok.
 
 create_team(Name) ->
     TID = kvs:next_id("team",1),

@@ -21,6 +21,7 @@
 -record(container, {?CONTAINER}).
 -record(iterator,  {?ITERATOR(undefined)}).
 
+-define(CREATE_TAB(T), store_mnesia:create_table(T, record_info(fields, T), [{storage, permanent}]) ).
+
+
 -endif.
-
-

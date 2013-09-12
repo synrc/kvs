@@ -19,8 +19,6 @@ init([]) ->
     Type = worker,
 
     kvs:start(),
- %  kvs:initialize(),
-    kvs:wait_for_tables(),
 
     {ok, { {one_for_one, 5, 10}, []} }.
 

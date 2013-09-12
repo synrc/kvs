@@ -1,11 +1,16 @@
 -module(kvs_acl).
 -copyright('Synrc Research Center s.r.o.').
 -compile(export_all).
-
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/acls.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
+
+init(Backend) ->
+    ?CREATE_TAB(acl),
+    ?CREATE_TAB(acl_entry),
+    ok.
 
 define_access(Accessor, Resource, Action) -> 
     Entry = #acl_entry{ id = {Accessor, Resource},

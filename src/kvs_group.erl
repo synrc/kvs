@@ -1,11 +1,19 @@
 -module(kvs_group).
 -compile(export_all).
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/config.hrl").
 -include_lib("mqs/include/mqs.hrl").
+
+init(Backend) ->
+    ?CREATE_TAB(group_subscription),
+    ?CREATE_TAB(group),
+    Backend:add_table_index(group_subscription, who),
+    Backend:add_table_index(group_subscription, where),
+    ok.
 
 retrieve_groups(User) ->
     case participate(User) of

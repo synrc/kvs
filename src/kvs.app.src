@@ -1,6 +1,6 @@
-{application, kvs,
+{application, kvs, 
  [
-  {description, "Distributed Persistance"},
+  {description, "SRC KVS Distributed Persistance"},
   {vsn, "1"},
   {registered, []},
   {applications, [kernel,stdlib,mnesia,mqs]},

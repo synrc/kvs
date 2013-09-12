@@ -10,6 +10,12 @@
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
 
+init(Backend) ->
+    ?CREATE_TAB(product),
+    ?CREATE_TAB(user_product),
+    ?CREATE_TAB(product_category),
+    ok.
+
 delete(Name) ->
   case kvs:get(product, Name) of
     {ok, Product} ->

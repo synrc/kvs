@@ -21,8 +21,9 @@ dir() -> DBA = ?DBA, DBA:dir().
 stop() -> DBA = ?DBA, DBA:stop().
 initialize() -> DBA = ?DBA, DBA:initialize().
 delete() -> DBA = ?DBA, DBA:delete().
-init_indexes() -> DBA = ?DBA, DBA:init_indexes().
 wait_for_tables() -> DBA=?DBA, DBA:wait_for_tables().
+join() -> DBA = ?DBA, DBA:join().
+join(Node) -> DBA = ?DBA, DBA:join(Node).
 
 add(Record) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
@@ -327,3 +328,9 @@ sha(Raw) ->
 sha_upper(Raw) ->
     SHA = sha(Raw),
     string:to_upper(SHA).
+
+config(Key) -> config(kvs, Key, "").
+config(App,Key) -> config(App,Key, "").
+config(App, Key, Default) -> case application:get_env(App,Key) of
+                              undefined -> Default;
+                              {ok,V} -> V end.

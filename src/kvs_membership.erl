@@ -1,11 +1,16 @@
 -module(kvs_membership).
 -author('Vladimir Baranov <baranoff.vladimir@gmail.com>').
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
+
+init(Backend) ->
+    ?CREATE_TAB(membership),
+    ok.
 
 add_package(#membership{}=Package)->
     Id = generate_id(),
