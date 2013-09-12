@@ -55,7 +55,8 @@ add(Record) when is_tuple(Record) ->
             R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
             kvs:put(R3),
             error_logger:info_msg("[kvs] PUT: ~p", [element(#container.id,R3)]),
-            {ok, R3} end end.
+            {ok, R3} end;
+    E ->  error_logger:info_msg("Entry exist: ~p", [E]),{error, exist} end.
 
 remove(RecordName, RecordId) ->
     case kvs:get(RecordName, RecordId) of {error, not_found} -> error_logger:info_msg("not found");
@@ -312,4 +313,3 @@ modules() -> Modules = case kvs:config(schema) of
                 kvs_payment, kvs_feed, kvs_acl,
                 kvs_account, kvs_group ];
         E  -> E end.
-

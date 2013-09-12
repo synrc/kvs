@@ -34,7 +34,93 @@ Currently kvs includes following store backends:
 
 * Mnesia
 * Riak
-* CouchDB
+* KAI
+
+Configuring
+-----------
+
+First of all you need to tune your backend in the kvs application:
+
+    {kvs, {dba,store_kai}},
+
+Try to check it:
+
+    1> kvs:config(dba).
+    store_kai
+    2> kvs:version().
+    {version,"KVS KAI PURE XEN"}
+
+Check table packages included into the schema:
+
+    3> kvs:dir().
+    [kvs_user,kvs_product,kvs_membership,kvs_payment,kvs_feed,
+     kvs_acl,kvs_account,kvs_group]
+
+Operations
+----------
+
+Try to add some data:
+
+    1> rr(kvs).
+    2> kvs:put(#user{id="maxim@synrc.com"}).
+    ok
+    3> kvs:get(user,"maxim@synrc.com").
+    #user{id = "maxim@synrc.com",container = feed,...}
+    4> kvs:put(#user{id="doxtop@synrc.com"}).
+    5> length(kvs:all(user)).
+    2
+
+Polymorphic Records
+-------------------
+
+The data in KVS represented as plain Erlang records. The first element of the tuple
+as usual indicates the name of bucket. And the second element usually corresponds
+to the index key field. Additional secondary indexes could be applied for stores
+that supports 2i, e.g. kai, mnesia, riak.
+
+    1 record_name -- user, groups, acl, etc... table name -- element(1, Rec).
+    2 id          -- index key -- element(2, Rec).
+
+Iterators
+---------
+
+All record could be chained into the double-linked lists in the database.
+So you can inherit from the ITERATOR record just like that:
+
+    -record(acl_entry, {?ITERATOR(acl),
+        entry_id,
+        acl_id,
+        accessor,
+        action}).
+
+The layout of iterators are following:
+
+    1 record_name -- table name, like
+    2 id          -- index key
+    3 container   -- container name
+    4 feed_id     -- feed id
+    5 prev        -- poniter to previous object in list
+    6 next        -- next
+    7 feeds       -- subfeeds
+    8 guard,      -- aux field
+    9 ...
+
+This means your table will support add/remove operations to lists.
+
+    1> kvs:add(#user{id="mes@ua.fm"}).
+    2> kvs:add(#user{id="dox@ua.fm"}).
+
+Containers
+----------
+
+If you are using iterators records this automatically means you are using containers.
+Containers are just boxes for storing top/heads of the linked lists. Here is layout
+of containers:
+
+    1 record_name   -- container name
+    2 id            -- unique id
+    3 top           -- pointer to the list's head
+    4 entries_count -- number of elements in list
 
 Credits
 -------
