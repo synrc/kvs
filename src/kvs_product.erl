@@ -1,6 +1,8 @@
 -module(kvs_product).
 -copyright('Synrc Research Center s.r.o.').
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/products.hrl").
+-include_lib("kvs/include/purchases.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
