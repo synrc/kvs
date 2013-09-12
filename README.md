@@ -131,6 +131,11 @@ This means your table will support add/remove operations to lists.
 
     1> kvs:add(#user{id="mes@ua.fm"}).
     2> kvs:add(#user{id="dox@ua.fm"}).
+    
+Read the chain (undefined means all)
+    
+    3> kvs:entries(kvs:get(feed, users), user, undefined).
+    [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
 
 Containers
 ----------
