@@ -136,6 +136,11 @@ Read the chain (undefined means all)
     
     3> kvs:entries(kvs:get(feed, users), user, undefined).
     [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
+    
+Read flat values by all keys from table:
+
+    4> kvs:all(user).
+    [#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
 
 Containers
 ----------
