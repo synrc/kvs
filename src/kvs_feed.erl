@@ -1,14 +1,25 @@
 -module(kvs_feed).
 -author('Maxim Sokhatsky').
 -author('Andrii Zadorozhnii').
--author('Alexander Kalenuk').
 -copyright('Synrc Research Center, s.r.o.').
 -compile(export_all).
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -define(CACHED_ENTRIES, 20).
+
+init(Backend) ->
+    ?CREATE_TAB(feed),
+    ?CREATE_TAB(entry),
+    ?CREATE_TAB(comment),
+    Backend:add_table_index(entry, feed_id),
+    Backend:add_table_index(entry, entry_id),
+    Backend:add_table_index(entry, from),
+    Backend:add_table_index(comment, entry_id),
+    Backend:add_table_index(comment, author_id),
+    ok.
 
 create() ->
     FId = kvs:next_id("feed", 1),

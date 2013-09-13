@@ -19,8 +19,6 @@
         etc,       %% field to link additional info
         type = {user, normal}}).
 
--record(id_seq, {thing, id}).
-
 -record(media, {
         id,
         title :: iolist(),

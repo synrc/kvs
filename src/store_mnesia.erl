@@ -16,11 +16,10 @@
 -include_lib("kvs/include/translations.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
--define(CREATE_TAB(T), create_table(T, record_info(fields, T), [{storage, permanent}]) ).
 
 start() -> mnesia:start().
 stop() -> mnesia:stop().
-single() -> mnesia:change_table_copy_type(schema, node(), disc_copies), initialize().
+join() -> mnesia:change_table_copy_type(schema, node(), disc_copies), initialize().
 join(Node) ->
     mnesia:change_config(extra_db_nodes, [Node]),
     mnesia:change_table_copy_type(schema, node(), disc_copies),
@@ -29,49 +28,12 @@ join(Node) ->
                                || T <- mnesia:system_info(tables)]].
 delete() -> mnesia:delete_schema([node()]).
 version() -> {version,"KVS MNESIA Embedded"}.
-add_indexes() ->
-    add_table_index(comment, entry_id),
-    add_table_index(comment, author_id),
-    add_table_index(subscription, who),
-    add_table_index(subscription, whom),
-    add_table_index(group_subscription, who),
-    add_table_index(group_subscription, where),
-    add_table_index(entry, feed_id),
-    add_table_index(entry, entry_id),
-    add_table_index(entry, from),
-    add_table_index(user, facebook_id),
-    add_table_index(user, googleplus_id),
-    add_table_index(user, twitter_id),
-    add_table_index(user, github_id),
-%    add_table_index(user, email),
-    ok.
-create_users() ->  ?CREATE_TAB(user).
 
 initialize() ->
     error_logger:info_msg("Mnesia Init"),
     mnesia:create_schema([node()]),
-    ?CREATE_TAB(payment),
-    ?CREATE_TAB(acl),
-    ?CREATE_TAB(acl_entry),
-    ?CREATE_TAB(feed),
-    ?CREATE_TAB(team),
-    ?CREATE_TAB(entry),
-    ?CREATE_TAB(comment),
-    ?CREATE_TAB(user),
-    ?CREATE_TAB(user_product),
-    ?CREATE_TAB(user_payment),
-    ?CREATE_TAB(user_status),
-    ?CREATE_TAB(membership),
-    ?CREATE_TAB(account),
-    ?CREATE_TAB(subscription),
-    ?CREATE_TAB(group_subscription),
-    ?CREATE_TAB(group),
-    ?CREATE_TAB(id_seq),
-    ?CREATE_TAB(transaction),
-    ?CREATE_TAB(product),
-    ?CREATE_TAB(product_category),
+    [ Module:init(store_mnesia) || Module <- kvs:modules() ],
     wait_for_tables(),
-    add_indexes(),
     ok.
 
 wait_for_tables() ->

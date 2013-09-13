@@ -1,13 +1,29 @@
 -module(kvs_user).
 -copyright('Synrc Research Center s.r.o.').
 -include_lib("kvs/include/users.hrl").
+-include_lib("kvs/include/purchases.hrl").
+-include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/accounts.hrl").
+-include_lib("kvs/include/products.hrl").
 -include_lib("kvs/include/config.hrl").
 -include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("mqs/include/mqs.hrl").
+-include_lib("kvs/include/kvs.hrl").
 -compile(export_all).
+
+init(Backend) ->
+    ?CREATE_TAB(user),
+    ?CREATE_TAB(user_status),
+    ?CREATE_TAB(subscription),
+    Backend:add_table_index(user, facebook_id),
+    Backend:add_table_index(user, googleplus_id),
+    Backend:add_table_index(user, twitter_id),
+    Backend:add_table_index(user, github_id),
+    Backend:add_table_index(subscription, who),
+    Backend:add_table_index(subscription, whom),
+    ok.
 
 delete(UserName) ->
     case kvs_user:get(UserName) of

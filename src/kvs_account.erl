@@ -1,9 +1,16 @@
 -module(kvs_account).
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/membership.hrl").
 -include_lib("kvs/include/payments.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -compile(export_all).
+
+init(Backend) ->
+    ?CREATE_TAB(id_seq),
+    ?CREATE_TAB(account),
+    ?CREATE_TAB(transaction),
+    ok.
 
 transaction(Account, Currency, 0, TransactionInfo) -> ok;
 transaction(Account, Currency, Amount, TransactionInfo) when Amount /= 0 ->

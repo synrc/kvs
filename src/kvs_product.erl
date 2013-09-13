@@ -1,6 +1,8 @@
 -module(kvs_product).
 -copyright('Synrc Research Center s.r.o.').
+-include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/products.hrl").
+-include_lib("kvs/include/purchases.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
@@ -9,6 +11,12 @@
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("mqs/include/mqs.hrl").
 -compile(export_all).
+
+init(Backend) ->
+    ?CREATE_TAB(product),
+    ?CREATE_TAB(user_product),
+    ?CREATE_TAB(product_category),
+    ok.
 
 delete(Name) ->
   case kvs:get(product, Name) of
