@@ -117,8 +117,8 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
               #state{owner=Owner} = S) ->
     case lists:keyfind(Fid,2, S#state.feeds) of false -> skip;
       {_,_} ->
-        EntryId = case Eid of new -> kvs:uuid(); _-> Eid end,
-        E = Entry#entry{id = {EntryId, Fid}, entry_id = EntryId, feeds=[comments]},
+        error_logger:info_msg("kvs_feed => Entry ~p added to feed ~p.", [Eid, Fid]),
+        E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
         kvs:add(E) end,
     {noreply, S};
 
