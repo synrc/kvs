@@ -28,11 +28,13 @@ create() ->
 
 comments_count(user,  Uid) -> case kvs:get(user_etries_count, Uid) of {error,_} -> 0; {ok, UEC} -> UEC#user_etries_count.comments end;
 comments_count(entry, Eid) -> case kvs:get(entry, Eid) of {error,_} -> 0; {ok, E} -> comments_count([E],0) end;
+comments_count(product, Pid)->case kvs:get(product, Pid) of {error,_}->0; {ok, P} -> comments_count([P], 0) end;
 comments_count([], Acc) -> Acc;
 comments_count([E|T], Acc) ->
     C = case lists:keyfind(comments, 1, element(#iterator.feeds, E)) of false -> 0;
     {_, Fid} -> case kvs:get(feed, Fid) of {error,_} -> 0;
-        {ok, Feed } -> Feed#feed.entries_count + comments_count(kvs:entries(Feed, comment, undefined), 0) end end,
+        {ok, Feed } -> Feed#feed.entries_count 
+            + comments_count(kvs:entries(Feed, comment, undefined), 0) end end,
     comments_count(T,  C + Acc).
 
 add_like(Fid, Eid, Uid) ->
@@ -151,7 +153,7 @@ handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
 
 handle_notice([kvs_feed,_, Owner, entry, Fid, delete],
               [#entry{id=Id}|_], #state{owner=Owner, feeds=Feeds} = State) ->
-
+    error_logger:info_msg("Delete notice: ~p ", [Owner]),
   case lists:keyfind(Fid,2,Feeds) of false -> skip;
     {_,_} -> error_logger:info_msg("kvs_feed => Remove entry ~p from feed ~p", [Id, Fid]), kvs:remove(entry, Id) end,
   {noreply, State};
