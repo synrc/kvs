@@ -129,39 +129,43 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
               [#entry{feed_id=Fid}=Entry|_],
               #state{owner=Owner} = S) ->
     case lists:keyfind(Fid,2, S#state.feeds) of false -> skip;
-      {_,_} ->
-        error_logger:info_msg("kvs_feed => Entry ~p added to feed ~p.", [Eid, Fid]),
+    {_,_} ->
+        error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p.", [Eid, Fid]),
         E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
-        kvs:add(E) end,
+        kvs:add(E),
+        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [E]) end,
     {noreply, S};
 
-handle_notice([kvs_feed,_, Owner, entry, {_, Fid}, edit],
-              [#entry{entry_id=Eid}=Entry|_],
+handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
+              [#entry{}=Entry],
               #state{owner=Owner, feeds=Feeds}=S) ->
+    case lists:keyfind(FeedName,1,Feeds) of false -> skip;
+    {_,Fid}-> case kvs:get(entry, {Eid, Fid}) of {error,_}-> skip;
+        {ok, E} ->
+            error_logger:info_msg("[kvs_feed] => Update entry ~p in feed ~p", [Eid, Fid]),
+            Upd = E#entry{description=Entry#entry.description,
+                        title = Entry#entry.title,
+                        media = Entry#entry.media,
+                        etc   = Entry#entry.etc,
+                        type  = Entry#entry.type},
+            kvs:put(Upd),
+            msg:notify([kvs_feed, entry, {Eid, Fid}, updated], [Upd]) end end,
+    {noreply, S};
 
-  case lists:keyfind(Fid,2,Feeds) of false -> skip;
-    {_,_} -> case kvs:get(entry, {Eid, Fid}) of {error, not_found}-> skip; 
-        {ok, E} -> 
-          error_logger:info_msg("kvs_feed => Entry ~p updated in feed ~p", [Eid, Fid]),
-          kvs:put(E#entry{description=Entry#entry.description,
-                          title = Entry#entry.title,
-                          media = Entry#entry.media,
-                          etc   = Entry#entry.etc,
-                          type  = Entry#entry.type}) end end,
-
-  {noreply, S};
-
-handle_notice([kvs_feed,_, Owner, entry, Fid, delete],
-              [#entry{id=Id}|_], #state{owner=Owner, feeds=Feeds} = State) ->
-    error_logger:info_msg("Delete notice: ~p ", [Owner]),
-  case lists:keyfind(Fid,2,Feeds) of false -> skip;
-    {_,_} -> error_logger:info_msg("kvs_feed => Remove entry ~p from feed ~p", [Id, Fid]), kvs:remove(entry, Id) end,
+handle_notice([kvs_feed,_, Owner, entry, {_,Fid}=Id, delete],
+              [],
+              #state{owner=Owner, feeds=Feeds} = State) ->
+    case lists:keyfind(Fid,2,Feeds) of false -> skip;
+    _ ->
+        error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
+        kvs:remove(entry, Id),
+        msg:notify([kvs_feed, entry, Id, deleted], []) end,
   {noreply, State};
 
 handle_notice([kvs_feed,_,Owner,comment,_,add],
-              [#comment{entry_id={_,EFid}}=C,_,_],
+              [#comment{entry_id={_,Fid}}=C,_,_],
               #state{owner=Owner, feeds=Feeds} = S) ->
-    case lists:keyfind(EFid,2,Feeds) of false -> skip; {_,_}-> kvs:add(C) end,
+    case lists:keyfind(Fid,2,Feeds) of false -> skip; {_,_}-> kvs:add(C) end,
     {noreply, S};
 
 handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here beacause of the same message used for comet update

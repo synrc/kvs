@@ -3,6 +3,7 @@
 -include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/users.hrl").
 -include_lib("kvs/include/groups.hrl").
+-include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/config.hrl").
@@ -133,18 +134,26 @@ handle_notice(["kvs_group", "remove", GroupName] = Route,
     delete(GroupName),
     {noreply, State};
 
-handle_notice([kvs_group, join, GroupName],
-    {UserName, Type}, #state{type=Type} = State) ->
-  error_logger:info_msg("Join group:  ~p State type:~p", [GroupName, Type]),
-  join(UserName, GroupName),
-%    subscription_mq(group, add, UserName, GroupName),
-  {noreply, State};
+handle_notice([kvs_group, join, Owner],
+              [{FeedName, Who}, Entry],
+              #state{owner = Owner, feeds=Feeds} = State) ->
+    error_logger:info_msg("[kvs_group] ~p Join group:  ~p", [Who, Owner]),
+    join(Who, Owner),
+    case lists:keyfind(FeedName, 1, Feeds) of false -> skip;
+    {_,Fid} -> msg:notify([kvs_feed, group, Owner, entry, Who, add],
+                          [Entry#entry{id={Who, Fid},feed_id=Fid,to={group, Owner}}, {}, Fid]) end,
 
-handle_notice(["kvs_group", "leave", GroupName] = Route,
-    Message, #state{owner = Owner, type =Type} = State) ->
-    error_logger:info_msg("queue_action(~p): remove_from_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    {UserName} = Message,
-    leave(UserName,GroupName),
+%    subscription_mq(group, add, UserName, GroupName),
+    {noreply, State};
+
+handle_notice([kvs_group, leave, Owner],
+              [{FeedName, Who}],
+              #state{owner = Owner, feeds=Feeds} = State) ->
+    error_logger:info_msg("[kvs_group] ~p leave group ~p", [Who, Owner]),
+    leave(Who, Owner),
+    case lists:keyfind(FeedName, 1, Feeds) of false -> skip;
+    {_,Fid} -> msg:notify([kvs_feed, group, Owner, entry, {Who, Fid}, delete], []) end,
+
 %    subscription_mq(group, remove, UserName, GroupName),
     {noreply, State};
 
