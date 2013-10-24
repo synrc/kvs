@@ -179,7 +179,12 @@ handle_notice([kvs_feed, Owner, delete],
 handle_notice([kvs_feed,_,Owner,comment,_,add],
               [#comment{entry_id={_,Fid}}=C,_,_],
               #state{owner=Owner, feeds=Feeds} = S) ->
-    case lists:keyfind(Fid,2,Feeds) of false -> skip; {_,_}-> kvs:add(C) end,
+    case lists:keyfind(Fid,2,Feeds) of false -> skip; 
+    {_,_}->
+        error_logger:info_msg("[kvs_feed] ~p Add comment ~p", [Owner, C#comment.id]),
+        Added = case kvs:add(C) of {error, E} -> {error, E}; {ok, Cm} -> Cm end,
+        msg:notify([kvs_feed, comment, C#comment.id, added], [Added])
+        end,
     {noreply, S};
 
 handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here beacause of the same message used for comet update
