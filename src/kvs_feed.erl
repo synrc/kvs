@@ -152,14 +152,14 @@ handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
             msg:notify([kvs_feed, entry, {Eid, Fid}, updated], [Upd]) end end,
     {noreply, S};
 
-handle_notice([kvs_feed,_, Owner, entry, {_,Fid}=Id, delete],
+handle_notice([kvs_feed,_, Owner, entry, {Eid,Fid}=Id, delete],
               [],
               #state{owner=Owner, feeds=Feeds} = State) ->
     case lists:keyfind(Fid,2,Feeds) of false -> skip;
     _ ->
         error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
         kvs:remove(entry, Id),
-        msg:notify([kvs_feed, entry, Id, deleted], []) end,
+        msg:notify([kvs_feed, entry, Id, deleted], [#entry{id=Id, entry_id=Eid, feed_id=Fid}]) end,
   {noreply, State};
 
 handle_notice([kvs_feed,_,Owner,comment,_,add],
