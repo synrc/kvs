@@ -9,11 +9,12 @@
         state    :: any(),
         info     :: any()}).
 
--record(user_payment, {?CONTAINER, user}).
+-record(user_payment,    {?CONTAINER, user}).
 
 -record(payment, {?ITERATOR(user_payment),
         external_id     :: any(),     % id of the purchase in external payment system if any
         user_id         :: any(),
+        product_id      :: any(),
         payment_type    :: payment_type(),
         state           :: payment_state(),
         membership,

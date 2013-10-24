@@ -9,6 +9,7 @@
 init(Backend) ->
     ?CREATE_TAB(payment),
     ?CREATE_TAB(user_payment),
+    Backend:add_table_index(payment, product_id),
     ok.
 
 payments(UserId) -> payments(UserId, undefined).
@@ -113,16 +114,16 @@ payment_id() ->
     NextId = kvs:next_id("payment"),
     lists:concat([timestamp(), "_", NextId]).
 
-handle_notice([kvs_payment, user, Owner, set_state] = Route,
+handle_notice([kvs_payment, Type, Owner, set_state] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    error_logger:info_msg("queue_action(~p): set_purchase_state: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),  
+    error_logger:info_msg("queue_action(~p): set_purchase_state: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {MPId, NewState, Info} = Message,
     set_payment_state(MPId, NewState, Info),
     {noreply, State};
 
-handle_notice([kvs_payment, user, Owner, add] = Route,
+handle_notice([kvs_payment, Type, Owner, add] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
-    error_logger:info_msg("queue_action(~p): add_purchase: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),    
+    error_logger:info_msg("queue_action(~p): add_purchase: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
     {MP} = Message,
     error_logger:info_msg("Add payment: ~p", [MP]),
     add_payment(MP),
