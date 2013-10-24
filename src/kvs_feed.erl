@@ -162,6 +162,20 @@ handle_notice([kvs_feed,_, Owner, entry, {Eid,Fid}=Id, delete],
         msg:notify([kvs_feed, entry, Id, deleted], [#entry{id=Id, entry_id=Eid, feed_id=Fid}]) end,
   {noreply, State};
 
+handle_notice([kvs_feed, Owner, delete],
+              [#entry{entry_id=Eid}=E],
+              #state{owner=Owner}=State) ->
+    error_logger:info_msg("[kvs_feed] Delete all entries ~p ~p", [E#entry.id, Owner]),
+
+    [msg:notify([kvs_feed, RoutingType, To, entry, {Eid,Fid}, delete],[])
+        || #entry{feed_id=Fid, to={RoutingType, To}} <- kvs:all_by_index(entry, entry_id, Eid)],
+
+    Removed = case kvs:remove(entry, {Eid, ?FEED(entry)}) of {error,E} -> {error,E}; ok -> E end,
+    msg:notify([kvs_feed, entry, {Eid, ?FEED(entry)}, deleted], [Removed]),
+
+    {noreply, State};
+
+
 handle_notice([kvs_feed,_,Owner,comment,_,add],
               [#comment{entry_id={_,Fid}}=C,_,_],
               #state{owner=Owner, feeds=Feeds} = S) ->
