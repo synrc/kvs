@@ -132,8 +132,8 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
     {_,_} ->
         error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p.", [Eid, Fid]),
         E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
-        kvs:add(E),
-        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [E]) end,
+        Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
+        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]) end,
     {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
