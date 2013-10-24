@@ -102,6 +102,26 @@ handle_notice(["kvs_product", "update", _Who],
     kvs:put(NewProduct),
     {noreply, State};
 
+handle_notice([kvs_product, Owner, create],
+              [#product{}=Product, Recipients],
+              #state{owner=Owner, feeds=Feeds}=State) ->
+    error_logger:info_msg("[kvs_product] Create product ~p", [Owner]),
+    Created = case kvs:add(Product) of {error, E} -> {error, E};
+    {ok, #product{id=Id} = P} ->
+        Params = [{id, Id}, {type, product}, {feeds, element(#iterator.feeds, P)}],
+        case workers_sup:start_child(Params) of {error, E} -> {error, E};
+        _ -> Entry = to_entry(P),
+
+            [msg:notify([kvs_group, join, Gid], [{products, Id}, Entry]) || {Type, Gid} <- Recipients, Type==group],
+
+            case lists:keyfind(products, 1, Feeds) of false -> skip;
+            {_,Fid} -> msg:notify([kvs_feed, user, Owner, entry, Id, add], [Entry#entry{feed_id=Fid}]) end,
+            P
+        end end,
+
+    msg:notify([kvs_product, Product#product.id, created], [Created]),
+    {noreply, State};
+
 handle_notice([kvs_product, Owner, update],
               [#product{}=Product, Recipients, Is, Fs], #state{owner=Owner} = State) ->
     error_logger:info_msg("[kvs_product] Update product ~p", [Owner]),
@@ -117,19 +137,7 @@ handle_notice([kvs_product, Owner, update],
             currency = Product#product.currency},
         kvs:put(UpdProduct),
 
-        Medias = case Product#product.cover of undefined -> [];
-            File -> [#media{url=File,
-                thumbnail_url = filename:join([filename:dirname(File),"thumbnail",filename:basename(File)]) }] end,
-
-        Entry = #entry{
-            created=P#product.created,
-            entry_id=Id,
-            from=P#product.owner,
-            type= product,
-            media=Medias,
-            title=Product#product.title,
-            description=Product#product.brief,
-            shared=""},
+        Entry = to_entry(UpdProduct),
 
         Groups = ordsets:from_list([Gid || {Type,Gid} <- Recipients, Type==group]),
         Participate = ordsets:from_list([Gid || #group_subscription{where=Gid} <- kvs_group:participate(Id)]),
@@ -150,3 +158,18 @@ handle_notice([kvs_product, Owner, update],
 handle_notice(_Route, _Message, State) ->
   %error_logger:info_msg("Unknown USERS notice"),
   {noreply, State}.
+
+to_entry(#product{}=P) ->
+    Media = case P#product.cover of undefined -> [];
+        File ->
+            Thumbnail = filename:join([ filename:dirname(File), "thumbnail", filename:basename(File)]),
+            [#media{url=File, thumbnail_url = Thumbnail}] end,
+
+    #entry{ entry_id = P#product.id,
+            created = P#product.created,
+            from = P#product.owner,
+            type = product,
+            media = Media,
+            title = P#product.title,
+            description = P#product.brief,
+            shared = ""}.
