@@ -96,12 +96,6 @@ handle_notice(["kvs_product", "unsubscribe", Who],
     subscription_mq(user, remove, Who, Whom),
     {noreply, State};
 
-handle_notice(["kvs_product", "update", _Who],
-    Message, #state{owner = _Owner, type =_Type} = State) ->
-    {NewProduct} = Message,
-    kvs:put(NewProduct),
-    {noreply, State};
-
 handle_notice([kvs_product, Owner, create],
               [#product{}=Product, Recipients],
               #state{owner=Owner, feeds=Feeds}=State) ->
@@ -119,7 +113,7 @@ handle_notice([kvs_product, Owner, create],
             P
         end end,
 
-    msg:notify([kvs_product, Product#product.id, created], [Created]),
+    msg:notify([kvs_product, product, Product#product.id, created], [Created]),
     {noreply, State};
 
 handle_notice([kvs_product, Owner, update],
@@ -154,10 +148,26 @@ handle_notice([kvs_product, Owner, update],
     end,
     {noreply, State};
 
+handle_notice([kvs_product, Owner, delete],
+              [#product{}=P],
+              #state{owner=Owner, feeds=Feeds}=State) ->
+    error_logger:info_msg("[kvs_product] Delete product ~p ~p", [P#product.id, Owner]),
+    Removed = case kvs:remove(P) of {error,E} -> {error,E};
+    ok ->
+        [msg:notify([kvs_group, leave, Gid], [{products, P#product.id}])
+            || #group_subscription{where=Gid} <- kvs_group:participate(P#product.id)],
 
-handle_notice(_Route, _Message, State) ->
-  %error_logger:info_msg("Unknown USERS notice"),
-  {noreply, State}.
+        case lists:keyfind(products, 1, Feeds) of false -> skip;
+        {_,Fid} -> msg:notify([kvs_feed, user, Owner, entry, {P#product.id, Fid}, delete], []) end,
+
+        supervisor:terminate_child(workers_sup, {product, P#product.id}),
+        supervisor:delete_child(workers_sup, {product, P#product.id}),
+        P
+    end,
+    msg:notify([kvs_product, product, P#product.id, deleted], [Removed]),
+    {noreply, State};
+
+handle_notice(_Route, _Message, State) -> {noreply, State}.
 
 to_entry(#product{}=P) ->
     Media = case P#product.cover of undefined -> [];
