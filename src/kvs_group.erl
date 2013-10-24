@@ -114,6 +114,19 @@ user_has_access(UserName, GroupName) ->
                 {private, member} -> true;
                 _ -> false end end.
 
+handle_notice([kvs_group, Owner, create],
+              [#group{}=Group],
+              #state{owner=Owner}=State) ->
+    error_logger:info_msg("[kvs_group] Create group ~p", [Owner]),
+    Created = case kvs:add(Group) of {error, E} -> {error, E};
+    {ok, #group{id=Id} = G} ->
+        Params = [{id, Id}, {type, group}, {feeds, element(#iterator.feeds, G)}],
+        case workers_sup:start_child(Params) of {error, E} -> {error, E}; _ -> G end end,
+
+    msg:notify([kvs_group, group, Group#group.id, created], [Created]),
+    {noreply, State};
+
+
 handle_notice(["kvs_group", "update", GroupName] = Route, 
     Message, #state{owner=ThisGroupOwner, type=Type} = State) ->
     error_logger:info_msg("queue_action(~p): update_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, ThisGroupOwner}, Route, Message]),    
@@ -128,10 +141,19 @@ handle_notice(["kvs_group", "update", GroupName] = Route,
         {error,Reason} -> error_logger:info_msg("Cannot update group ~p",[Reason]) end,
     {noreply, State};
 
-handle_notice(["kvs_group", "remove", GroupName] = Route, 
-    Message, #state{owner = Owner, type = Type} = State) ->
-    error_logger:info_msg("queue_action(~p): remove_group: Owner=~p, Route=~p, Message=~p", [self(), {Type, Owner}, Route, Message]),
-    delete(GroupName),
+handle_notice([kvs_group, Owner, delete],
+              [#group{}=P],
+              #state{owner=Owner, feeds=Feeds}=State) ->
+    error_logger:info_msg("[kvs_group] Delete group ~p ~p", [P#group.id, Owner]),
+    Removed = case kvs:remove(P) of {error,E} -> {error,E};
+    ok ->
+        % todo: handle group feeds?
+
+        supervisor:terminate_child(workers_sup, {group, P#group.id}),
+        supervisor:delete_child(workers_sup, {group, P#group.id}),
+        P
+    end,
+    msg:notify([kvs_product, group, P#group.id, deleted], [Removed]),
     {noreply, State};
 
 handle_notice([kvs_group, join, Owner],
