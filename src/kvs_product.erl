@@ -117,10 +117,10 @@ handle_notice([kvs_product, Owner, create],
     {noreply, State};
 
 handle_notice([kvs_product, Owner, update],
-              [#product{}=Product, Recipients, Is, Fs], #state{owner=Owner} = State) ->
+              [#product{}=Product, Recipients, Is], #state{owner=Owner} = State) ->
     error_logger:info_msg("[kvs_product] Update product ~p", [Owner]),
     case kvs:get(product, Owner) of {error,E}->
-        msg:notify([kvs_product, product, Owner, updated], [{error,E}, Is, Fs]);
+        msg:notify([kvs_product, product, Owner, updated], [{error,E}, Is]);
     {ok, #product{}=P} ->
         Id = P#product.id,
         UpdProduct = P#product{
