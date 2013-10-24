@@ -175,9 +175,8 @@ handle_notice([kvs_feed, Owner, delete],
 
     {noreply, State};
 
-
 handle_notice([kvs_feed,_,Owner,comment,_,add],
-              [#comment{entry_id={_,Fid}}=C,_,_],
+              [#comment{entry_id={_,Fid}}=C],
               #state{owner=Owner, feeds=Feeds} = S) ->
     case lists:keyfind(Fid,2,Feeds) of false -> skip; 
     {_,_}->
