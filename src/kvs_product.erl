@@ -109,7 +109,7 @@ handle_notice([kvs_product, Owner, create],
             [msg:notify([kvs_group, join, Gid], [{products, Id}, Entry]) || {Type, Gid} <- Recipients, Type==group],
 
             case lists:keyfind(products, 1, Feeds) of false -> skip;
-            {_,Fid} -> msg:notify([kvs_feed, user, Owner, entry, Id, add], [Entry#entry{feed_id=Fid}]) end,
+            {_,Fid} -> msg:notify([kvs_feed, user, Owner, entry, Id, add], [Entry#entry{feed_id=Fid, to={user, Owner}}]) end,
             P
         end end,
 
@@ -158,7 +158,8 @@ handle_notice([kvs_product, Owner, delete],
             || #group_subscription{where=Gid} <- kvs_group:participate(P#product.id)],
 
         case lists:keyfind(products, 1, Feeds) of false -> skip;
-        {_,Fid} -> msg:notify([kvs_feed, user, Owner, entry, {P#product.id, Fid}, delete], []) end,
+        {_,Fid} -> case kvs:get(entry, {P#product.id, Fid}) of {error,_} -> ok;
+            {ok, E} -> msg:notify([kvs_feed, Owner, delete], [E]) end end,
 
         supervisor:terminate_child(workers_sup, {product, P#product.id}),
         supervisor:delete_child(workers_sup, {product, P#product.id}),
@@ -170,7 +171,7 @@ handle_notice([kvs_product, Owner, delete],
 handle_notice(_Route, _Message, State) -> {noreply, State}.
 
 to_entry(#product{}=P) ->
-    Media = case P#product.cover of undefined -> [];
+    Media = case P#product.cover of undefined -> #media{};
         File ->
             Thumbnail = filename:join([ filename:dirname(File), "thumbnail", filename:basename(File)]),
             [#media{url=File, thumbnail_url = Thumbnail}] end,

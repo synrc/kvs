@@ -126,14 +126,14 @@ user_likes(UserId, {Page, PageAmount}) ->
 %% MQ API
 
 handle_notice([kvs_feed, _, Owner, entry, Eid, add],
-              [#entry{feed_id=Fid}=Entry|_],
+              [#entry{feed_id=Fid}=Entry|Rest],
               #state{owner=Owner} = S) ->
     case lists:keyfind(Fid,2, S#state.feeds) of false -> skip;
     {_,_} ->
-        error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p.", [Eid, Fid]),
+        error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p. Ui payload:~p", [Eid, Fid, Rest]),
         E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
         Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
-        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]) end,
+        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added,Rest]) end,
     {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
@@ -152,26 +152,27 @@ handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
             msg:notify([kvs_feed, entry, {Eid, Fid}, updated], [Upd]) end end,
     {noreply, S};
 
-handle_notice([kvs_feed,_, Owner, entry, {Eid,Fid}=Id, delete],
-              [],
-              #state{owner=Owner, feeds=Feeds} = State) ->
-    case lists:keyfind(Fid,2,Feeds) of false -> skip;
+handle_notice([kvs_feed, Owner, entry, delete],
+              [#entry{id=Id,feed_id=Fid}=E|Rest],
+              #state{owner=Owner, feeds=Feeds}=State) ->
+    case lists:keyfind(Fid,2,Feeds) of false -> ok;
     _ ->
         error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
-        kvs:remove(entry, Id),
-        msg:notify([kvs_feed, entry, Id, deleted], [#entry{id=Id, entry_id=Eid, feed_id=Fid}]) end,
-  {noreply, State};
+        Removed = case kvs:remove(entry, Id) of {error,E}->{error, E}; ok -> E end,
+        msg:notify([kvs_feed, entry, Id, deleted], [Removed|Rest]) end,
+
+    {noreply,State};
 
 handle_notice([kvs_feed, Owner, delete],
-              [#entry{entry_id=Eid}=E],
+              [#entry{entry_id=Eid}=E|Rest],
               #state{owner=Owner}=State) ->
-    error_logger:info_msg("[kvs_feed] Delete all entries ~p ~p", [E#entry.id, Owner]),
+    error_logger:info_msg("[kvs_feed] Delete all entries ~p ~p", [E#entry.entry_id, Owner]),
 
-    [msg:notify([kvs_feed, RoutingType, To, entry, {Eid,Fid}, delete],[])
-        || #entry{feed_id=Fid, to={RoutingType, To}} <- kvs:all_by_index(entry, entry_id, Eid)],
+    [msg:notify([kvs_feed, To, entry, delete],[Ed|Rest])
+        || #entry{to={_, To}}=Ed <- kvs:all_by_index(entry, entry_id, Eid)],
 
     Removed = case kvs:remove(entry, {Eid, ?FEED(entry)}) of {error,E} -> {error,E}; ok -> E end,
-    msg:notify([kvs_feed, entry, {Eid, ?FEED(entry)}, deleted], [Removed]),
+    msg:notify([kvs_feed, entry, {Eid, ?FEED(entry)}, deleted], [Removed|Rest]),
 
     {noreply, State};
 

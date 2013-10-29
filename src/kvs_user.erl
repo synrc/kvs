@@ -131,6 +131,12 @@ handle_notice([kvs_user, user, registered], {_,_,#user{id=Who}=U}, #state{owner=
     kvs_account:transaction(Who, quota, DefaultQuota, #tx_default_assignment{}),
     {noreply, State};
 
+handle_notice([kvs_user, user, Owner, delete],
+              [#user{}=U],
+              #state{owner=Owner}=State) ->
+    error_logger:info_msg("[kvs_user]Delete user ~p", [U]),
+    {noreply, State};
+
 handle_notice([kvs_user, login, user, Who, update_status],
               Message,
               #state{owner=Who} = State) ->
