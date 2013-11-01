@@ -129,11 +129,8 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
               [#entry{feed_id=Fid}=Entry],
               #state{owner=Owner} = S) ->
     case lists:keyfind(Fid,2, S#state.feeds) of false -> skip;
-    {_,_} ->
-        error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p.", [Eid, Fid]),
-        E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
-        Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
-        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]) end,
+    {_,_} -> add_entry(Eid,Fid,Entry) end,
+
     {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
@@ -146,8 +143,8 @@ handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
 handle_notice([kvs_feed,_, Owner, entry, Eid, edit],
               [#entry{feed_id=Fid}=Entry],
               #state{owner=Owner, feeds=Feeds}=S) ->
-
-    case lists:keyfind(Fid, 2, Feeds) of false -> skip; {_,_} -> update_entry(Eid,Fid,Entry) end,
+    case lists:keyfind(Fid, 2, Feeds) of false -> skip;
+    {_,_} -> update_entry(Eid,Fid,Entry) end,
 
     {noreply, S};
 
@@ -176,15 +173,12 @@ handle_notice([kvs_feed, Owner, delete],
 
     {noreply, State};
 
-handle_notice([kvs_feed,_,Owner,comment,_,add],
+handle_notice([kvs_feed,_,Owner,comment,Cid,add],
               [#comment{entry_id={_,Fid}}=C],
               #state{owner=Owner, feeds=Feeds} = S) ->
-    case lists:keyfind(Fid,2,Feeds) of false -> skip; 
-    {_,_}->
-        error_logger:info_msg("[kvs_feed] ~p Add comment ~p", [Owner, C#comment.id]),
-        Added = case kvs:add(C) of {error, E} -> {error, E}; {ok, Cm} -> Cm end,
-        msg:notify([kvs_feed, comment, C#comment.id, added], [Added])
-        end,
+    case lists:keyfind(Fid,2,Feeds) of false -> skip;
+    {_,_}-> add_comment(C#comment{id={Cid, C#comment.entry_id}}) end,
+
     {noreply, S};
 
 handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here beacause of the same message used for comet update
@@ -195,9 +189,20 @@ handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here be
     kvs_feed:add_like(FId, EId, UId),
     {noreply, State};
 
-handle_notice(_Route, _Message, State) -> 
+handle_notice(_Route, _Message, State) ->
   %error_logger:error_msg("~p ===> Unknown FEED notice ~p", [State#state.owner, Route]), 
   {noreply, State}.
+
+add_comment(C) ->
+    error_logger:info_msg("[kvs_feed] Add comment ~p", [C#comment.id]),
+    Added = case kvs:add(C#comment{feeds=[comments]}) of {error, E} -> {error, E}; {ok, Cm} -> Cm end,
+    msg:notify([kvs_feed, comment, C#comment.id, added], [Added]).
+
+add_entry(Eid,Fid,Entry) ->
+    error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p.", [Eid, Fid]),
+    E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
+    Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
+    msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]).
 
 update_entry(Eid,Fid,Entry) ->
     case kvs:get(entry, {Eid,Fid}) of false -> skip;
