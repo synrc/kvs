@@ -96,7 +96,7 @@ handle_notice(["kvs_product", "unsubscribe", Who],
     subscription_mq(user, remove, Who, Whom),
     {noreply, State};
 
-handle_notice([kvs_product, Owner, create],
+handle_notice([kvs_product, Owner, add],
               [#product{}=Product, Recipients],
               #state{owner=Owner, feeds=Feeds}=State) ->
     error_logger:info_msg("[kvs_product] Create product ~p", [Owner]),
@@ -113,7 +113,7 @@ handle_notice([kvs_product, Owner, create],
             P
         end end,
 
-    msg:notify([kvs_product, product, Product#product.id, created], [Created]),
+    msg:notify([kvs_product, product, Product#product.id, added], [Created]),
     {noreply, State};
 
 handle_notice([kvs_product, Owner, update],

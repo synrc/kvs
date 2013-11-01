@@ -126,14 +126,14 @@ user_likes(UserId, {Page, PageAmount}) ->
 %% MQ API
 
 handle_notice([kvs_feed, _, Owner, entry, Eid, add],
-              [#entry{feed_id=Fid}=Entry|Rest],
+              [#entry{feed_id=Fid}=Entry],
               #state{owner=Owner} = S) ->
     case lists:keyfind(Fid,2, S#state.feeds) of false -> skip;
     {_,_} ->
-        error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p. Ui payload:~p", [Eid, Fid, Rest]),
+        error_logger:info_msg("[kvs_feed] => Add entry ~p to feed ~p.", [Eid, Fid]),
         E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
         Added = case kvs:add(E) of {error, Err}-> {error,Err}; {ok, En} -> En end,
-        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added,Rest]) end,
+        msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]) end,
     {noreply, S};
 
 handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
@@ -153,26 +153,26 @@ handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
     {noreply, S};
 
 handle_notice([kvs_feed, Owner, entry, delete],
-              [#entry{id=Id,feed_id=Fid}=E|Rest],
+              [#entry{id=Id,feed_id=Fid}=E],
               #state{owner=Owner, feeds=Feeds}=State) ->
     case lists:keyfind(Fid,2,Feeds) of false -> ok;
     _ ->
         error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
         Removed = case kvs:remove(entry, Id) of {error,E}->{error, E}; ok -> E end,
-        msg:notify([kvs_feed, entry, Id, deleted], [Removed|Rest]) end,
+        msg:notify([kvs_feed, entry, Id, deleted], [Removed]) end,
 
     {noreply,State};
 
 handle_notice([kvs_feed, Owner, delete],
-              [#entry{entry_id=Eid}=E|Rest],
+              [#entry{entry_id=Eid}=E],
               #state{owner=Owner}=State) ->
     error_logger:info_msg("[kvs_feed] Delete all entries ~p ~p", [E#entry.entry_id, Owner]),
 
-    [msg:notify([kvs_feed, To, entry, delete],[Ed|Rest])
+    [msg:notify([kvs_feed, To, entry, delete],[Ed])
         || #entry{to={_, To}}=Ed <- kvs:all_by_index(entry, entry_id, Eid)],
 
     Removed = case kvs:remove(entry, {Eid, ?FEED(entry)}) of {error,E} -> {error,E}; ok -> E end,
-    msg:notify([kvs_feed, entry, {Eid, ?FEED(entry)}, deleted], [Removed|Rest]),
+    msg:notify([kvs_feed, entry, {Eid, ?FEED(entry)}, deleted], [Removed]),
 
     {noreply, State};
 

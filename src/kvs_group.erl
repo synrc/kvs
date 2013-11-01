@@ -86,7 +86,7 @@ leave(UserName,GroupName) ->
 
 approve_request(UserName, GroupName) -> add(UserName, GroupName, member).
 reject_request(UserName, GroupName) -> add(UserName, GroupName, req_rejected).
-member_type(UserName, GroupName, Type) -> mqs:notify(["subscription", "user", GroupName, "add_to_group"], {GroupName, UserName, Type}).
+member_type(UserName, GroupName, Type) -> msg:notify(["subscription", "user", GroupName, "add_to_group"], {GroupName, UserName, Type}).
 
 exists(GroupName) -> case kvs:get(group,GroupName) of {ok,_} -> true; _ -> false end.
 
@@ -114,7 +114,7 @@ user_has_access(UserName, GroupName) ->
                 {private, member} -> true;
                 _ -> false end end.
 
-handle_notice([kvs_group, Owner, create],
+handle_notice([kvs_group, Owner, add],
               [#group{}=Group],
               #state{owner=Owner}=State) ->
     error_logger:info_msg("[kvs_group] Create group ~p", [Owner]),
@@ -123,7 +123,7 @@ handle_notice([kvs_group, Owner, create],
         Params = [{id, Id}, {type, group}, {feeds, element(#iterator.feeds, G)}],
         case workers_sup:start_child(Params) of {error, E} -> {error, E}; _ -> G end end,
 
-    msg:notify([kvs_group, group, Group#group.id, created], [Created]),
+    msg:notify([kvs_group, group, Group#group.id, added], [Created]),
     {noreply, State};
 
 
@@ -163,7 +163,7 @@ handle_notice([kvs_group, join, Owner],
     join(Who, Owner),
     case lists:keyfind(FeedName, 1, Feeds) of false -> skip;
     {_,Fid} -> msg:notify([kvs_feed, group, Owner, entry, Who, add],
-                          [Entry#entry{id={Who, Fid},feed_id=Fid,to={group, Owner}}, {}, Fid]) end,
+                          [Entry#entry{id={Who, Fid},feed_id=Fid,to={group, Owner}}]) end,
 
 %    subscription_mq(group, add, UserName, GroupName),
     {noreply, State};
@@ -174,7 +174,7 @@ handle_notice([kvs_group, leave, Owner],
     error_logger:info_msg("[kvs_group] ~p leave group ~p", [Who, Owner]),
     leave(Who, Owner),
     case lists:keyfind(FeedName, 1, Feeds) of false -> skip;
-    {_,Fid} -> msg:notify([kvs_feed, group, Owner, entry, {Who, Fid}, delete], []) end,
+    {_,Fid} -> msg:notify([kvs_feed, group, Owner, entry, delete], [#entry{id={Who,Fid}, feed_id=Fid}]) end,
 
 %    subscription_mq(group, remove, UserName, GroupName),
     {noreply, State};
