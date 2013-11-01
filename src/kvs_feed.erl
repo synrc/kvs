@@ -139,22 +139,22 @@ handle_notice([kvs_feed, _, Owner, entry, Eid, add],
 handle_notice([kvs_feed,_, Owner, entry, {Eid, FeedName}, edit],
               [#entry{}=Entry],
               #state{owner=Owner, feeds=Feeds}=S) ->
-    case lists:keyfind(FeedName,1,Feeds) of false -> skip;
-    {_,Fid}-> case kvs:get(entry, {Eid, Fid}) of {error,_}-> skip;
-        {ok, E} ->
-            error_logger:info_msg("[kvs_feed] => Update entry ~p in feed ~p", [Eid, Fid]),
-            Upd = E#entry{description=Entry#entry.description,
-                        title = Entry#entry.title,
-                        media = Entry#entry.media,
-                        etc   = Entry#entry.etc,
-                        type  = Entry#entry.type},
-            kvs:put(Upd),
-            msg:notify([kvs_feed, entry, {Eid, Fid}, updated], [Upd]) end end,
+    case lists:keyfind(FeedName,1,Feeds) of false -> skip; {_,Fid}-> update_entry(Eid,Fid,Entry) end,
+
+    {noreply, S};
+
+handle_notice([kvs_feed,_, Owner, entry, Eid, edit],
+              [#entry{feed_id=Fid}=Entry],
+              #state{owner=Owner, feeds=Feeds}=S) ->
+
+    case lists:keyfind(Fid, 2, Feeds) of false -> skip; {_,_} -> update_entry(Eid,Fid,Entry) end,
+
     {noreply, S};
 
 handle_notice([kvs_feed, Owner, entry, delete],
               [#entry{id=Id,feed_id=Fid}=E],
               #state{owner=Owner, feeds=Feeds}=State) ->
+    error_logger:info_msg("DELETE"),
     case lists:keyfind(Fid,2,Feeds) of false -> ok;
     _ ->
         error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
@@ -198,3 +198,16 @@ handle_notice(["kvs_feed","likes", _, _, "add_like"] = Route,  % _, _ is here be
 handle_notice(_Route, _Message, State) -> 
   %error_logger:error_msg("~p ===> Unknown FEED notice ~p", [State#state.owner, Route]), 
   {noreply, State}.
+
+update_entry(Eid,Fid,Entry) ->
+    case kvs:get(entry, {Eid,Fid}) of false -> skip;
+    {ok, E} ->
+        error_logger:info_msg("[kvs_feed] => Update entry ~p in ~p", [Eid, Fid]),
+        Upd = E#entry{description=Entry#entry.description,
+                      title = Entry#entry.title,
+                      media = Entry#entry.media,
+                      etc   = Entry#entry.etc,
+                      type  = Entry#entry.type},
+        kvs:put(Upd),
+        msg:notify([kvs_feed, entry, {Eid, Fid}, updated], [Upd]) end.
+
