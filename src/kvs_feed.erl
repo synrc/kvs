@@ -173,11 +173,11 @@ handle_notice([kvs_feed, Owner, delete],
 
     {noreply, State};
 
-handle_notice([kvs_feed,_,Owner,comment,Cid,add],
-              [#comment{entry_id={_,Fid}}=C],
+handle_notice([kvs_feed,_,Owner, comment, Cid, add],
+              [#comment{id={Cid, {Eid, EFid}, _}}=C],
               #state{owner=Owner, feeds=Feeds} = S) ->
-    case lists:keyfind(Fid,2,Feeds) of false -> skip;
-    {_,_}-> add_comment(C#comment{id={Cid, C#comment.entry_id}}) end,
+    case lists:keyfind(EFid,2,Feeds) of false -> skip;
+    {_,_}-> add_comment(C) end,
 
     {noreply, S};
 
@@ -194,7 +194,7 @@ handle_notice(_Route, _Message, State) ->
   {noreply, State}.
 
 add_comment(C) ->
-    error_logger:info_msg("[kvs_feed] Add comment ~p", [C#comment.id]),
+    error_logger:info_msg("[kvs_feed] Add comment ~p ~p", [C#comment.id, C#comment.feed_id]),
     Added = case kvs:add(C#comment{feeds=[comments]}) of {error, E} -> {error, E}; {ok, Cm} -> Cm end,
     msg:notify([kvs_feed, comment, C#comment.id, added], [Added]).
 
