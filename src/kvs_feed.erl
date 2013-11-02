@@ -155,7 +155,7 @@ handle_notice([kvs_feed, Owner, entry, delete],
     case lists:keyfind(Fid,2,Feeds) of false -> ok;
     _ ->
         error_logger:info_msg("[kvs_feed] => Remove entry ~p from feed ~p", [Id, Fid]),
-        Removed = case kvs:remove(entry, Id) of {error,E}->{error, E}; ok -> E end,
+        Removed = case kvs:remove(entry, Id) of {error,Er}->{error, Er}; ok -> E end,
         msg:notify([kvs_feed, entry, Id, deleted], [Removed]) end,
 
     {noreply,State};
@@ -168,13 +168,14 @@ handle_notice([kvs_feed, Owner, delete],
     [msg:notify([kvs_feed, To, entry, delete],[Ed])
         || #entry{to={_, To}}=Ed <- kvs:all_by_index(entry, entry_id, Eid)],
 
-    Removed = case kvs:remove(entry, {Eid, ?FEED(entry)}) of {error,E} -> {error,E}; ok -> E end,
-    msg:notify([kvs_feed, entry, {Eid, ?FEED(entry)}, deleted], [Removed]),
+    Fid = ?FEED(entry),
+    Removed = case kvs:remove(entry,{Eid, Fid}) of {error,X} -> {error,X}; ok -> E#entry{id={Eid,Fid},feed_id=Fid} end,
+    msg:notify([kvs_feed, entry, {Eid, Fid}, deleted], [Removed]),
 
     {noreply, State};
 
 handle_notice([kvs_feed,_,Owner, comment, Cid, add],
-              [#comment{id={Cid, {Eid, EFid}, _}}=C],
+              [#comment{id={Cid, {_, EFid}, _}}=C],
               #state{owner=Owner, feeds=Feeds} = S) ->
     case lists:keyfind(EFid,2,Feeds) of false -> skip;
     {_,_}-> add_comment(C) end,
