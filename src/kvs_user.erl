@@ -138,15 +138,18 @@ handle_notice([kvs_user, user, Owner, delete],
     {noreply, State};
 
 handle_notice([kvs_user, login, user, Who, update_status],
-              Message,
+              {Status},
               #state{owner=Who} = State) ->
-  error_logger:info_msg("update status ~p", [Who]),
-  Update = case kvs:get(user_status, Who) of
+    error_logger:info_msg("[kvs_user] Update ~p status ~p", [Who, Status]),
+    case kvs:get(user, Who) of {error,_}-> ok;
+    {ok, U}-> kvs:put(U#user{status=Status}) end,
+
+    Update = case kvs:get(user_status, Who) of
     {error, not_found} -> #user_status{email = Who, last_login = erlang:now()};
     {ok, UserStatus} -> UserStatus#user_status{last_login = erlang:now()} end,
-  kvs:put(Update),
+    kvs:put(Update),
 
-  {noreply, State};
+    {noreply, State};
 
 handle_notice(["kvs_user", "subscribe", Who] = Route,
     Message, #state{owner = Owner, type =Type} = State) ->
