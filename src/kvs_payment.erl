@@ -55,7 +55,7 @@ add_payment(#payment{} = MP) -> add_payment(#payment{} = MP, undefined, undefine
 add_payment(#payment{} = MP, State0, Info) ->
     error_logger:info_msg("ADD PAYMENT"),
     Start = now(),
-    State = default_if_undefined(State0, undefined, ?MP_STATE_ADDED),
+    State = default_if_undefined(State0, undefined, 'added'),
     StateLog = case Info of
         undefined -> [#state_change{time = Start, state = State, info = system_change}];
         _ -> [#state_change{time = Start, state = State, info = Info}] end,
@@ -70,9 +70,9 @@ set_payment_state(MPId, NewState, Info) ->
         StateLog = MP#payment.state_log,
         NewStateLog = [#state_change{time = Time, state = NewState, info = Info}|StateLog],
         EndTime = case NewState of
-                  ?MP_STATE_DONE -> now();
-                  ?MP_STATE_CANCELLED -> now();
-                  ?MP_STATE_FAILED -> now();
+                  'done' -> now();
+                  'cancelled' -> now();
+                  'failed' -> now();
                   _ -> MP#payment.end_time end,
 
         NewMP=MP#payment{state = NewState, end_time = EndTime, state_log = NewStateLog},
