@@ -1,6 +1,8 @@
 KVS: Data Framework for KV Stores
 =================================
 
+Online Presentation: http://slid.es/maximsokhatsky/kvs
+
 Features
 --------
 
