@@ -1,6 +1,6 @@
 -module(kvs).
 -author('Maxim Sokhatsky <maxim@synrc.com>').
--include_lib("kvs/include/users.hrl").
+-include_lib("kvs/include/user.hrl").
 -include_lib("kvs/include/translations.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").

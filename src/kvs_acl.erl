@@ -3,7 +3,7 @@
 -compile(export_all).
 -include_lib("kvs/include/kvs.hrl").
 -include_lib("kvs/include/acls.hrl").
--include_lib("kvs/include/users.hrl").
+-include_lib("kvs/include/user.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
 

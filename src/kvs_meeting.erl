@@ -1,6 +1,6 @@
 -module(kvs_meeting).
 -include_lib("kvs/include/kvs.hrl").
--include_lib("kvs/include/users.hrl").
+-include_lib("kvs/include/user.hrl").
 -include_lib("kvs/include/meetings.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/config.hrl").

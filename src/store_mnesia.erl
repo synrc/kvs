@@ -2,7 +2,7 @@
 -author('Maxim Sokhatsky').
 -copyright('Synrc Research Center s.r.o.').
 -include_lib("kvs/include/config.hrl").
--include_lib("kvs/include/users.hrl").
+-include_lib("kvs/include/user.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/acls.hrl").

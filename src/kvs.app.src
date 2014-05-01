@@ -3,7 +3,7 @@
   {description, "SRC KVS Distributed Persistance"},
   {vsn, "1"},
   {registered, []},
-  {applications, [kernel,stdlib,mnesia,mqs]},
+  {applications, [kernel,stdlib,mnesia]},
   {mod, { kvs_app, []}},
   {env, []}
  ]}.

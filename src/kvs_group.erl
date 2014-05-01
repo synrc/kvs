@@ -1,13 +1,12 @@
 -module(kvs_group).
 -compile(export_all).
 -include_lib("kvs/include/kvs.hrl").
--include_lib("kvs/include/users.hrl").
+-include_lib("kvs/include/user.hrl").
 -include_lib("kvs/include/groups.hrl").
 -include_lib("kvs/include/feeds.hrl").
 -include_lib("kvs/include/accounts.hrl").
 -include_lib("kvs/include/feed_state.hrl").
 -include_lib("kvs/include/config.hrl").
--include_lib("mqs/include/mqs.hrl").
 
 init(Backend) ->
     ?CREATE_TAB(group_subscription),
@@ -194,24 +193,5 @@ build_group_relations(Group) -> [
     mqs:key( [kvs_feed, group, Group, '*', '*', '*'] )
     ].
 
-init_mq(Group=#group{}) ->
-    GroupExchange = ?GROUP_EXCHANGE(Group#group.id),
-    ExchangeOptions = [{type, <<"fanout">>}, durable, {auto_delete, false}],
-    case mqs:open([]) of
-        {ok, Channel} ->
-            mqs_channel:create_exchange(Channel, GroupExchange, ExchangeOptions),
-            Relations = build_group_relations(Group),
-            [mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Group#group.id), ?NOTIFICATIONS_EX, Route) || Route <- Relations],
-            mqs_channel:close(Channel);
-        {error, Reason} -> error_logger:info_msg("init_mq error: ~p",[Reason]) end.
-
 rk_group_feed(Group) -> mqs_lib:list_to_key([kvs_feed, group, Group, '*', '*', '*']).
 
-subscription_mq(Type, Action, Who, Where) ->
-    case mqs:open([]) of
-        {ok,Channel} ->
-            case {Type,Action} of 
-                {group,add}     -> mqs_channel:bind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where));
-                {groupr,remove}  -> mqs_channel:unbind_exchange(Channel, ?GROUP_EXCHANGE(Who), ?NOTIFICATIONS_EX, rk_group_feed(Where)) end,
-            mqs_channel:close(Channel);
-        {error,Reason} -> error_logger:info_msg("subscription_mq error: ~p",[Reason]) end.
