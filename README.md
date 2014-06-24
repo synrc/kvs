@@ -71,7 +71,7 @@ Configuring
 First of all you need to tune your backend in the kvs application:
 
 ```erlang
-{kvs, [{dba,store_kai}]},
+{kvs, [{dba,store_mnesia}]},
 ```
 
 Try to check it:
