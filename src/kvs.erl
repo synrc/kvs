@@ -181,7 +181,7 @@ remove(E) when is_tuple(E) ->
 
     kvs:info(?MODULE,"[kvs] delete: ~p", [Id]),
 
-    kvs:delete(E).
+    kvs:delete(element(1,E), Id).
 
 traversal( _,undefined,_,_) -> [];
 traversal(_,_,0,_) -> [];
