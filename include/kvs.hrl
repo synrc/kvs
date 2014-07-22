@@ -1,6 +1,7 @@
 -ifndef(KVS_HRL).
 -define(KVS_HRL, true).
 
+-define(MQ, (kvs:config(kvs,mq,kvs))).
 
 -define(CONTAINER, id, top=undefined, entries_count=0).
 -define(ITERATOR(Container, Guard), id, container=Container, feed_id, prev, next, feeds=[], guard=Guard, etc).

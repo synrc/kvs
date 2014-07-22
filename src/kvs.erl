@@ -256,6 +256,8 @@ load(Key) ->
     {ok, Bin} = file:read_file(Key),
     binary_to_term(Bin).
 
+notify(EventPath, Data) -> skip.
+
 config(Key) -> config(kvs, Key, "").
 config(App,Key) -> config(App,Key, "").
 config(App, Key, Default) -> case application:get_env(App,Key) of
