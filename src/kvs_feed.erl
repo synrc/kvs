@@ -1,6 +1,7 @@
 -module(kvs_feed).
 -copyright('Synrc Research Center, s.r.o.').
 -compile(export_all).
+-include("config.hrl").
 -include("entry.hrl").
 -include("feed.hrl").
 -include("metainfo.hrl").
