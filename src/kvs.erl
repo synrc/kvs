@@ -157,27 +157,28 @@ remove(E) when is_tuple(E) ->
     CName = element(#iterator.container, E),
     Cid   = element(#iterator.feed_id, E),
 
-    {ok, Container} = kvs:get(CName, Cid),
+    case kvs:get(CName, Cid) of {ok, Container} ->
+      Top   = element(#container.top, Container),
+      Next  = element(#iterator.next, E),
+      Prev  = element(#iterator.prev, E),
 
-    Top   = element(#container.top, Container),
-    Next  = element(#iterator.next, E),
-    Prev  = element(#iterator.prev, E),
-
-    case kvs:get(element(1,E), Next) of
+      case kvs:get(element(1,E), Next) of
         {ok, NE} ->
             NewNext = setelement(#iterator.prev, NE, Prev),
             kvs:put(NewNext); _ -> ok end,
 
-    case kvs:get(element(1,E), Prev) of
+      case kvs:get(element(1,E), Prev) of
         {ok, PE} ->
             NewPrev = setelement(#iterator.next, PE, Next),
             kvs:put(NewPrev);
         _ -> ok end,
 
-    C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
-    C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
+      C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
+      C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
 
-    kvs:put(C2),
+      kvs:put(C2);
+
+    _ -> skip end,
 
     kvs:info(?MODULE,"[kvs] delete: ~p", [Id]),
 
@@ -256,7 +257,7 @@ load(Key) ->
     {ok, Bin} = file:read_file(Key),
     binary_to_term(Bin).
 
-notify(EventPath, Data) -> skip.
+notify(_EventPath, _Data) -> skip.
 
 config(Key) -> config(kvs, Key, "").
 config(App,Key) -> config(App,Key, "").
