@@ -117,7 +117,7 @@ add(Record) when is_tuple(Record) ->
 
 remove(RecordName, RecordId) ->
     case kvs:get(RecordName, RecordId) of
-        {error, not_found} -> ksv:error("[kvs] can't remove ~p~n",[{RecordName,RecordId}]);
+        {error, not_found} -> kvs:error("[kvs] can't remove ~p~n",[{RecordName,RecordId}]);
         {ok, E} ->
 
             Id = element(#iterator.id, E),
