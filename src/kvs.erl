@@ -285,3 +285,10 @@ error(Module,String, Args) -> log(Module, String, Args, error_msg).
 error(String, Args) -> log(?MODULE, String, Args, error_msg).
 error(String) -> log(?MODULE, String, [], error_msg).
 
+dump() ->
+     io:format("~10w ~20w ~10w ~10w~n",[name,storage_type,memory,size]),
+   [ io:format("~10w ~20w ~10w ~10w~n",[Name,
+         mnesia:table_info(Name,storage_type),
+         mnesia:table_info(Name,memory),
+         mnesia:table_info(Name,size)]) || #table{name=Name} <- kvs:tables()],
+     io:format("Snapshot taken: ~p~n",[calendar:now_to_datetime(now())]).
