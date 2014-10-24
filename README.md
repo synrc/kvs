@@ -90,11 +90,7 @@ Create database for single node:
 3> kvs:join().
 [kvs] Mnesia Init
 ok
-4> kvs:init_db().
-[{"acl",ok},{"feed",ok}]
-```
 
-'init_db' output the creations of containers.
 You can also create database by joining to existing cluster:
 
 ```erlang
