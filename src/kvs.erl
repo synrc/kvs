@@ -12,7 +12,7 @@
 % NOTE: API Documentation
 
 -export([start/0,stop/0]).                                        % service
--export([destroy/0,join/0,join/1,init_db/0,init/2]).              % schema change
+-export([destroy/0,join/0,join/1,init/2]).                        % schema change
 -export([modules/0,containers/0,tables/0,table/1,version/0]).     % meta info
 -export([create/1,add/1,remove/2,remove/1]).                      % chain ops
 -export([put/1,delete/2,next_id/2]).                              % raw ops
@@ -201,11 +201,6 @@ entries(Container, RecordType, Count) when is_tuple(Container) ->
 entries(RecordType, Start, Count, Direction) ->
     E = traversal(RecordType, Start, Count, Direction),
     case Direction of #iterator.next -> lists:reverse(E); #iterator.prev -> E end.
-
-init_db() ->
-    case kvs:get(id_seq,"feed") of
-        {error,_} -> add_seq_ids();
-        {ok,_} -> skip end.
 
 add_seq_ids() ->
     Init = fun(Key) ->

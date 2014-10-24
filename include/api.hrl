@@ -10,7 +10,6 @@
 -spec destroy() -> ok.
 -spec join() -> ok | {error,any()}.
 -spec join(Node :: string()) -> [{atom(),any()}].
--spec init_db() -> list(tuple(list(), skip | ok)).
 -spec init(Backend :: atom(), Module :: atom()) -> list(#table{}).
 
 % meta info
