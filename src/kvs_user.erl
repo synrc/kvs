@@ -8,6 +8,7 @@
 
 metainfo() -> 
     #schema{name=kvs,tables=[
+        #table{name=user2,container=feed,fields=record_info(fields,user2)},
         #table{name=user,container=feed,fields=record_info(fields,user),
                  keys=[facebook_id,googleplus_id,twitter_id,github_id]}
     ]}.

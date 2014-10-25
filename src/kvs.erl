@@ -60,7 +60,7 @@ add(Record) when is_tuple(Record) ->
     case kvs:get(element(1,Record), Id) of
         {error, not_found} ->
 
-            Type = element(1, Record),
+            Type = table_type(element(1,Record)),
             CName = element(#iterator.container, Record),
             Cid = case element(#iterator.feed_id, Record) of
                 undefined -> element(1,Record);
@@ -214,9 +214,25 @@ put(Record) ->
     DBA=?DBA,
     DBA:put(Record).
 
+table_type(user2) -> user;
+table_type(A) -> A.
+
+range(RecordName,Id) -> Ranges = kvs:config(RecordName), find(Ranges,RecordName,Id).
+
+find([],_,Id) -> [];
+find([Range|T],RecordName,Id) -> 
+     case lookup(Range,Id) of
+          [] -> find(T,RecordName,Id);
+          Name -> Name end.
+
+lookup(#interval{left=Left,right=Right,name=Name},Id) when Id =< Right, Id >= Left -> Name;
+lookup(#interval{},Id) -> [].
+
 get(RecordName, Key) ->
     DBA=?DBA,
-    DBA:get(RecordName, Key).
+    case range(RecordName,Key) of
+         [] -> DBA:get(RecordName, Key);
+         Name ->  DBA:get(Name, Key) end.
 
 get(RecordName, Key, Default) ->
     DBA=?DBA,

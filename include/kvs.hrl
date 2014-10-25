@@ -8,5 +8,6 @@
 -record(id_seq, {thing, id}).
 -record(container, {?CONTAINER}).
 -record(iterator,  {?ITERATOR(undefined)}).
+-record(interval, {left,right,name}).
 
 -endif.

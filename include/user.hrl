@@ -16,3 +16,11 @@
         status,
         zone,
         type }).
+
+-record(user2, {?ITERATOR(feed, true), % version 2
+        everyting_getting_small,
+        email,
+        username,
+        password,
+        zone,
+        type }).
