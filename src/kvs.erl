@@ -192,10 +192,11 @@ traversal( _,undefined,_,_) -> [];
 traversal(_,_,0,_) -> [];
 traversal(RecordType2, Start, Count, Direction)->
     RecordType = table_type(RecordType2),
-    case kvs:get(RecordType, Start) of {error,_} -> [];
+    case kvs:get(RecordType, Start) of
     {ok, R} ->  Prev = element(Direction, R),
                 Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
-                [R | traversal(RecordType2, Prev, Count1, Direction)] end.
+                [R | traversal(RecordType2, Prev, Count1, Direction)];
+    Error -> [] end.
 
 entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
 entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
