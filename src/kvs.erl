@@ -62,10 +62,11 @@ add(Record) when is_tuple(Record) ->
 
             Type = table_type(element(1,Record)),
             CName = element(#iterator.container, Record),
-            Cid = case element(#iterator.feed_id, Record) of
+            Cid = table_type(case element(#iterator.feed_id, Record) of
                 undefined -> element(1,Record);
-                Fid -> Fid end,
+                Fid -> Fid end),
 
+            io:format("Container: CName:~p Cid:~p~n",[CName, Cid]),
             Container = case kvs:get(CName, Cid) of
                 {ok,C} -> C;
                 {error, not_found} when Cid /= undefined ->
@@ -84,7 +85,9 @@ add(Record) when is_tuple(Record) ->
                     Next = undefined,
                     Prev = case element(#container.top, Container) of
                         undefined -> undefined;
-                        Tid -> case kvs:get(Type, Tid) of
+                        Tid -> 
+                            io:format("Linling: Cid:~p Type:~p Tid:~p~n",[Cid,Type,Tid]),
+                            case kvs:get(Type, Tid) of
                             {error, not_found} -> undefined;
                             {ok, Top} ->
                                 NewTop = setelement(#iterator.next, Top, Id),
@@ -113,6 +116,7 @@ add(Record) when is_tuple(Record) ->
 
                     {ok, R3}
             end;
+        {aborted, Reason} -> kvs:info(?MODULE,"[kvs] aborted: ~p~n", [Reason]), {aborted, Reason};
         {ok, _} -> kvs:info(?MODULE,"[kvs] entry exist while put: ~p~n", [Id]), {error, exist} end.
 
 remove(RecordName, RecordId) ->
@@ -186,11 +190,12 @@ remove(E) when is_tuple(E) ->
 
 traversal( _,undefined,_,_) -> [];
 traversal(_,_,0,_) -> [];
-traversal(RecordType, Start, Count, Direction)->
+traversal(RecordType2, Start, Count, Direction)->
+    RecordType = table_type(RecordType2),
     case kvs:get(RecordType, Start) of {error,_} -> [];
     {ok, R} ->  Prev = element(Direction, R),
                 Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
-                [R | traversal(RecordType, Prev, Count1, Direction)] end.
+                [R | traversal(RecordType2, Prev, Count1, Direction)] end.
 
 entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
 entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
