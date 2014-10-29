@@ -66,7 +66,6 @@ add(Record) when is_tuple(Record) ->
                 undefined -> element(1,Record);
                 Fid -> Fid end),
 
-            io:format("Container: CName:~p Cid:~p~n",[CName, Cid]),
             Container = case kvs:get(CName, Cid) of
                 {ok,C} -> C;
                 {error, not_found} when Cid /= undefined ->
@@ -86,7 +85,6 @@ add(Record) when is_tuple(Record) ->
                     Prev = case element(#container.top, Container) of
                         undefined -> undefined;
                         Tid -> 
-                            io:format("Linling: Cid:~p Type:~p Tid:~p~n",[Cid,Type,Tid]),
                             case kvs:get(Type, Tid) of
                             {error, not_found} -> undefined;
                             {ok, Top} ->
