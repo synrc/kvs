@@ -22,7 +22,7 @@ initialize() ->
     kvs:info(?MODULE,"[store_mnesia] mnesia init.~n"),
     mnesia:create_schema([node()]),
     [ kvs:init(store_mnesia,Module) || Module <- kvs:modules() ],
-    mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],5000).
+    mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity).
 
 index(Tab,Key,Value) ->
     Table = kvs:table(Tab),
