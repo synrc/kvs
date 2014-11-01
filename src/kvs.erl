@@ -285,7 +285,7 @@ log_modules() -> [].
 
 log(Module, String, Args, Fun) ->
     case lists:member(Module,?ALLOWED:log_modules()) of
-         true -> error_logger:Fun(String, Args);
+         true -> error_logger:Fun("~p:"++String, [Module|Args]);
          false -> skip end.
 
 info(Module,String, Args) ->  log(Module,String, Args, info_msg).
