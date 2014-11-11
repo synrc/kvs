@@ -22,6 +22,8 @@
 start() -> DBA = ?DBA, DBA:start().
 stop() -> DBA = ?DBA, DBA:stop().
 
+change_storage(Type) -> [ change_storage(Name,Type) || #table{name=Name} <- kvs:tables() ].
+change_storage(Table,Type) -> DBA = ?DBA, DBA:change_storage(Table,Type).
 destroy() -> DBA = ?DBA, DBA:destroy().
 join() -> DBA = ?DBA, DBA:join().
 join(Node) -> DBA = ?DBA, DBA:join(Node).

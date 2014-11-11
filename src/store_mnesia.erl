@@ -18,6 +18,8 @@ join(Node) ->
      || {Tb, [{N, Type}]} <- [{T, mnesia:table_info(T, where_to_commit)}
                                || T <- mnesia:system_info(tables)], Node==N].
 
+change_storage(Table,Type) -> mnesia:change_table_copy_type(Table, node(), Type).
+
 initialize() ->
     kvs:info(?MODULE,"[store_mnesia] mnesia init.~n",[]),
     mnesia:create_schema([node()]),
