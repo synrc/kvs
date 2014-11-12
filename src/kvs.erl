@@ -67,8 +67,6 @@ add(Record) when is_tuple(Record) ->
             Cid = table_type(case element(#iterator.feed_id, Record) of
                 undefined -> element(1,Record);
                 Fid -> Fid end),
-                
-            io:format("CName:~p Cid:~p",[CName, Cid]),
 
             Container = case kvs:get(CName, Cid) of
                 {ok,C} -> C;
