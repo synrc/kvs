@@ -1,11 +1,11 @@
 -module(store_kai).
 -author('Maxim Sokhatsky').
 -copyright('Synrc Research Center s.r.o.').
--include_lib("kai/include/kai.hrl").
--include_lib("kvs/include/config.hrl").
--include_lib("kvs/include/metainfo.hrl").
+-include("config.hrl").
+-include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
+-record(data, { key, bucket, last_modified, vector_clocks, checksum, flags, value }).
 
 start() -> kai:start(), ok.
 stop() -> kai_store:stop(), ok.
