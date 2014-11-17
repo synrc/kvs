@@ -19,7 +19,7 @@ $(RUN_DIR) $(LOG_DIR):
 	mkdir -p $(RUN_DIR) & mkdir -p $(LOG_DIR)
 console: .applist
 	ERL_LIBS=$(ERL_LIBS) erl $(ERL_ARGS) -eval \
-		'[ok = application:ensure_started(A, permanent) || A <- $(shell cat .applist)]'
+		'[application:start(A) || A <- $(shell cat .applist)]'
 start: $(RUN_DIR) $(LOG_DIR) .applist
 	ERL_LIBS=$(ERL_LIBS) run_erl -daemon $(RUN_DIR)/ $(LOG_DIR)/ "exec $(MAKE) console"
 attach:
