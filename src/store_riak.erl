@@ -110,9 +110,10 @@ get_for_update(Tab, Key) ->
         Error -> Error end.
 
 delete(Tab, Key) ->
+    {ok,C}=riak:local_client(),
     Bucket = key_to_bin(Tab),
     IntKey = key_to_bin(Key),
-    riak_client:delete(Bucket, IntKey).
+    C:delete(Bucket, IntKey).
 
 delete_by_index(Tab, IndexId, IndexVal) ->
     Bucket = key_to_bin(Tab),
@@ -127,9 +128,12 @@ key_to_bin(Key) ->
        true ->  [ListKey] = io_lib:format("~p", [Key]), erlang:list_to_binary(ListKey) end.
 
 all(RecordName) ->
+    {ok,C}=riak:local_client(),
     RecordBin = key_to_bin(RecordName),
-    {ok,Keys} = riak_client:list_keys(RecordBin),
-    Results = [ riak_get_raw({RecordBin, Key, riak_client}) || Key <- Keys ],
+    {ok,Keys} = C:list_keys(RecordBin),
+    io:format("RecordBin: ~p~n",[RecordBin]),
+    io:format("Keys: ~p~n",[Keys]),
+    Results = [ riak_get_raw({RecordBin, Key, C}) || Key <- Keys ],
     [ Object || Object <- Results, Object =/= failure ].
 
 all_by_index(Tab, IndexId, IndexVal) ->
@@ -140,8 +144,8 @@ all_by_index(Tab, IndexId, IndexVal) ->
             {ok, O} -> [riak_object:get_value(O) | Acc];
             {error, notfound} -> Acc end end, [], Keys).
 
-riak_get_raw({RecordBin, Key, Riak}) ->
-    case Riak:get(RecordBin, Key) of
+riak_get_raw({RecordBin, Key, C}) ->
+    case C:get(RecordBin, Key) of
         {ok,O} -> riak_object:get_value(O);
         _ -> failure end.
 
