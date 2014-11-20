@@ -19,7 +19,8 @@ join(Ring) -> riak_core:join(Ring).
 initialize() -> riak:client_connect(node()).
 
 dir() ->
-    {ok,Buckets} = riak_client:list_buckets(),
+    {ok,C}=riak:local_client(),
+    {ok,Buckets} = C:list_buckets(),
     [{table,binary_to_list(X)}||X<-Buckets].
 
 riak_clean(Table) when is_list(Table)->
