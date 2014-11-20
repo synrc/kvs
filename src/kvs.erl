@@ -76,7 +76,8 @@ add(Record) when is_tuple(Record) ->
                             list_to_tuple([CName|proplists:get_value(CName, kvs:containers())]), Cid),
                     NC1 = setelement(#container.entries_count, NC, 0),
 
-                    kvs:put(NC1),NC1;
+                    kvs:put(NC1),
+                    NC1;
 
                 _ -> error end,
 
