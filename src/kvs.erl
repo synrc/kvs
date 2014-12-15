@@ -76,7 +76,8 @@ add(Record) when is_tuple(Record) ->
                             list_to_tuple([CName|proplists:get_value(CName, kvs:containers())]), Cid),
                     NC1 = setelement(#container.entries_count, NC, 0),
 
-                    kvs:put(NC1),NC1;
+                    kvs:put(NC1),
+                    NC1;
 
                 _ -> error end,
 
@@ -196,12 +197,15 @@ traversal(RecordType2, Start, Count, Direction)->
     {ok, R} ->  Prev = element(Direction, R),
                 Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                 [R | traversal(RecordType2, Prev, Count1, Direction)];
-    Error -> [] end.
+    Error -> 
+     io:format("Error: ~p~n",[Error]),
+      [] end.
 
 entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
 entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
 entries({ok, Container}, RecordType, Count) -> entries(Container, RecordType, Count);
 entries(Container, RecordType, Count) when is_tuple(Container) ->
+    io:format("Container: ~p~n",[Container]),
     traversal(RecordType, element(#container.top, Container), Count, #iterator.prev).
 
 entries(RecordType, Start, Count, Direction) ->
