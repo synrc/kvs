@@ -1,5 +1,6 @@
 -module(store_sql).
 -author('Daniil Churikov').
+-license("MIT").
 -compile(export_all).
 -include("sql.hrl").
 -include("metainfo.hrl").
