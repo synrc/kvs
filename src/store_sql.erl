@@ -315,10 +315,10 @@ proplistToRecord(Tag, Proplist) ->
     RecList = [Tag | Vals],
     list_to_tuple(RecList).
 
-convertBindingVal(Val) when is_atom(Val) ->
-    atom_to_binary(Val, utf8);
-convertBindingVal(Val) when is_list(Val) ->
-    list_to_binary(Val);
+convertBindingVal(Val) when is_integer(Val) ->
+    Val;
+convertBindingVal(Val) when is_float(Val) ->
+    Val;
 convertBindingVal(Val) ->
-    Val.
+    term_to_binary(Val).
 
