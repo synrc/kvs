@@ -10,7 +10,7 @@
 
 metainfo() -> 
     #schema{name=kvs,tables=[
-        #table{name=acl,container=true,fields=record_info(fields,acl)},
+        #table{name=acl,container=true,fields=record_info(fields,acl),keys=[id,accessor]},
         #table{name=access,container=acl,fields=record_info(fields,access)}
     ]}.
 
