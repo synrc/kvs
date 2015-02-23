@@ -8,7 +8,7 @@ Features
 
 * Polymorphic Tuples
 * Managing Linked-Lists
-* Various Backends Support: KAI, Mnesia, Riak, CouchDB
+* Various Backends Support: Mnesia, Riak, KAI, Redis
 * Sequential Consistency via Feed Server
 * Basic Schema for Social Sites and Accounting
 * Extendable Schema
@@ -22,7 +22,14 @@ Usage
 
 In rebar.config:
 
+```erlang
     {kvs, ".*", {git, "git://github.com/synrc/kvs", "HEAD"}}
+```
+
+Redis also need to add:
+```erlang
+    {eredis, ".*", {git, "git://github.com/wooga/eredis", {tag, "v1.0.6"} }}
+```
 
 Overview
 --------
@@ -64,6 +71,7 @@ Currently kvs includes following store backends:
 * Mnesia
 * Riak
 * KAI
+* Redis
 
 Configuring
 -----------
@@ -90,6 +98,7 @@ Create database for single node:
 3> kvs:join().
 [kvs] Mnesia Init
 ok
+```
 
 You can also create database by joining to existing cluster:
 
@@ -209,7 +218,7 @@ Extending Schema
 ----------------
 
 Usually you need only specify custom mnesia indexes and tables tuning.
-Riak and KAI backends don't need it. Group you table into table packages
+Riak, KAI and Redis backends don't need it. Group you table into table packages
 represented as modules with handle_notice API.
 
 ```erlang
@@ -298,5 +307,6 @@ Credits
 * Vladimir Kirillov
 * Alex Kalenuk
 * Sergey Polkovnikov
+* Andrey Martemyanov
 
 OM A HUM
