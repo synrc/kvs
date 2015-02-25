@@ -21,7 +21,7 @@ join(Node) ->
 change_storage(Table,Type) -> mnesia:change_table_copy_type(Table, node(), Type).
 
 initialize() ->
-    kvs:info(?MODULE,"[store_mnesia] mnesia init.~n",[]),
+    kvs:info(?MODULE,"mnesia init.~n",[]),
     mnesia:create_schema([node()]),
     [ kvs:init(store_mnesia,Module) || Module <- kvs:modules() ],
     mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity).
@@ -35,23 +35,25 @@ get(RecordName, Key) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
 put(Record) -> put([Record]).
 delete(Tab, Key) ->
-    case mnesia:transaction(fun()-> mnesia:delete({Tab, Key}) end) of
+    case mnesia:activity(context(),fun()-> mnesia:delete({Tab, Key}) end) of
         {aborted,Reason} -> {error,Reason};
         {atomic,_Result} -> ok end.
 count(RecordName) -> mnesia:table_info(RecordName, size).
 all(R) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end)).
 next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
-many(Fun) -> case mnesia:transaction(Fun) of {atomic, R} -> R; _ -> [] end.
-void(Fun) -> case mnesia:transaction(Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error} end.
-create_table(Name,Options) -> 
+many(Fun) -> case mnesia:activity(context(),Fun) of {atomic, R} -> R; X -> X; _ -> [] end.
+void(Fun) -> case mnesia:activity(context(),Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error}; X -> X end.
+create_table(Name,Options) ->
     X = mnesia:create_table(Name, Options),
-    kvs:info("Create table ~p ~nOptions ~p~nReturn ~p~n",[Name, Options,X]),
+    kvs:info(?MODULE,"Create table ~p ~nOptions ~p~nReturn ~p~n",[Name, Options,X]),
     X.
 add_table_index(Record, Field) -> mnesia:add_table_index(Record, Field).
-exec(Q) -> F = fun() -> qlc:e(Q) end, {atomic, Val} = mnesia:transaction(F), Val.
+exec(Q) -> F = fun() -> qlc:e(Q) end, {atomic, Val} = mnesia:activity(context(),F), Val.
 just_one(Fun) ->
-    case mnesia:transaction(Fun) of
+    case mnesia:activity(context(),Fun) of
         {atomic, []} -> {error, not_found};
         {atomic, [R]} -> {ok, R};
         {atomic, [_|_]} -> {error, duplicated};
         Error -> Error end.
+
+context() -> kvs:config(kvs,mnesia_context,transaction).
