@@ -59,6 +59,9 @@ add(Record) when is_tuple(Record) ->
 
     Id = element(#iterator.id, Record),
 
+    Res = kvs:get(element(1,Record), Id),
+    io:format("BREAK: ~p~n",[Res]),
+
     case kvs:get(element(1,Record), Id) of
         {error, not_found} ->
 

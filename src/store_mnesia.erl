@@ -54,6 +54,9 @@ just_one(Fun) ->
         {atomic, []} -> {error, not_found};
         {atomic, [R]} -> {ok, R};
         {atomic, [_|_]} -> {error, duplicated};
+        [] -> {error, not_found};
+        [R] -> {ok,R};
+        [_|_] -> {error, duplicated};
         Error -> Error end.
 
-context() -> kvs:config(kvs,mnesia_context,transaction).
+context() -> kvs:config(kvs,mnesia_context,async_dirty).
