@@ -260,6 +260,7 @@ delete(Tab, Key) -> DBA=?DBA,DBA:delete(Tab, Key).
 count(RecordName) -> DBA=?DBA,DBA:count(RecordName).
 all(RecordName) -> DBA=?DBA,DBA:all(RecordName).
 index(RecordName, Key, Value) -> DBA=?DBA,DBA:index(RecordName, Key, Value).
+next_id(RecordName) -> next_id(RecordName, 1).
 next_id(RecordName, Incr) -> DBA=?DBA,DBA:next_id(RecordName, Incr).
 
 save_db(Path) ->
