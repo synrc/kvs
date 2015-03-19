@@ -63,7 +63,7 @@ delete(RecordName,Key) ->
         {ok,<<"1">>} -> ok;
         E -> {error, E} end.
 count(RecordName) -> length(redis_keys(RecordName)).
-all(RecordName) -> 
+all(RecordName) ->
     Keys = redis_keys(RecordName),
     List = redis_transaction(fun() -> [redis_get(Key) || Key <- Keys] end),
     case RecordName of

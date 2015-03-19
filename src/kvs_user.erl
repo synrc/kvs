@@ -6,7 +6,7 @@
 -include("metainfo.hrl").
 -compile(export_all).
 
-metainfo() -> 
+metainfo() ->
     #schema{name=kvs,tables=[
         #table{name=user2,container=feed,fields=record_info(fields,user2)},
         #table{name=user,container=feed,fields=record_info(fields,user),
@@ -21,6 +21,6 @@ handle_notice([kvs_user, user, Owner, delete], [#user{}=U], #state{owner=Owner}=
     kvs:info(?MODULE,"[kvs_user] delete user: ~p", [U]),
     {noreply, State};
 
-handle_notice(_Route, _Message, State) -> 
+handle_notice(_Route, _Message, State) ->
     kvs:info(?MODULE,"[kvs_user] unknown notice."),
     {noreply, State}.
