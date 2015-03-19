@@ -11,7 +11,7 @@ start() -> kai:start(), ok.
 stop() -> kai_store:stop(), ok.
 version() -> {version,"KVS KAI"}.
 join() -> initialize(), ok.
-join(Node) -> initialize(), ok.
+join(_Node) -> initialize(), ok.
 initialize() -> ok.
 dir() -> [{table,T}||T<-kvs:modules()].
 
@@ -24,7 +24,7 @@ kai_put(Record) ->
         vector_clocks = vclock:fresh(), value = Record },
     kai_store:put(Data).
 
-update(Record, Object) -> ok.
+update(_Record, _Object) -> ok.
 
 get(Tab, Key) ->
     Data = #data{key=Key,bucket=table_to_num(Tab)},
@@ -56,7 +56,7 @@ all(RecordName) ->
     {list_of_data,List} = kai_store:list(table_to_num(RecordName)),
     [ begin {ok,Val}=kai_get(Data),Val end || Data <- List ].
 
-all_by_index(Tab, IndexId, IndexVal) -> [].
+all_by_index(_Tab, _IndexId, _IndexVal) -> [].
 
 table_to_num(user)         -> 10;
 table_to_num(subscription) -> 11;
