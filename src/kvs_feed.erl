@@ -8,7 +8,7 @@
 -include("metainfo.hrl").
 -include("state.hrl").
 
-metainfo() -> 
+metainfo() ->
     #schema{name=kvs,tables=[
         #table{name=entry,container=true,fields=record_info(fields,entry)},
         #table{name=comment,container=true,fields=record_info(fields,comment)},

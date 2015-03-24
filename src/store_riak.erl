@@ -143,7 +143,7 @@ next_id(CounterId, Incr) -> next_id(CounterId, 0, Incr).
 next_id(CounterId, Default, Incr) ->
     {ok,C}=riak:local_client(),
     CounterBin = key_to_bin(CounterId),
-    {Object, Value, Options} =
+    {Object, Value, _Options} =
         case C:get(key_to_bin(id_seq), CounterBin) of
             {ok, CurObj} ->
                 R = #id_seq{id = CurVal} = riak_object:get_value(CurObj),

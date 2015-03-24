@@ -8,13 +8,13 @@
 -include("group.hrl").
 -include("feed.hrl").
 
-metainfo() -> 
+metainfo() ->
     #schema{name=kvs,tables=[
         #table{name=acl,container=true,fields=record_info(fields,acl),keys=[id,accessor]},
         #table{name=access,container=acl,fields=record_info(fields,access)}
     ]}.
 
-define_access(Accessor, Resource, Action) -> 
+define_access(Accessor, Resource, Action) ->
     Entry = #access{ id={Accessor, Resource}, accessor=Accessor, action=Action},
     case kvs:add(Entry) of
         {error, exist} -> kvs:put(Entry#access{action=Action});

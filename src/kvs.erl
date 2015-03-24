@@ -59,6 +59,8 @@ add(Record) when is_tuple(Record) ->
 
     Id = element(#iterator.id, Record),
 
+    kvs:get(element(1,Record), Id),
+
     case kvs:get(element(1,Record), Id) of
         {error, not_found} ->
 
@@ -87,7 +89,7 @@ add(Record) when is_tuple(Record) ->
                     Next = undefined,
                     Prev = case element(#container.top, Container) of
                         undefined -> undefined;
-                        Tid -> 
+                        Tid ->
                             case kvs:get(Type, Tid) of
                             {error, not_found} -> undefined;
                             {ok, Top} ->
@@ -197,7 +199,7 @@ traversal(RecordType2, Start, Count, Direction)->
     {ok, R} ->  Prev = element(Direction, R),
                 Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                 [R | traversal(RecordType2, Prev, Count1, Direction)];
-    Error -> 
+    Error ->
      io:format("Error: ~p~n",[Error]),
       [] end.
 
@@ -228,14 +230,14 @@ table_type(A) -> A.
 
 range(RecordName,Id) -> Ranges = kvs:config(RecordName), find(Ranges,RecordName,Id).
 
-find([],_,Id) -> [];
-find([Range|T],RecordName,Id) -> 
+find([],_,_Id) -> [];
+find([Range|T],RecordName,Id) ->
      case lookup(Range,Id) of
           [] -> find(T,RecordName,Id);
           Name -> Name end.
 
 lookup(#interval{left=Left,right=Right,name=Name},Id) when Id =< Right, Id >= Left -> Name;
-lookup(#interval{},Id) -> [].
+lookup(#interval{},_Id) -> [].
 
 get(RecordName, Key) ->
     DBA=?DBA,

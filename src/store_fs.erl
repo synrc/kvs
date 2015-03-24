@@ -9,8 +9,8 @@ start()    -> ok.
 stop()     -> ok.
 destroy()  -> ok.
 version()  -> {version,"KVS FS"}.
-dir()      -> filelib:fold_files("data", "",true, fun(A,Acc)-> [{table,A}|Acc] end, []).
-join()     -> ensure_dir("data").
+dir()      -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
+join()     -> filelib:ensure_dir("data/").
 join(Node) -> ok. % should be rsync or smth
 change_storage(Table,Type) -> ok.
 
@@ -20,30 +20,28 @@ initialize() ->
     [ kvs:init(store_fs,Module) || Module <- kvs:modules() ],
     mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity).
 
-index(Tab,Key,Value) ->
-    Table = kvs:table(Tab),
-    Index = string:str(Table#table.fields,[Key]),
-    lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Index+1) end)).
+index(Tab,Key,Value) -> ok.
+get(TableName, Key) ->
+    HashKey = wf:url_encode(base64:encode(crypto:sha(term_to_binary(Key)))),
+    Dir = lists:concat(["data/",TableName,"/"]),
+    case file:read_file(lists:concat([Dir,HashKey])) of
+         {ok,Binary} -> {ok,binary_to_term(Binary,[safe])};
+         {error,Reason} -> {error,Reason} end.
 
-get(RecordName, Key) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
-put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
-put(Record) -> put([Record]).
-delete(Tab, Key) ->
-    case mnesia:transaction(fun()-> mnesia:delete({Tab, Key}) end) of
-        {aborted,Reason} -> {error,Reason};
-        {atomic,_Result} -> ok end.
+put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
+put(Record) ->
+    TableName = element(1,Record),
+    HashKey = wf:url_encode(base64:encode(crypto:sha(term_to_binary(element(2,Record))))),
+    BinaryValue = term_to_binary(Record),
+    Dir = lists:concat(["data/",TableName,"/"]),
+    filelib:ensure_dir(Dir),
+    File = lists:concat([Dir,HashKey]),
+    io:format("File: ~p~n",[File]),
+    file:write_file(File,BinaryValue,[write,raw,binary,exclusive,sync]).
+
+delete(Tab, Key) -> ok.
 count(RecordName) -> length(filelib:fold_files(lists:concat(["data/",RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, [])).
-all(R) -> filelib:fold_files(lists:concat(["data/",RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, []).
+all(R) -> filelib:fold_files(lists:concat(["data/",R]), "",true, fun(A,Acc)-> [A|Acc] end, []).
 next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
-create_table(Name,Options) ->
-    X = mnesia:create_table(Name, Options),
-    kvs:info("Create table ~p ~nOptions ~p~nReturn ~p~n",[Name, Options,X]),
-    X.
-add_table_index(Record, Field) -> mnesia:add_table_index(Record, Field).
-exec(Q) -> F = fun() -> qlc:e(Q) end, {atomic, Val} = mnesia:transaction(F), Val.
-just_one(Fun) ->
-    case mnesia:transaction(Fun) of
-        {atomic, []} -> {error, not_found};
-        {atomic, [R]} -> {ok, R};
-        {atomic, [_|_]} -> {error, duplicated};
-        Error -> Error end.
+create_table(Name,Options) -> filelib:ensure_dir(lists:concat(["data/",Name,"/"])).
+add_table_index(Record, Field) -> ok.
