@@ -9,5 +9,7 @@
 -record(container, {?CONTAINER}).
 -record(iterator,  {?ITERATOR(undefined)}).
 -record(interval, {left,right,name}).
+-record(log, {?CONTAINER, name, acc}).
+-record(operation, {?ITERATOR(log), body, name}).
 
 -endif.

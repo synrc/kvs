@@ -29,6 +29,7 @@ join() -> DBA = ?DBA, DBA:join().
 join(Node) -> DBA = ?DBA, DBA:join(Node).
 init(Backend, Module) ->
     [ begin
+        io:format("Creating table: ~p~n",[T]),
         Backend:create_table(T#table.name, [{attributes,T#table.fields},{T#table.copy_type, [node()]}]),
         [ Backend:add_table_index(T#table.name, Key) || Key <- T#table.keys ],
         T
