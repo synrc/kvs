@@ -206,8 +206,10 @@ traversal(RecordType2, Start, Count, Direction)->
 
 entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
 entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
+entries({error, Reason}, RecordType, Count) -> [];
 entries({ok, Container}, RecordType, Count) -> entries(Container, RecordType, Count);
 entries(Container, RecordType, Count) when is_tuple(Container) ->
+    io:format("entries: ~p~n",[{Container, RecordType, Count}]),
     traversal(RecordType, element(#container.top, Container), Count, #iterator.prev).
 
 entries(RecordType, Start, Count, Direction) ->
