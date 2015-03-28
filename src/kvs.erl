@@ -14,7 +14,7 @@
 -export([start/0,stop/0]).                                        % service
 -export([destroy/0,join/0,join/1,init/2]).                        % schema change
 -export([modules/0,containers/0,tables/0,table/1,version/0]).     % meta info
--export([create/1,add/1,remove/2,remove/1]).                      % chain ops
+-export([create/1,add/1,link/1,remove/2,remove/1]).               % chain ops
 -export([put/1,delete/2,next_id/2]).                              % raw ops
 -export([get/2,get/3,index/3]).                                   % read ops
 -export([load_db/1,save_db/1]).                                   % import/export
@@ -50,7 +50,7 @@ create(ContainerName) -> create(ContainerName, kvs:next_id(atom_to_list(Containe
 create(ContainerName, Id) ->
     kvs:info(?MODULE,"Create: ~p",[ContainerName]),
     Instance = list_to_tuple([ContainerName|proplists:get_value(ContainerName, kvs:containers())]),
-    Top = setelement(#container.id,Instance,Id),
+    Top  = setelement(#container.id,Instance,Id),
     Top2 = setelement(#container.top,Top,undefined),
     Top3 = setelement(#container.count,Top2,0),
     ok = kvs:put(Top3),
@@ -169,17 +169,15 @@ traversal(RecordType2, Start, Count, Direction)->
      io:format("Error: ~p~n",[Error]),
       [] end.
 
-entries(Name) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, undefined).
-entries(Name, Count) -> Table = kvs:table(Name), entries(kvs:get(Table#table.container,Name), Name, Count).
-entries({error, Reason}, RecordType, Count) -> [];
-entries({ok, Container}, RecordType, Count) -> entries(Container, RecordType, Count);
-entries(Container, RecordType, Count) when is_tuple(Container) ->
-    io:format("entries: ~p~n",[{Container, RecordType, Count}]),
-    traversal(RecordType, element(#container.top, Container), Count, #iterator.prev).
-
-entries(RecordType, Start, Count, Direction) ->
-    E = traversal(RecordType, Start, Count, Direction),
-    case Direction of #iterator.next -> lists:reverse(E); #iterator.prev -> E end.
+entries(N)                  -> entries(N, undefined).
+entries(N,C)                -> T = kvs:table(N), entries(kvs:get(T#table.container,N), N, C).
+entries({error,_},_,_)      -> [];
+entries({ok,Container},N,C) -> entries(Container,N,C);
+entries(T,N,C)              -> traversal(N,element(#container.top,T),C,#iterator.prev).
+entries(N, Start, Count, Direction) ->
+    E = traversal(N, Start, Count, Direction),
+    case Direction of #iterator.next -> lists:reverse(E);
+                      #iterator.prev -> E end.
 
 add_seq_ids() ->
     Init = fun(Key) ->
