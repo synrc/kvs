@@ -48,7 +48,7 @@ containers() ->
 create(ContainerName) -> create(ContainerName, kvs:next_id(atom_to_list(ContainerName), 1)).
 
 create(ContainerName, Id) ->
-    wf:info("kvs:create: ~p",[ContainerName]),
+    kvs:info(?MODULE,"Create: ~p",[ContainerName]),
     Instance = list_to_tuple([ContainerName|proplists:get_value(ContainerName, kvs:containers())]),
     Top = setelement(#container.id,Instance,Id),
     Top2 = setelement(#container.top,Top,undefined),
@@ -56,72 +56,73 @@ create(ContainerName, Id) ->
     ok = kvs:put(Top3),
     Id.
 
-add(Record) when is_tuple(Record) ->
+ensure_link(Record) ->
 
-    Id = element(#iterator.id, Record),
+    Id    = element(2,Record),
+    Type  = table_type(element(1,Record)),
+    CName = element(#iterator.container, Record),
+    Cid   = table_type(case element(#iterator.feed_id, Record) of
+               undefined -> element(1,Record);
+                     Fid -> Fid end),
 
-    kvs:get(element(1,Record), Id),
+    Container = case kvs:get(CName, Cid) of
+        {ok,C} -> C;
+        {error, not_found} when Cid /= undefined ->
+                NC = setelement(#container.id,
+                      list_to_tuple([CName|
+                            proplists:get_value(CName, kvs:containers())]), Cid),
+                NC1 = setelement(#container.entries_count, NC, 0),
+                kvs:put(NC1),
+                NC1;
+        _ -> error end,
 
-    case kvs:get(element(1,Record), Id) of
-        {error, not_found} ->
+    case Container of
+              error -> {error, no_container};
+                  _ -> Next = undefined,
+                       Prev = case element(#container.top, Container) of
+                                   undefined -> undefined;
+                                   Tid -> case kvs:get(Type, Tid) of
+                                              {error, not_found} -> undefined;
+                                                       {ok, Top} ->
+                                        NewTop = setelement(#iterator.next, Top, Id),
+                                        kvs:put(NewTop),
+                                        element(#iterator.id, NewTop) end end,
 
-            Type = table_type(element(1,Record)),
-            CName = element(#iterator.container, Record),
-            Cid = table_type(case element(#iterator.feed_id, Record) of
-                undefined -> element(1,Record);
-                Fid -> Fid end),
+                       C1 = setelement(#container.top, Container, Id),
+                       C2 = setelement(#container.entries_count, C1,
+                                element(#container.entries_count, Container)+1),
 
-            Container = case kvs:get(CName, Cid) of
-                {ok,C} -> C;
-                {error, not_found} when Cid /= undefined ->
+                       kvs:put(C2), % Container
 
-                    NC = setelement(#container.id,
-                            list_to_tuple([CName|proplists:get_value(CName, kvs:containers())]), Cid),
-                    NC1 = setelement(#container.entries_count, NC, 0),
-
-                    kvs:put(NC1),
-                    NC1;
-
-                _ -> error end,
-
-            if  Container == error -> {error, no_container};
-                true ->
-
-                    Next = undefined,
-                    Prev = case element(#container.top, Container) of
-                        undefined -> undefined;
-                        Tid ->
-                            case kvs:get(Type, Tid) of
-                            {error, not_found} -> undefined;
-                            {ok, Top} ->
-                                NewTop = setelement(#iterator.next, Top, Id),
-                                kvs:put(NewTop),
-                                element(#iterator.id, NewTop) end end,
-
-                    C1 = setelement(#container.top, Container, Id),
-                    C2 = setelement(#container.entries_count, C1,
-                            element(#container.entries_count, Container)+1),
-
-                    kvs:put(C2),
-
-                    R  = setelement(#iterator.feeds, Record,
+                       R  = setelement(#iterator.feeds, Record,
                             [ case F1 of
                                 {FN, Fd} -> {FN, Fd};
                                 _-> {F1, kvs:create(CName,{F1,element(#iterator.id,Record)})}
                               end || F1 <- element(#iterator.feeds, Record)]),
 
-                    R1 = setelement(#iterator.next,    R,  Next),
-                    R2 = setelement(#iterator.prev,    R1, Prev),
-                    R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
+                       R1 = setelement(#iterator.next,    R,  Next),
+                       R2 = setelement(#iterator.prev,    R1, Prev),
+                       R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
 
-                    kvs:put(R3),
+                       kvs:put(R3), % Iterator
 
-                    kvs:info(?MODULE,"[kvs] put: ~p~n", [element(#container.id,R3)]),
+                       kvs:info(?MODULE,"Put: ~p~n", [element(#container.id,R3)]),
 
                     {ok, R3}
-            end;
-        {aborted, Reason} -> kvs:info(?MODULE,"[kvs] aborted: ~p~n", [Reason]), {aborted, Reason};
-        {ok, _} -> kvs:info(?MODULE,"[kvs] entry exist while put: ~p~n", [Id]), {error, exist} end.
+            end.
+
+link(Record) ->
+    Id = element(#iterator.id, Record),
+    case kvs:get(element(1,Record), Id) of
+              {ok, Exists} -> ensure_link(Exists);
+        {error, not_found} -> {error, not_found} end.
+
+add(Record) when is_tuple(Record) ->
+    Id = element(#iterator.id, Record),
+    case kvs:get(element(1,Record), Id) of
+        {error, not_found} -> ensure_link(Record);
+         {aborted, Reason} -> {aborted, Reason};
+                   {ok, _} -> {error, exist} end.
 
 remove(RecordName, RecordId) ->
     case kvs:get(RecordName, RecordId) of
