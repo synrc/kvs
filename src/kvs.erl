@@ -52,7 +52,7 @@ create(ContainerName, Id) ->
     Instance = list_to_tuple([ContainerName|proplists:get_value(ContainerName, kvs:containers())]),
     Top = setelement(#container.id,Instance,Id),
     Top2 = setelement(#container.top,Top,undefined),
-    Top3 = setelement(#container.entries_count,Top2,0),
+    Top3 = setelement(#container.count,Top2,0),
     ok = kvs:put(Top3),
     Id.
 
@@ -66,19 +66,21 @@ ensure_link(Record) ->
                      Fid -> Fid end),
 
     Container = case kvs:get(CName, Cid) of
-        {ok,C} -> C;
+        {ok,Res} -> Res;
         {error, not_found} when Cid /= undefined ->
                 NC = setelement(#container.id,
                       list_to_tuple([CName|
                             proplists:get_value(CName, kvs:containers())]), Cid),
-                NC1 = setelement(#container.entries_count, NC, 0),
+                NC1 = setelement(#container.count, NC, 0),
                 kvs:put(NC1),
                 NC1;
         _ -> error end,
 
     case Container of
               error -> {error, no_container};
-                  _ -> Next = undefined,
+        _ when element(#container.top,Container) == Id -> {error,just_added};
+                  _ ->
+                       Next = undefined,
                        Prev = case element(#container.top, Container) of
                                    undefined -> undefined;
                                    Tid -> case kvs:get(Type, Tid) of
@@ -89,8 +91,8 @@ ensure_link(Record) ->
                                         element(#iterator.id, NewTop) end end,
 
                        C1 = setelement(#container.top, Container, Id),
-                       C2 = setelement(#container.entries_count, C1,
-                                element(#container.entries_count, Container)+1),
+                       C2 = setelement(#container.count, C1,
+                                element(#container.count, Container)+1),
 
                        kvs:put(C2), % Container
 
@@ -152,7 +154,7 @@ remove(RecordName, RecordId) ->
                     _ -> ok end,
 
             C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
-            C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
+            C2 = setelement(#container.count, C1, element(#container.count, Container)-1),
 
             kvs:put(C2),
 
@@ -183,7 +185,7 @@ remove(E) when is_tuple(E) ->
         _ -> ok end,
 
       C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
-      C2 = setelement(#container.entries_count, C1, element(#container.entries_count, Container)-1),
+      C2 = setelement(#container.count, C1, element(#container.count, Container)-1),
 
       kvs:put(C2);
 
