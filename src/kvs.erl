@@ -126,74 +126,36 @@ add(Record) when is_tuple(Record) ->
          {aborted, Reason} -> {aborted, Reason};
                    {ok, _} -> {error, exist} end.
 
-remove(RecordName, RecordId) ->
-    case kvs:get(RecordName, RecordId) of
-        {error, not_found} -> kvs:error("[kvs] can't remove ~p~n",[{RecordName,RecordId}]);
-        {ok, E} ->
+reverse(#iterator.prev) -> #iterator.next;
+reverse(#iterator.next) -> #iterator.prev.
 
-            Id = element(#iterator.id, E),
-            CName = element(#iterator.container, E),
-            Cid = element(#iterator.feed_id, E),
+relink(Container, E) ->
+    Id   = element(#iterator.id, E),
+    Next = element(#iterator.next, E),
+    Prev = element(#iterator.prev, E),
+    Top  = element(#container.top, Container),
+    case kvs:get(element(1,E), Prev) of
+         {ok, PE} -> kvs:put(setelement(#iterator.next, PE, Next));
+         _ -> ok end,
+    case kvs:get(element(1,E), Next) of
+         {ok, NE} -> kvs:put(setelement(#iterator.prev, NE, Prev));
+                _ -> ok end,
+    C  = case Top of
+               Id -> setelement(#container.top, Container, Prev);
+                _ -> Container end,
+    kvs:put(setelement(#container.count,C,element(#container.count,C)-1)).
 
-            {ok, Container} = kvs:get(CName, Cid),
-            Top = element(#container.top, Container),
+remove(Record,Id) ->
+    case kvs:get(Record,Id) of
+         {error, not_found} -> kvs:error("Can't remove ~p~n",[{Record,Id}]);
+                     {ok,R} -> remove(R) end.
 
-            Next = element(#iterator.next, E),
-            Prev = element(#iterator.prev, E),
-
-            case kvs:get(RecordName, Next) of
-                {ok, NE} ->
-                    NewNext = setelement(#iterator.prev, NE, Prev),
-                    kvs:put(NewNext);
-                    _ -> ok end,
-
-            case kvs:get(RecordName, Prev) of
-                {ok, PE} ->
-                    NewPrev = setelement(#iterator.next, PE, Next),
-                    kvs:put(NewPrev);
-                    _ -> ok end,
-
-            C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
-            C2 = setelement(#container.count, C1, element(#container.count, Container)-1),
-
-            kvs:put(C2),
-
-            kvs:info(?MODULE,"[kvs] delete: ~p id: ~p~n", [RecordName, Id]),
-
-            kvs:delete(RecordName, Id) end.
-
-remove(E) when is_tuple(E) ->
-
-    Id    = element(#iterator.id, E),
-    CName = element(#iterator.container, E),
-    Cid   = element(#iterator.feed_id, E),
-
-    case kvs:get(CName, Cid) of {ok, Container} ->
-      Top   = element(#container.top, Container),
-      Next  = element(#iterator.next, E),
-      Prev  = element(#iterator.prev, E),
-
-      case kvs:get(element(1,E), Next) of
-        {ok, NE} ->
-            NewNext = setelement(#iterator.prev, NE, Prev),
-            kvs:put(NewNext); _ -> ok end,
-
-      case kvs:get(element(1,E), Prev) of
-        {ok, PE} ->
-            NewPrev = setelement(#iterator.next, PE, Next),
-            kvs:put(NewPrev);
-        _ -> ok end,
-
-      C1 = case Top of Id -> setelement(#container.top, Container, Prev); _ -> Container end,
-      C2 = setelement(#container.count, C1, element(#container.count, Container)-1),
-
-      kvs:put(C2);
-
-    _ -> skip end,
-
-    kvs:info(?MODULE,"[kvs] delete: ~p", [Id]),
-
-    kvs:delete(element(1,E), Id).
+remove(E) ->
+    case kvs:get(element(#iterator.container,E),element(#iterator.feed_id,E)) of
+         {ok, Container} -> relink(Container,E);
+                       _ -> skip end,
+    kvs:info(?MODULE,"Delete: ~p", [E]),
+    kvs:delete(element(1,E),element(2,E)).
 
 traversal( _,undefined,_,_) -> [];
 traversal(_,_,0,_) -> [];
