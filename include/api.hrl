@@ -24,7 +24,6 @@
 
 -spec create(Container :: atom()) -> integer().
 -spec add(Record :: tuple()) -> {ok,tuple()} | {error,exist} | {error,no_container}.
--spec remove(Record :: tuple()) -> ok | {error,any()}.
 -spec remove(Tab :: atom(), Key :: any()) -> ok | {error,any()}.
 
 % raw ops
