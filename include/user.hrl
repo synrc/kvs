@@ -1,3 +1,6 @@
+-ifndef(USER_HRL).
+-define(USER_HRL, true).
+
 -include("kvs.hrl").
 
 -record(user, {?ITERATOR(feed, true),
@@ -24,3 +27,5 @@
         password,
         zone,
         type }).
+
+-endif.

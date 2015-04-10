@@ -1,3 +1,6 @@
+-ifndef(GROUP_HRL).
+-define(GROUP_HRL, true).
+
 -include("kvs.hrl").
 
 -record(group,{?ITERATOR(feed, true),
@@ -9,3 +12,5 @@
         owner,
         users_count = 0 :: integer(),
         entries_count = 0}).
+
+-endif.

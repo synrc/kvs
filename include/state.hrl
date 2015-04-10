@@ -1,3 +1,5 @@
+-ifndef(KVS_STATE_HRL).
+-define(KVS_STATE_HRL, true).
 
 -record(state, {
         owner = "feed_owner",
@@ -5,3 +7,5 @@
         feeds = [],
         callback,
         cached_feeds=[]}).
+
+-endif.

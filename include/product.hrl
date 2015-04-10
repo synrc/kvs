@@ -1,3 +1,6 @@
+-ifndef(PRODUCT_HRL).
+-define(PRODUCT_HRL, true).
+
 -include("kvs.hrl").
 
 -record(product, {?ITERATOR(feed, true),
@@ -20,3 +23,5 @@
         for_sale               :: boolean(),
         created                :: calendar:date_time(), % auto
         modify_date            :: calendar:date_time() }).
+
+-endif.

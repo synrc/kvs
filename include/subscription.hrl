@@ -1,3 +1,5 @@
+-ifndef(SUBSCRIPTION_HRL).
+-define(SUBSCRIPTION_HRL, true).
 
 -record(subscription,{
         key,
@@ -7,3 +9,5 @@
         how,
         date,
         note}).
+
+-endif.

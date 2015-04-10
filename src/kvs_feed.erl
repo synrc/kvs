@@ -6,7 +6,6 @@
 -include("comment.hrl").
 -include("feed.hrl").
 -include("metainfo.hrl").
--include("state.hrl").
 -include("kvs.hrl").
 
 metainfo() ->

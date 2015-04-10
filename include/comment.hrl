@@ -1,3 +1,6 @@
+-ifndef(COMMENT_HRL).
+-define(COMMENT_HRL, true).
+
 -include("kvs.hrl").
 
 -record(comment, {?ITERATOR(feed), % {comment_id, entry_id, feed_id}
@@ -8,3 +11,5 @@
         created,
         media = [],
         parent}).
+
+-endif.

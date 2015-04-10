@@ -17,7 +17,6 @@
 
 -include("config.hrl").
 -include("metainfo.hrl").
--include("state.hrl").
 -include("user.hrl").
 -include("subscription.hrl").
 -include("feed.hrl").

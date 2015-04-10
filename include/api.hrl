@@ -1,3 +1,6 @@
+-ifndef(API_HRL).
+-define(API_HRL, true).
+
 -include("metainfo.hrl").
 
 % exports
@@ -52,3 +55,5 @@
 
 -spec load_db(Path :: string()) -> list(ok | {error,any()}).
 -spec save_db(Path :: string()) -> ok | {error,any()}.
+
+-endif.

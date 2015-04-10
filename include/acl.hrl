@@ -1,3 +1,6 @@
+-ifndef(ACL_HRL).
+-define(ACL_HRL, true).
+
 -include("kvs.hrl").
 
 -record(acl, {?CONTAINER}).
@@ -7,3 +10,5 @@
         acl_id,
         accessor,
         action}).
+
+-endif.

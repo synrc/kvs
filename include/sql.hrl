@@ -1,3 +1,6 @@
+-ifndef(MEKAO_HRL).
+-define(MEKAO_HRL, true).
+
 -include("metainfo.hrl").
 
 % MEKAO SQL
@@ -43,3 +46,4 @@
     predicate/1
 ]).
 
+-endif.
