@@ -38,33 +38,9 @@ We have built with KVS a number of applications and came up with schema samples.
 We grouped schemas by three category. KVS hides database access behind backend drivers
 and provides high-level rich API to stored and extend following data:
 
-### Core
-
-* Acl
-* Users
-* Subscriptions
-* Feeds
-* Entries
-* Comments
-
-### Banking
-
-* Account
-* Customer
-* Transaction
-* Item
-* Currency
-* Program
-* Card
-* Cashback
-
-### Social
-
-* Group
-* Meeting
-* Payment
-* Product
-* Purchase
+* **Core** — Acl, Users, Subscriptions, Feeds, Entries, Comments
+* **Banking** — Account, Customer, Transaction, Item, Currency, Program, Card, Cashback
+* **Social** — Group, Meeting, Payment, Product, Purchase
 
 Applications
 ------------
