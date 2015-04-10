@@ -11,5 +11,8 @@
 -record(interval,  {left,right,name}).
 -record(log,       {?CONTAINER, name, acc}).
 -record(operation, {?ITERATOR(log), body, name, status}).
+-record(kvs,       {mod,cx}).
+
+-compile({no_auto_import,[put/2]}).
 
 -endif.
