@@ -2,29 +2,8 @@
 -copyright('Synrc Research Center s.r.o.').
 -compile(export_all).
 
--include("api.hrl").
--include("config.hrl").
--include("metainfo.hrl").
--include("state.hrl").
 -include("kvs.hrl").
--include("user.hrl").
--include("subscription.hrl").
--include("feed.hrl").
--include("entry.hrl").
--include("comment.hrl").
--include("group.hrl").
--include("acl.hrl").
--include_lib("stdlib/include/qlc.hrl").
-
-% NOTE: API Documentation
-
--export([start/0,stop/0]).                                        % service
--export([destroy/0,join/0,join/1,init/2]).                        % schema change
--export([modules/0,containers/0,tables/0,table/1,version/0]).     % meta info
--export([create/1,add/1,link/1,remove/2]).                        % chain ops
--export([put/1,delete/2,next_id/2]).                              % raw ops
--export([get/2,get/3,index/3]).                                   % read ops
--export([load_db/1,save_db/1]).                                   % import/export
+-include("api.hrl").
 
 % Public Main Backend is given in sys.config and
 % could be obtained with application:get_env(kvs,dba,store_mnesia).
@@ -34,20 +13,22 @@ remove(Table,Key)  -> remove  (Table, Key, #kvs{mod=?DBA}).
 get(Table,Key)     -> get     (Table, Key, #kvs{mod=?DBA}).
 index(Table,K,V)   -> index   (Table, K,V, #kvs{mod=?DBA}).
 next_id(Table,DX)  -> next_id (Table, DX,  #kvs{mod=?DBA}).
+change_storage(Table,Type) -> change_storage(Table,Type, #kvs{mod=?DBA}).
+entries(A,B,C)     -> entries (A,B,C, #kvs{mod=?DBA}).
 join()             -> join    ([],    #kvs{mod=?DBA}).
 join(Node)         -> join    (Node,  #kvs{mod=?DBA}).
 count(Table)       -> count   (Table, #kvs{mod=?DBA}).
 add(Table)         -> add     (Table, #kvs{mod=?DBA}).
 all(Table)         -> all     (Table, #kvs{mod=?DBA}).
-put(Table)         -> put     (Table,#kvs{mod=?DBA}).
-link(Table)        -> link    (Table,#kvs{mod=?DBA}).
-change_storage(Table,Type) -> change_storage(Table,Type,#kvs{mod=?DBA}).
+put(Table)         -> put     (Table, #kvs{mod=?DBA}).
+link(Table)        -> link    (Table, #kvs{mod=?DBA}).
+traversal(T,S,C,D) -> traversal(T,S,C,D, #kvs{mod=?DBA}).
 start()            -> start   (#kvs{mod=?DBA}).
 stop()             -> stop    (#kvs{mod=?DBA}).
 destroy()          -> destroy (#kvs{mod=?DBA}).
 version()          -> version (#kvs{mod=?DBA}).
 dir()              -> dir     (#kvs{mod=?DBA}).
-entries(A,B,C)     -> entries (A,B,C, #kvs{mod=?DBA}).
+
 % Implementation
 
 init(Backend, Module) ->
@@ -261,11 +242,11 @@ load(Key) ->
 
 notify(_EventPath, _Data) -> skip.
 
-config(Key) -> config(kvs, Key, "").
+config(Key)     -> config(kvs, Key, "").
 config(App,Key) -> config(App,Key, "").
 config(App, Key, Default) -> case application:get_env(App,Key) of
-                              undefined -> Default;
-                              {ok,V} -> V end.
+                                  undefined -> Default;
+                                     {ok,V} -> V end.
 
 log_modules() -> [].
 -define(ALLOWED, (config(kvs,log_modules,kvs))).
@@ -275,17 +256,9 @@ log(Module, String, Args, Fun) ->
          true -> error_logger:Fun("~p:"++String, [Module|Args]);
          false -> skip end.
 
-info(Module,String, Args) ->  log(Module,String, Args, info_msg).
-info(String, Args) -> log(?MODULE, String, Args, info_msg).
-info(String) -> log(?MODULE, String, [], info_msg).
-
+info(Module, String,   Args) -> log(Module, String, Args, info_msg).
 warning(Module,String, Args) -> log(Module, String, Args, warning_msg).
-warning(String, Args) -> log(?MODULE, String, Args, warning_msg).
-warning(String) -> log(?MODULE,String, [], warning_msg).
-
-error(Module,String, Args) -> log(Module, String, Args, error_msg).
-error(String, Args) -> log(?MODULE, String, Args, error_msg).
-error(String) -> log(?MODULE, String, [], error_msg).
+error(Module, String,  Args) -> log(Module, String, Args, error_msg).
 
 dump() ->
      io:format("~20w ~20w ~10w ~10w~n",[name,storage_type,memory,size]),

@@ -1,5 +1,16 @@
 -include("metainfo.hrl").
 
+% exports
+
+-export([start/0,stop/0]).                                        % service
+-export([destroy/0,join/0,join/1,init/2]).                        % schema change
+-export([modules/0,containers/0,tables/0,table/1,version/0]).     % meta info
+-export([create/1,add/1,link/1,remove/2]).                        % chain ops
+-export([put/1,delete/2,next_id/2]).                              % raw ops
+-export([get/2,get/3,index/3]).                                   % read ops
+-export([load_db/1,save_db/1]).                                   % import/export
+
+
 % service
 
 -spec start() -> ok | {error,any()}.

@@ -164,15 +164,23 @@ So you can inherit from the ITERATOR record just like that:
 
 The layout of iterators are following:
 
-    1 record_name -- table name, like
-    2 id          -- index key
-    3 container   -- container name
-    4 feed_id     -- feed id
-    5 prev        -- poniter to previous object in list
-    6 next        -- next
-    7 feeds       -- subfeeds
-    8 guard,      -- aux field
-    9 ...
+```erlang
+> lists:zip(lists:seq(1,length((kvs:table(operation))#table.fields)),
+            (kvs:table(operation))#table.fields).
+
+[{1,id},
+ {2,version},
+ {3,container},
+ {4,feed_id},
+ {5,prev},
+ {6,next},
+ {7,feeds},
+ {8,guard},
+ {9,etc},
+ {10,body},
+ {11,name},
+ {12,status}]
+```
 
 This means your table will support add/remove linked list operations to lists.
 
@@ -185,21 +193,16 @@ Read the chain (undefined means all)
 
 ```erlang
 3> kvs:entries(kvs:get(feed, user), user, undefined).
-[#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
-```
-
-or just
-
-```erlang
-4> kvs:entries(user).
-[#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
+[#user{id="mes@ua.fm"},
+ #user{id="dox@ua.fm"}]
 ```
 
 Read flat values by all keys from table:
 
 ```erlang
 4> kvs:all(user).
-[#user{id="mes@ua.fm"},#user{id="dox@ua.fm"}]
+[#user{id="mes@ua.fm"},
+ #user{id="dox@ua.fm"}]
 ```
 
 Containers
@@ -209,10 +212,14 @@ If you are using iterators records this automatically means you are using contai
 Containers are just boxes for storing top/heads of the linked lists. Here is layout
 of containers:
 
-    1 record_name   -- container name
-    2 id            -- unique id
-    3 top           -- pointer to the list's head
-    4 entries_count -- number of elements in list
+```erlang
+> lists:zip(lists:seq(1,length((kvs:table(feed))#table.fields)),
+            (kvs:table(feed))#table.fields).
+[{1,id},
+ {2,top},
+ {3,count},
+ {4,aclver}]
+```
 
 Extending Schema
 ----------------
