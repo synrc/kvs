@@ -152,7 +152,9 @@ All record could be chained into the double-linked lists in the database.
 So you can inherit from the ITERATOR record just like that:
 
 ```erlang
--record(container, {id,top,count}).
+-record(iterator, {id,version,
+                   container,feed_id,prev,
+                   next,feeds=[],guard,etc}).
 ```
 
 The layout of iterators are following:
@@ -206,6 +208,7 @@ Containers are just boxes for storing top/heads of the linked lists. Here is lay
 of containers:
 
 ```erlang
+-record(container, {id,top,count}).
 ```
 
 ```erlang
