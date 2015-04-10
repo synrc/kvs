@@ -14,7 +14,7 @@
 start() -> ok.
 stop() -> ok.
 version() -> {version,"KVS RIAK 2.0.2"}.
-join() -> ok.
+join([]) -> ok;
 join(Ring) -> riak_core:join(Ring).
 initialize() -> riak:client_connect(node()).
 

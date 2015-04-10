@@ -10,8 +10,7 @@ stop()     -> ok.
 destroy()  -> ok.
 version()  -> {version,"KVS FS"}.
 dir()      -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
-join()     -> filelib:ensure_dir("data/").
-join(Node) -> ok. % should be rsync or smth
+join(Node) -> filelib:ensure_dir("data/"). % should be rsync or smth
 change_storage(Table,Type) -> ok.
 
 initialize() ->
@@ -36,13 +35,15 @@ put(Record) ->
     Dir = lists:concat(["data/",TableName,"/"]),
     filelib:ensure_dir(Dir),
     File = lists:concat([Dir,HashKey]),
-    io:format("File: ~p~n",[File]),
     file:write_file(File,BinaryValue,[write,raw,binary,sync]).
 
 delete(Tab, Key) -> ok.
 count(RecordName) -> length(filelib:fold_files(lists:concat(["data/",RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, [])).
-all(R) -> filelib:fold_files(lists:concat(["data/",R]), "",true, fun(A,Acc)-> [A|Acc] end, []).
-next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
+all(R) -> lists:flatten([ begin case file:read_file(File) of
+                        {ok,Binary} -> binary_to_term(Binary,[safe]);
+                        {error,Reason} -> [] end end || File <-
+      filelib:fold_files(lists:concat(["data/",R]), "",true, fun(A,Acc)-> [A|Acc] end, []) ]).
+next_id(RecordName, Incr) -> store_mnesia:next_id(RecordName, Incr).
 create_table(Name,Options) -> filelib:ensure_dir(lists:concat(["data/",Name,"/"])).
 add_table_index(Record, Field) -> ok.
 

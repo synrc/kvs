@@ -10,7 +10,7 @@ stop()     -> mnesia:stop().
 destroy()  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
 version()  -> {version,"KVS MNESIA"}.
 dir()      -> [{table,T}||T<-mnesia:system_info(local_tables)].
-join()     -> mnesia:change_table_copy_type(schema, node(), disc_copies), initialize().
+join([])   -> mnesia:change_table_copy_type(schema, node(), disc_copies), initialize();
 join(Node) ->
     mnesia:change_config(extra_db_nodes, [Node]),
     mnesia:change_table_copy_type(schema, node(), kvs:config(kvs,mnesia_media,disc_copies)),

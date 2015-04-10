@@ -6,16 +6,15 @@
 -include("metainfo.hrl").
 -compile(export_all).
 
-start() -> erase(eredis_pid), {ok,C}=eredis:start_link(), put(eredis_pid,C), ok.
+start() -> erase(eredis_pid), {ok,C}=eredis:start_link(), erlang:put(eredis_pid,C), ok.
 stop() -> P=erase(eredis_pid), eredis:stop(P), ok.
 c() -> case get(eredis_pid) of
     P when is_pid(P) ->
-        case is_process_alive(P) of true -> P; _ -> start(), get(eredis_pid) end;
+        case is_process_alive(P) of true -> P; _ -> start(), erlang:get(eredis_pid) end;
     _ -> start(), get(eredis_pid) end.
 destroy() -> ok.
 version() -> {version,"KVS REDIS"}.
 dir() -> [{table,T}||T<-kvs:modules()].
-join() -> initialize(), ok.
 join(_Node) -> initialize(), ok.
 change_storage(_Table,_Type) -> ok.
 initialize() -> ok.

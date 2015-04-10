@@ -10,7 +10,6 @@
 start() -> kai:start(), ok.
 stop() -> kai_store:stop(), ok.
 version() -> {version,"KVS KAI"}.
-join() -> initialize(), ok.
 join(_Node) -> initialize(), ok.
 initialize() -> ok.
 dir() -> [{table,T}||T<-kvs:modules()].
