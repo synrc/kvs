@@ -145,9 +145,6 @@ as usual indicates the name of bucket. And the second element usually correspond
 to the index key field. Additional secondary indexes could be applied for stores
 that supports 2i, e.g. kai, mnesia, riak.
 
-    1 record_name -- user, groups, acl, etc... table name -- element(1, Rec).
-    2 id          -- index key -- element(2, Rec).
-
 Iterators
 ---------
 
@@ -155,11 +152,7 @@ All record could be chained into the double-linked lists in the database.
 So you can inherit from the ITERATOR record just like that:
 
 ```erlang
--record(access, {?ITERATOR(acl),
-    entry_id,
-    acl_id,
-    accessor,
-    action}).
+-record(container, {id,top,count}).
 ```
 
 The layout of iterators are following:
@@ -211,6 +204,9 @@ Containers
 If you are using iterators records this automatically means you are using containers.
 Containers are just boxes for storing top/heads of the linked lists. Here is layout
 of containers:
+
+```erlang
+```
 
 ```erlang
 > lists:zip(lists:seq(1,length((kvs:table(feed))#table.fields)),
