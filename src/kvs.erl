@@ -1,7 +1,9 @@
 -module(kvs).
 -copyright('Synrc Research Center s.r.o.').
 -compile(export_all).
-
+-include_lib("stdlib/include/qlc.hrl").
+-include("config.hrl").
+-include("metainfo.hrl").
 -include("kvs.hrl").
 -include("api.hrl").
 

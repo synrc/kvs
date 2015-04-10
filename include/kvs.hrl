@@ -15,15 +15,4 @@
 
 -compile({no_auto_import,[put/2]}).
 
--include("config.hrl").
--include("metainfo.hrl").
--include("user.hrl").
--include("subscription.hrl").
--include("feed.hrl").
--include("entry.hrl").
--include("comment.hrl").
--include("group.hrl").
--include("acl.hrl").
--include_lib("stdlib/include/qlc.hrl").
-
 -endif.
