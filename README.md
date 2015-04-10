@@ -31,13 +31,14 @@ Redis also need to add:
     {eredis, ".*", {git, "git://github.com/wooga/eredis", {tag, "v1.0.6"} }}
 ```
 
-Overview
---------
+Models
+------
 
-This is database handling application that hides database access
+We have built with KVS a number of applications and came up with schema samples.
+We grouped schemas by three category. KVS hides database access behind backend drivers
 and provides high-level rich API to stored and extend following data:
 
-KVS
+### Core
 
 * Acl
 * Users
@@ -46,31 +47,46 @@ KVS
 * Entries
 * Comments
 
-KVS SOCIAL
+### Banking
 
-* Groups
-* Meetings
-* Accounts
-* Payments
-* Products
-* Purchases
+* Account
+* Customer
+* Transaction
+* Item
+* Currency
+* Program
+* Card
+* Cashback
 
-This Framework provides also a Feed Server Plugin for sequential consistency.
+### Social
+
+* Group
+* Meeting
+* Payment
+* Product
+* Purchase
+
+Applications
+------------
+
+This Framework provides also a **feed** application for sequential consistency
+and **cr** application for chain replication database on top of **kvs**.
 All write requests with given object key will be handled by single processes
-in Feed Server so you may not worry about concurrent changes of user feed tops.
+so you may not worry about concurrent changes of user feed tops.
 
 All write operations that are made to data with secondary indexes,
 i.e. not like linked lists could be potentially handled without feed_server.
-But some KV storages are not supporting secondary indexes add those backends carefully.
+But some KV storages are not supporting secondary indexes so use these backends carefully.
 
 Store Backends
 --------------
 
-Currently kvs includes following store backends:
+Currently **kvs** includes following store backends:
 
 * Mnesia
 * Riak
 * KAI
+* Filesystem
 * Redis
 
 Configuring
@@ -106,18 +122,18 @@ You can also create database by joining to existing cluster:
 3> kvs:join('kvs@synrc.com').
 ```
 
-In that case you don't need to do 'init_db'
-To check table packages included into the schema:
+In that case you don't need to initialize the database
+to check table packages included into the schema:
 
 ```erlang
 4> kvs:dir().
 [{table,"id_seq"},
- {table,"subscription"}, <- 2i
- {table,"feed"}, <- feed
+ {table,"subscription"},
+ {table,"feed"},
  {table,"comment"},
  {table,"entry"},
  {table,"access"},
- {table,"acl"}, <- feed
+ {table,"acl"},
  {table,"user"}]
 ```
 
@@ -254,8 +270,38 @@ And on database init
 
 It will create your custom schema.
 
-Business Logic
---------------
+Using KVS in real applications
+------------------------------
+
+Besides using KVS in production in a number of applications we have
+built on top of KVS several products. The first product is Chain
+Replication Database wit XA protocol. And second is social Feed
+Server for web shops and social sites.
+
+### Chain Replication Database
+
+The **kvs** semantic is totally compatible with XA protocol.
+Adding the object with PUT means only putting to database
+while ADD operations provides linking to the chain's container.
+Also linking operation LINK is provided separately.
+
+```erlang
+dispatch({prepare,_,_,Tx}, #state{})  ->
+    kvs:info(?MODULE,"KVS PUT ~p:~p~n",[element(1,Tx),element(2,Tx)]),
+    kvs:put(Tx);
+
+dispatch({commit,_,_,Tx}, #state{})  ->
+    kvs:info(?MODULE,"KVS LINK ~p:~p~n",[element(1,Tx),element(2,Tx)]),
+    kvs:link(Tx);
+
+dispatch({rollback,_,_,Tx}, #state{})  ->
+    kvs:info(?MODULE,"KVS REMOVE ~p:~p~n",[element(1,Tx),element(2,Tx)]),
+    kvs:remove(Tx);
+```
+
+See: https://github.com/spawnproc/cr
+
+### Feeds Server
 
 Here is Consumer behavior handlers of KVS FEEDS supervised processes
 
@@ -302,8 +348,11 @@ update_entry(Eid,Fid,Entry) -> ...
 And that is how you can call it
 
 ```erlang
-msg:notify([kvs_feed, user, "maxim@synrc.com", entry, Eid, add], [#entry{}]).
+kvs:notify([kvs_feed, user, "maxim@synrc.com", entry, Eid, add],
+           [#entry{}]).
 ```
+
+See: https://github.com/synrc/feeds
 
 Credits
 -------
