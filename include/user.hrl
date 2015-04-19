@@ -18,7 +18,8 @@
         date,
         status,
         zone,
-        type }).
+        type,
+        cover }).
 
 -record(user2, {?ITERATOR(feed, true), % version 2
         everyting_getting_small,
