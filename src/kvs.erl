@@ -170,17 +170,8 @@ do_remove(E,#kvs{mod=Mod}=Driver) ->
     kvs:info(?MODULE,"Delete: ~p", [E]),
     kvs:delete(element(1,E),element(2,E), Driver).
 
-traversal( _,undefined,_,_,Driver) -> [];
-traversal(_,_,0,_,Driver) -> [];
-traversal(RecordType2, Start, Count, Direction, Driver)->
-    RecordType = table_type(RecordType2),
-    case kvs:get(RecordType, Start, Driver) of
-    {ok, R} ->  Prev = element(Direction, R),
-                Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
-                [R | traversal(RecordType2, Prev, Count1, Direction, Driver)];
-    Error ->
-     io:format("Error: ~p~n",[Error]),
-      [] end.
+traversal(Table, Start, Count, Direction, Driver)->
+    fold(fun(A,Acc) -> [A|Acc] end,[],Table,Start,Count,Direction,Driver).
 
 fold(Fun,Acc,_,undefined,_,_,Driver) -> Acc;
 fold(Fun,Acc,_,_,0,_,Driver) -> Acc;
