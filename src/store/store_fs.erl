@@ -21,7 +21,7 @@ initialize() ->
 
 index(_Tab,_Key,_Value) -> ok.
 get(TableName, Key) ->
-    HashKey = encode(base64:encode(crypto:sha(term_to_binary(Key)))),
+    HashKey = encode(base64:encode(crypto:hash(sha, term_to_binary(Key)))),
     Dir = lists:concat(["data/",TableName,"/"]),
     case file:read_file(lists:concat([Dir,HashKey])) of
          {ok,Binary} -> {ok,binary_to_term(Binary,[safe])};
@@ -30,7 +30,7 @@ get(TableName, Key) ->
 put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
 put(Record) ->
     TableName = element(1,Record),
-    HashKey = encode(base64:encode(crypto:sha(term_to_binary(element(2,Record))))),
+    HashKey = encode(base64:encode(crypto:hash(sha, term_to_binary(element(2,Record))))),
     BinaryValue = term_to_binary(Record),
     Dir = lists:concat(["data/",TableName,"/"]),
     filelib:ensure_dir(Dir),
