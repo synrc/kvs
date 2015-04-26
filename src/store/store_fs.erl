@@ -10,8 +10,8 @@ stop()     -> ok.
 destroy()  -> ok.
 version()  -> {version,"KVS FS"}.
 dir()      -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
-join(Node) -> filelib:ensure_dir("data/"). % should be rsync or smth
-change_storage(Table,Type) -> ok.
+join(_Node) -> filelib:ensure_dir("data/"). % should be rsync or smth
+change_storage(_Table,_Type) -> ok.
 
 initialize() ->
     kvs:info(?MODULE,"fs init.~n",[]),
@@ -19,9 +19,9 @@ initialize() ->
     [ kvs:init(store_fs,Module) || Module <- kvs:modules() ],
     mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity).
 
-index(Tab,Key,Value) -> ok.
+index(_Tab,_Key,_Value) -> ok.
 get(TableName, Key) ->
-    HashKey = encode(base64:encode(crypto:sha(term_to_binary(Key)))),
+    HashKey = encode(base64:encode(crypto:hash(sha, term_to_binary(Key)))),
     Dir = lists:concat(["data/",TableName,"/"]),
     case file:read_file(lists:concat([Dir,HashKey])) of
          {ok,Binary} -> {ok,binary_to_term(Binary,[safe])};
@@ -30,22 +30,22 @@ get(TableName, Key) ->
 put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
 put(Record) ->
     TableName = element(1,Record),
-    HashKey = encode(base64:encode(crypto:sha(term_to_binary(element(2,Record))))),
+    HashKey = encode(base64:encode(crypto:hash(sha, term_to_binary(element(2,Record))))),
     BinaryValue = term_to_binary(Record),
     Dir = lists:concat(["data/",TableName,"/"]),
     filelib:ensure_dir(Dir),
     File = lists:concat([Dir,HashKey]),
     file:write_file(File,BinaryValue,[write,raw,binary,sync]).
 
-delete(Tab, Key) -> ok.
+delete(_Tab, _Key) -> ok.
 count(RecordName) -> length(filelib:fold_files(lists:concat(["data/",RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, [])).
 all(R) -> lists:flatten([ begin case file:read_file(File) of
                         {ok,Binary} -> binary_to_term(Binary,[safe]);
-                        {error,Reason} -> [] end end || File <-
+                        {error,_Reason} -> [] end end || File <-
       filelib:fold_files(lists:concat(["data/",R]), "",true, fun(A,Acc)-> [A|Acc] end, []) ]).
 next_id(RecordName, Incr) -> store_mnesia:next_id(RecordName, Incr).
-create_table(Name,Options) -> filelib:ensure_dir(lists:concat(["data/",Name,"/"])).
-add_table_index(Record, Field) -> ok.
+create_table(Name,_Options) -> filelib:ensure_dir(lists:concat(["data/",Name,"/"])).
+add_table_index(_Record, _Field) -> ok.
 
 % URL ENCODE
 

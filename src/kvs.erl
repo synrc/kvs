@@ -67,7 +67,7 @@ create(ContainerName, Id, Driver) ->
     ok = kvs:put(Top3, Driver),
     Id.
 
-ensure_link(Record, #kvs{mod=Store}=Driver) ->
+ensure_link(Record, #kvs{mod=_Store}=Driver) ->
 
     Id    = element(2,Record),
     Type  = table_type(element(1,Record)),
@@ -123,13 +123,13 @@ ensure_link(Record, #kvs{mod=Store}=Driver) ->
                     {ok, R3}
             end.
 
-link(Record,#kvs{mod=Store}=Driver) ->
+link(Record,#kvs{mod=_Store}=Driver) ->
     Id = element(#iterator.id, Record),
     case kvs:get(element(1,Record), Id, Driver) of
               {ok, Exists} -> ensure_link(Exists, Driver);
         {error, not_found} -> {error, not_found} end.
 
-add(Record, #kvs{mod=Store}=Driver) when is_tuple(Record) ->
+add(Record, #kvs{mod=_Store}=Driver) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
     case kvs:get(element(1,Record), Id, Driver) of
                 {error, _} -> ensure_link(Record, Driver);
@@ -173,8 +173,8 @@ do_remove(E,#kvs{mod=Mod}=Driver) ->
 traversal(Table, Start, Count, Direction, Driver)->
     fold(fun(A,Acc) -> [A|Acc] end,[],Table,Start,Count,Direction,Driver).
 
-fold(Fun,Acc,_,undefined,_,_,Driver) -> Acc;
-fold(Fun,Acc,_,_,0,_,Driver) -> Acc;
+fold(_Fun,Acc,_,undefined,_,_,_Driver) -> Acc;
+fold(_Fun,Acc,_,_,0,_,_Driver) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
     RecordType = table_type(Table),
     case kvs:get(RecordType, Start, Driver) of
