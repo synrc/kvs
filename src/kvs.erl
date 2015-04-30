@@ -182,6 +182,16 @@ traversal(RecordType2, Start, Count, Direction, Driver)->
      io:format("Error: ~p~n",[Error]),
       [] end.
 
+fold(Fun,Acc,_,undefined,_,_,Driver) -> [];
+fold(Fun,Acc,_,_,0,_,Driver) -> Acc;
+fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
+    RecordType = table_type(Table),
+    case kvs:get(RecordType, Start, Driver) of
+         {ok, R} -> Prev = element(Direction, R),
+                    Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
+                    fold(Fun, Fun(R,Acc), RecordType2, Count1, Direction, Driver);
+           Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), [] end.
+
 entries({error,_},_,_,_)      -> [];
 entries({ok,Container},N,C,Driver) -> entries(Container,N,C,Driver);
 entries(T,N,C,Driver)              -> traversal(N,element(#container.top,T),C,#iterator.prev,Driver).
