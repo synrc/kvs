@@ -181,7 +181,7 @@ fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
          {ok, R} -> Prev = element(Direction, R),
                     Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                     fold(Fun, Fun(R,Acc), Table, Prev, Count1, Direction, Driver);
-           Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), [] end.
+           Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), Acc end.
 
 entries({error,_},_,_,_)      -> [];
 entries({ok,Container},N,C,Driver) -> entries(Container,N,C,Driver);
