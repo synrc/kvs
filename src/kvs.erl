@@ -173,24 +173,14 @@ do_remove(E,#kvs{mod=Mod}=Driver) ->
 traversal(Table, Start, Count, Direction, Driver)->
     fold(fun(A,Acc) -> [A|Acc] end,[],Table,Start,Count,Direction,Driver).
 
-fold(_Fun,Acc,_,undefined,_,_,_Driver) -> Acc;
-fold(_Fun,Acc,_,_,0,_,_Driver) -> Acc;
+fold(___,___,_,undefined,_,_,_) -> [];
+fold(___,Acc,_,_,0,_,_) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
     RecordType = table_type(Table),
     case kvs:get(RecordType, Start, Driver) of
          {ok, R} -> Prev = element(Direction, R),
                     Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                     fold(Fun, Fun(R,Acc), Table, Prev, Count1, Direction, Driver);
-           Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), [] end.
-
-fold(Fun,Acc,_,undefined,_,_,Driver) -> [];
-fold(Fun,Acc,_,_,0,_,Driver) -> Acc;
-fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
-    RecordType = table_type(Table),
-    case kvs:get(RecordType, Start, Driver) of
-         {ok, R} -> Prev = element(Direction, R),
-                    Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
-                    fold(Fun, Fun(R,Acc), RecordType2, Count1, Direction, Driver);
            Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), [] end.
 
 entries({error,_},_,_,_)      -> [];
