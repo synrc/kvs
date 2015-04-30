@@ -10,7 +10,7 @@
         display_name,
         register_date,
         tokens = [],
-        avatar,
+        images,
         names,
         surnames,
         birth,

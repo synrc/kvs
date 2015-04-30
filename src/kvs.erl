@@ -67,7 +67,7 @@ create(ContainerName, Id, Driver) ->
     ok = kvs:put(Top3, Driver),
     Id.
 
-ensure_link(Record, #kvs{mod=Store}=Driver) ->
+ensure_link(Record, #kvs{mod=_Store}=Driver) ->
 
     Id    = element(2,Record),
     Type  = table_type(element(1,Record)),
@@ -123,13 +123,13 @@ ensure_link(Record, #kvs{mod=Store}=Driver) ->
                     {ok, R3}
             end.
 
-link(Record,#kvs{mod=Store}=Driver) ->
+link(Record,#kvs{mod=_Store}=Driver) ->
     Id = element(#iterator.id, Record),
     case kvs:get(element(1,Record), Id, Driver) of
               {ok, Exists} -> ensure_link(Exists, Driver);
         {error, not_found} -> {error, not_found} end.
 
-add(Record, #kvs{mod=Store}=Driver) when is_tuple(Record) ->
+add(Record, #kvs{mod=_Store}=Driver) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
     case kvs:get(element(1,Record), Id, Driver) of
                 {error, _} -> ensure_link(Record, Driver);
@@ -170,17 +170,28 @@ do_remove(E,#kvs{mod=Mod}=Driver) ->
     kvs:info(?MODULE,"Delete: ~p", [E]),
     kvs:delete(element(1,E),element(2,E), Driver).
 
-traversal( _,undefined,_,_,Driver) -> [];
-traversal(_,_,0,_,Driver) -> [];
-traversal(RecordType2, Start, Count, Direction, Driver)->
-    RecordType = table_type(RecordType2),
+traversal(Table, Start, Count, Direction, Driver)->
+    fold(fun(A,Acc) -> [A|Acc] end,[],Table,Start,Count,Direction,Driver).
+
+fold(_Fun,Acc,_,undefined,_,_,_Driver) -> Acc;
+fold(_Fun,Acc,_,_,0,_,_Driver) -> Acc;
+fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
+    RecordType = table_type(Table),
     case kvs:get(RecordType, Start, Driver) of
-    {ok, R} ->  Prev = element(Direction, R),
-                Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
-                [R | traversal(RecordType2, Prev, Count1, Direction, Driver)];
-    Error ->
-     io:format("Error: ~p~n",[Error]),
-      [] end.
+         {ok, R} -> Prev = element(Direction, R),
+                    Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
+                    fold(Fun, Fun(R,Acc), Table, Prev, Count1, Direction, Driver);
+           Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), [] end.
+
+fold(Fun,Acc,_,undefined,_,_,Driver) -> [];
+fold(Fun,Acc,_,_,0,_,Driver) -> Acc;
+fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
+    RecordType = table_type(Table),
+    case kvs:get(RecordType, Start, Driver) of
+         {ok, R} -> Prev = element(Direction, R),
+                    Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
+                    fold(Fun, Fun(R,Acc), RecordType2, Count1, Direction, Driver);
+           Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), [] end.
 
 entries({error,_},_,_,_)      -> [];
 entries({ok,Container},N,C,Driver) -> entries(Container,N,C,Driver);
