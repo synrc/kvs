@@ -164,7 +164,6 @@ remove(Record,Id,#kvs{mod=Mod}=Driver) ->
                      {ok,R} -> do_remove(R,Driver) end.
 
 do_remove(E,#kvs{mod=Mod}=Driver) ->
-    io:format("E: ~p~n",[E]),
     case Mod:get(element(#iterator.container,E),element(#iterator.feed_id,E)) of
          {ok, Container} -> relink(Container,E,Driver);
                        _ -> skip end,
