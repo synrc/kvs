@@ -160,10 +160,11 @@ delete(Tab, Key, #kvs{mod=Mod}) -> Mod:delete(Tab, Key).
 
 remove(Record,Id,#kvs{mod=Mod}=Driver) ->
     case Mod:get(Record,Id) of
-         {error, not_found} -> kvs:error("Can't remove ~p~n",[{Record,Id}]);
+         {error, not_found} -> kvs:error(?MODULE,"Can't remove ~p~n",[{Record,Id}]);
                      {ok,R} -> do_remove(R,Driver) end.
 
 do_remove(E,#kvs{mod=Mod}=Driver) ->
+    io:format("E: ~p~n",[E]),
     case Mod:get(element(#iterator.container,E),element(#iterator.feed_id,E)) of
          {ok, Container} -> relink(Container,E,Driver);
                        _ -> skip end,
