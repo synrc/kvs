@@ -9,9 +9,8 @@
 start() -> ok.
 stop() -> stopped.
 version() -> {version,"KVS MONGO"}.
-join([]) -> connect();
+join([]) -> connect(),[kvs:init(?MODULE,M) || M <- kvs:modules()],ok;
 join(_Node) -> {error,not_implemented}.
-initialize() -> ok.
 
 connect() ->
   {Conn,Pool} = config(),
@@ -101,7 +100,7 @@ mongo_find(Tab,Sel) ->
 
 all(Tab) -> mongo_find(Tab,{}).
 index(Tab,Key,Value) -> mongo_find(Tab,{to_binary(Key),to_binary(Value)}).
-create_table(_Tab,_Options) -> ok.
+create_table(Tab,_Options) -> transaction(fun (W) -> mongo:command(W,{<<"create">>,to_binary(Tab)}) end).
 
 add_table_index(Tab,Key) ->
   transaction(fun (W) -> mongo:ensure_index(W,to_binary(Tab),{key,{to_binary(Key,true),1}}) end).
