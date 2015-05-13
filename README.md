@@ -8,11 +8,11 @@ Features
 
 * Polymorphic Tuples
 * Managing Linked-Lists
-* Various Backends Support: Mnesia, Riak, KAI, Redis
+* Various Backends Support: Mnesia, Riak, KAI, Redis, MongoDB
 * Sequential Consistency via Feed Server
 * Basic Schema for Social Sites and Accounting
 * Extendable Schema
-* Supports Secondary Indexes for KAI, Mnesia and Riak
+* Supports Secondary Indexes for KAI, Mnesia, Riak and MongoDB
 * Change Backends on-the-fly
 * Supports Multiple backends at the same time
 * Xen Ready
@@ -23,13 +23,34 @@ Usage
 In rebar.config:
 
 ```erlang
-    {kvs, ".*", {git, "git://github.com/synrc/kvs", "HEAD"}}
+{kvs, ".*", {git, "git://github.com/synrc/kvs", "HEAD"}}
 ```
 
 Redis also need to add:
 ```erlang
-    {eredis, ".*", {git, "git://github.com/wooga/eredis", {tag, "v1.0.6"} }}
+{eredis, ".*", {git, "git://github.com/wooga/eredis", {tag, "v1.0.6"} }}
 ```
+
+MongoDB also need to add:
+
+```erlang
+{mongodb, ".*", {git, "git://github.com/comtihon/mongodb-erlang", {tag, "master"} }},
+{poolboy, ".*", {git, "git://github.com/devinus/poolboy", {tag, "master"} }}
+```
+
+In the above example poolboy is optional. MongoDB and Poolboy config example:
+
+```erlang
+{kvs, [
+  {mongo, [
+    {connection, [{database,<<"kvs">>}]},
+    {pool, [{size,10},{max_overflow,20}]}
+  ]}
+]}
+```
+
+To disable poolboy exclude {pool, ...} from your sys.config. More information on the 
+configuring MongoDB and Poolboy can be found here: https://github.com/comtihon/mongodb-erlang, https://github.com/devinus/poolboy.
 
 Models
 ------
@@ -64,6 +85,7 @@ Currently **kvs** includes following store backends:
 * KAI
 * Filesystem
 * Redis
+* MongoDB
 
 Configuring
 -----------
@@ -135,7 +157,7 @@ Polymorphic Records
 The data in KVS represented as plain Erlang records. The first element of the tuple
 as usual indicates the name of bucket. And the second element usually corresponds
 to the index key field. Additional secondary indexes could be applied for stores
-that supports 2i, e.g. kai, mnesia, riak.
+that supports 2i, e.g. kai, mnesia, riak, mongodb.
 
 Iterators
 ---------
