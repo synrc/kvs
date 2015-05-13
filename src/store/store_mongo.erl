@@ -46,6 +46,7 @@ to_binary(V,ForceList) ->
   if is_integer(V) -> V;
     is_list(V) -> unicode:characters_to_binary(V,utf8,utf8);
     is_atom(V) -> list_to_binary(atom_to_list(V));
+    is_pid(V)  -> {pid,list_to_binary(pid_to_list(V))};
     true -> case ForceList of true -> [P] = io_lib:format("~p",[V]),list_to_binary(P); _ -> V end
   end.
 
@@ -67,6 +68,7 @@ make_record(Tab,Doc) ->
 
 decode_value(<<"true">>) -> true;
 decode_value(<<"false">>) -> false;
+decode_value({pid,Pid}) -> list_to_pid(binary_to_list(Pid));
 decode_value(V) when is_binary(V) -> unicode:characters_to_list(V,utf8);
 decode_value(V) -> V.
 
