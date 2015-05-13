@@ -34,7 +34,7 @@ Redis also need to add:
 MongoDB also need to add:
 
 ```erlang
-{mongodb, ".*", {git, "git://github.com/comtihon/mongodb-erlang", {tag, "c3357d158d38c5a0f55168e88e018c814b497e98"} }},
+{mongodb, ".*", {git, "git://github.com/comtihon/mongodb-erlang", {tag, "master"} }},
 {poolboy, ".*", {git, "git://github.com/devinus/poolboy", {tag, "master"} }}
 ```
 
