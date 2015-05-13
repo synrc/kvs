@@ -16,7 +16,7 @@ initialize() -> ok.
 connect() ->
   {Conn,Pool} = config(),
   case Pool of none -> connect(Conn); _ -> connect(Pool,Conn) end.
-connect(Conn) -> 
+connect(Conn) ->
   Spec = {?POOL_NAME,{gen_server,start_link,[{local,?POOL_NAME},mc_worker,Conn,[]]},
           permanent,5000,worker,[kvs_sup]},
   {ok,_} = supervisor:start_child(kvs_sup,Spec),put(no_pool,true),ok.
@@ -55,7 +55,7 @@ make_document(Tab,Key,Values) ->
   list_to_tuple(['_id',Key|list_to_doc(tl(Table#table.fields),Values)]).
 
 list_to_doc([],[]) -> [];
-list_to_doc([F|Fields],[V|Values]) -> 
+list_to_doc([F|Fields],[V|Values]) ->
   case V of
     undefined -> list_to_doc(Fields,Values);
     _ -> [F,to_binary(V)|list_to_doc(Fields,Values)]
@@ -80,7 +80,7 @@ get(Tab,Key) ->
   Result = transaction(fun (W) -> mongo:find_one(W,to_binary(Tab),{'_id',Key}) end),
   case Result of {} -> {error,not_found}; {Doc} -> make_record(Tab,Doc) end.
 
-put(Records) when is_list(Records) -> 
+put(Records) when is_list(Records) ->
   try lists:foreach(fun mongo_put/1,Records) catch error:Reason -> {error,Reason} end;
 put(Record) -> put([Record]).
 
@@ -103,7 +103,7 @@ all(Tab) -> mongo_find(Tab,{}).
 index(Tab,Key,Value) -> mongo_find(Tab,{to_binary(Key),to_binary(Value)}).
 create_table(_Tab,_Options) -> ok.
 
-add_table_index(Tab,Key) -> 
+add_table_index(Tab,Key) ->
   transaction(fun (W) -> mongo:ensure_index(W,to_binary(Tab),{key,{to_binary(Key,true),1}}) end).
 
 count(Tab) -> {_,{_,N}} = transaction(fun (W) -> mongo:command(W,{<<"count">>,to_binary(Tab)}) end),N.
