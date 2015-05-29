@@ -41,24 +41,42 @@ destroy() -> transaction(fun (W) -> [mongo:command(W,{<<"drop">>,to_binary(T)}) 
 
 next_id(_Tab,_Incr) -> mongo_id_server:object_id().
 
-to_binary(V) -> to_binary(V,false).
+to_binary({<<ObjectId:12/binary>>}) -> {ObjectId};
+to_binary(Value)                    -> to_binary(Value, false).
+
 to_binary(V,ForceList) ->
   if is_integer(V) -> V;
     is_list(V) -> unicode:characters_to_binary(V,utf8,utf8);
     is_atom(V) -> list_to_binary(atom_to_list(V));
     is_pid(V)  -> {pid,list_to_binary(pid_to_list(V))};
-    true -> case ForceList of true -> [P] = io_lib:format("~p",[V]),list_to_binary(P); _ -> V end
+    true       -> case ForceList of true -> [P] = io_lib:format("~p",[V]),list_to_binary(P); _ -> V end
   end.
+
+make_id({<<ObjectId:12/binary>>}) -> {ObjectId};
+make_id(Term)                     -> to_binary(Term, true).
+
+make_field(V) ->
+  if is_atom(V) -> case V of
+                     true  -> to_binary(V);
+                     false -> to_binary(V);
+                     _     -> {atom,atom_to_binary(V,utf8)}
+                   end;
+    is_pid(V)   -> {pid,list_to_binary(pid_to_list(V))};
+    true        -> to_binary(V) end.
 
 make_document(Tab,Key,Values) ->
   Table = kvs:table(Tab),
-  list_to_tuple(['_id',Key|list_to_doc(tl(Table#table.fields),Values)]).
+  list_to_tuple(['_id',make_id(Key)|list_to_doc(tl(Table#table.fields),Values)]).
 
 list_to_doc([],[]) -> [];
 list_to_doc([F|Fields],[V|Values]) ->
   case V of
     undefined -> list_to_doc(Fields,Values);
-    _ -> [F,to_binary(V)|list_to_doc(Fields,Values)]
+    _ -> 
+      case F of
+        feed_id -> [F,make_id(V)|list_to_doc(Fields,Values)];
+        _       -> [F,make_field(V)|list_to_doc(Fields,Values)]
+      end
   end.
 
 make_record(Tab,Doc) ->
@@ -66,30 +84,40 @@ make_record(Tab,Doc) ->
   DocPropList = doc_to_proplist(tuple_to_list(Doc)),
   list_to_tuple([Tab|[proplists:get_value(F,DocPropList) || F <- Table#table.fields]]).
 
-decode_value(<<"true">>) -> true;
-decode_value(<<"false">>) -> false;
-decode_value({pid,Pid}) -> list_to_pid(binary_to_list(Pid));
+decode_value(<<"true">>)          -> true;
+decode_value(<<"false">>)         -> false;
+decode_value({atom,Atom})         -> binary_to_atom(Atom,utf8);
+decode_value({pid,Pid})           -> list_to_pid(binary_to_list(Pid));
 decode_value(V) when is_binary(V) -> unicode:characters_to_list(V,utf8);
-decode_value(V) -> V.
+decode_value(V)                   -> V.
 
-doc_to_proplist(Doc) -> doc_to_proplist(Doc,[]).
-doc_to_proplist([],Acc) -> Acc;
-doc_to_proplist(['_id',V|Doc],Acc) -> doc_to_proplist(Doc,[{id,V}|Acc]);
-doc_to_proplist([F,V|Doc],Acc) -> doc_to_proplist(Doc,[{F,decode_value(V)}|Acc]).
+decode_id({<<ObjectId:12/binary>>}) -> {ObjectId};
+decode_id(List) ->
+  {ok,Tokens,_EndLine} = erl_scan:string(lists:append(binary_to_list(List), ".")),
+  {ok,AbsForm} = erl_parse:parse_exprs(Tokens),
+  {value,Value,_Bs} = erl_eval:exprs(AbsForm, erl_eval:new_bindings()),
+  Value.
+
+doc_to_proplist(Doc)                 -> doc_to_proplist(Doc,[]).
+doc_to_proplist([],Acc)              -> Acc;
+doc_to_proplist(['_id',V|Doc],Acc)   -> doc_to_proplist(Doc,[{id,decode_id(V)}|Acc]);
+doc_to_proplist([feed_id,V|Doc],Acc) -> doc_to_proplist(Doc,[{feed_id,decode_id(V)}|Acc]);
+doc_to_proplist([F,V|Doc],Acc)       -> doc_to_proplist(Doc,[{F,decode_value(V)}|Acc]).
 
 get(Tab,Key) ->
-  Result = transaction(fun (W) -> mongo:find_one(W,to_binary(Tab),{'_id',Key}) end),
-  case Result of {} -> {error,not_found}; {Doc} -> make_record(Tab,Doc) end.
+  Result = transaction(fun (W) -> mongo:find_one(W,to_binary(Tab),{'_id',make_id(Key)}) end),
+  case Result of {} -> {error,not_found}; {Doc} -> {ok, make_record(Tab,Doc)} end.
 
 put(Records) when is_list(Records) ->
   try lists:foreach(fun mongo_put/1,Records) catch error:Reason -> {error,Reason} end;
 put(Record) -> put([Record]).
 
 mongo_put(Record) ->
-  Tab = element(1,Record),
-  Key = element(2,Record),
+  Tab          = element(1,Record),
+  Key          = element(2,Record),
   [_,_|Values] = tuple_to_list(Record),
-  transaction(fun (W) -> mongo:insert(W,to_binary(Tab),make_document(Tab,Key,Values)) end).
+  Sel          = {'_id', make_id(Key)},
+  transaction(fun (W) -> mongo:update(W,to_binary(Tab),Sel,make_document(Tab,Key,Values),true) end).
 
 delete(Tab,Key) ->
   transaction(fun (W) -> mongo:delete_one(W,to_binary(Tab),{'_id',Key}) end),ok.
