@@ -42,6 +42,7 @@ destroy() -> transaction(fun (W) -> [mongo:command(W,{<<"drop">>,to_binary(T)}) 
 next_id(_Tab,_Incr) -> mongo_id_server:object_id().
 
 to_binary({<<ObjectId:12/binary>>}) -> {ObjectId};
+to_binary({Key, Value})             -> {Key, to_binary(Value)};
 to_binary(Value)                    -> to_binary(Value, false).
 
 to_binary(V,ForceList) ->
@@ -62,6 +63,9 @@ make_field(V) ->
                      _     -> {atom,atom_to_binary(V,utf8)}
                    end;
     is_pid(V)   -> {pid,list_to_binary(pid_to_list(V))};
+    is_list(V)  -> case io_lib:printable_unicode_list(V) of
+                     false -> lists:foldl(fun (X, Acc) -> [make_field(X)|Acc] end, [], V);
+                     true  -> to_binary(V) end;
     true        -> to_binary(V) end.
 
 make_document(Tab,Key,Values) ->
