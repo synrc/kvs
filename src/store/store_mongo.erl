@@ -42,31 +42,18 @@ destroy() -> transaction(fun (W) -> [mongo:command(W,{<<"drop">>,to_binary(T)}) 
 next_id(_Tab,_Incr) -> mongo_id_server:object_id().
 
 to_binary({<<ObjectId:12/binary>>}) -> {ObjectId};
-to_binary({Key, Value})             -> {Key, to_binary(Value)};
-to_binary(Value)                    -> to_binary(Value, false).
+to_binary({Key,Value})              -> {Key,to_binary(Value)};
+to_binary(Value)                    -> to_binary(Value,false).
 
 to_binary(V,ForceList) ->
   if is_integer(V) -> V;
-    is_list(V) -> unicode:characters_to_binary(V,utf8,utf8);
+    is_list(V) -> case io_lib:printable_unicode_list(V) of
+                    false -> lists:map(fun (X) -> to_binary(X) end, V);
+                    true -> unicode:characters_to_binary(V,utf8,utf8) end;
     is_atom(V) -> list_to_binary(atom_to_list(V));
     is_pid(V)  -> {pid,list_to_binary(pid_to_list(V))};
     true       -> case ForceList of true -> [P] = io_lib:format("~p",[V]),list_to_binary(P); _ -> V end
   end.
-
-make_id({<<ObjectId:12/binary>>}) -> {ObjectId};
-make_id(Term)                     -> to_binary(Term, true).
-
-make_field(V) ->
-  if is_atom(V) -> case V of
-                     true  -> to_binary(V);
-                     false -> to_binary(V);
-                     _     -> {atom,atom_to_binary(V,utf8)}
-                   end;
-    is_pid(V)   -> {pid,list_to_binary(pid_to_list(V))};
-    is_list(V)  -> case io_lib:printable_unicode_list(V) of
-                     false -> lists:foldl(fun (X, Acc) -> [make_field(X)|Acc] end, [], V);
-                     true  -> to_binary(V) end;
-    true        -> to_binary(V) end.
 
 make_document(Tab,Key,Values) ->
   Table = kvs:table(Tab),
@@ -83,11 +70,29 @@ list_to_doc([F|Fields],[V|Values]) ->
       end
   end.
 
+make_id({<<ObjectId:12/binary>>}) -> {ObjectId};
+make_id(Term)                     -> to_binary(Term, true).
+
+make_field({geo_point, Coords}) when length(Coords) == 2 -> {type, <<"Point">>, coordinates, Coords};
+make_field({geo_polygon, Coords}) when is_list(Coords) -> {type, <<"Polygon">>, coordinates, Coords};
+make_field(V) ->
+  if is_atom(V) -> case V of
+                     true  -> to_binary(V);
+                     false -> to_binary(V);
+                     _     -> {atom,atom_to_binary(V,utf8)} end;
+    is_pid(V)   -> {pid,list_to_binary(pid_to_list(V))};
+    is_list(V)  -> case io_lib:printable_unicode_list(V) of
+                     false -> lists:foldl(fun (X, Acc) -> [make_field(X)|Acc] end, [], V);
+                     true  -> to_binary(V) end;
+    true        -> to_binary(V) end.
+
 make_record(Tab,Doc) ->
   Table = kvs:table(Tab),
   DocPropList = doc_to_proplist(tuple_to_list(Doc)),
   list_to_tuple([Tab|[proplists:get_value(F,DocPropList) || F <- Table#table.fields]]).
 
+decode_value({type, <<"Point">>, coordinates, Coords}) -> Coords;
+decode_value({type, <<"Polygon">>, coordinates, Coords}) -> Coords;
 decode_value(<<"true">>)          -> true;
 decode_value(<<"false">>)         -> false;
 decode_value({atom,Atom})         -> binary_to_atom(Atom,utf8);
