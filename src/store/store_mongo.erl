@@ -74,7 +74,7 @@ make_id({<<ObjectId:12/binary>>}) -> {ObjectId};
 make_id(Term)                     -> to_binary(Term, true).
 
 make_field({geo_point, Coords}) when length(Coords) == 2; length(Coords) == 0 -> 
-  {type, <<"Point">>, coordinates, Coords};
+  {type, <<"Point">>, coordinates, lists:reverse(Coords)};
 make_field({geo_polygon, Coords}) when is_list(Coords) -> 
   {type, <<"Polygon">>, coordinates, Coords};
 make_field(V) ->
@@ -93,7 +93,7 @@ make_record(Tab,Doc) ->
   DocPropList = doc_to_proplist(tuple_to_list(Doc)),
   list_to_tuple([Tab|[proplists:get_value(F,DocPropList) || F <- Table#table.fields]]).
 
-decode_value({type, <<"Point">>, coordinates, Coords}) -> Coords;
+decode_value({type, <<"Point">>, coordinates, Coords}) -> lists:reverse(Coords);
 decode_value({type, <<"Polygon">>, coordinates, Coords}) -> Coords;
 decode_value(<<"true">>)          -> true;
 decode_value(<<"false">>)         -> false;
