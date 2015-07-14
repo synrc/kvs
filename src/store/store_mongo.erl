@@ -93,8 +93,8 @@ make_record(Tab,Doc) ->
   DocPropList = doc_to_proplist(tuple_to_list(Doc)),
   list_to_tuple([Tab|[proplists:get_value(F,DocPropList) || F <- Table#table.fields]]).
 
-decode_value({type, <<"Point">>, coordinates, Coords}) -> lists:reverse(Coords);
-decode_value({type, <<"Polygon">>, coordinates, Coords}) -> [lists:reverse(Coord) || Coord <- Coords];
+decode_value({type, <<"Point">>, coordinates, Coords}) -> {geo_point, lists:reverse(Coords)};
+decode_value({type, <<"Polygon">>, coordinates, Coords}) -> {geo_polygon, [lists:reverse(Coord) || Coord <- Coords]};
 decode_value(<<"true">>)          -> true;
 decode_value(<<"false">>)         -> false;
 decode_value({atom,Atom})         -> binary_to_atom(Atom,utf8);
