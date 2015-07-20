@@ -29,7 +29,7 @@
 % meta info
 
 -spec modules() -> list(atom()).
--spec containers() -> list(tuple(atom(),list(atom()))).
+-spec containers() -> list({atom(),list(atom())}).
 -spec tables() -> list(#table{}).
 -spec table(Tab :: atom()) -> #table{}.
 -spec version() -> {version,string()}.
