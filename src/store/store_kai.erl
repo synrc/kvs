@@ -19,7 +19,7 @@ put(Record) -> kai_put(Record).
 
 kai_put(Record) ->
     Data = #data{key = element(2,Record), bucket = table_to_num(element(1,Record)),
-        last_modified = now(), checksum = erlang:md5(term_to_binary(Record)),
+        last_modified = os:timestamp(), checksum = erlang:md5(term_to_binary(Record)),
         vector_clocks = vclock:fresh(), value = Record },
     kai_store:put(Data).
 
