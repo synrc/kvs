@@ -269,4 +269,4 @@ dump() ->
          mnesia:table_info(Name,storage_type),
          mnesia:table_info(Name,memory),
          mnesia:table_info(Name,size)]) || #table{name=Name} <- kvs:tables()],
-     io:format("Snapshot taken: ~p~n",[calendar:now_to_datetime(now())]).
+     io:format("Snapshot taken: ~p~n",[calendar:now_to_datetime(os:timestamp())]).
