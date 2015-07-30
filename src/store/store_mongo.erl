@@ -91,14 +91,14 @@ make_field(V) ->
 make_record(Tab,Doc) ->
   Table = kvs:table(Tab),
   DocPropList = doc_to_proplist(tuple_to_list(Doc)),
-  list_to_tuple([Tab|[proplists:get_value(F,DocPropList) || F <- Table#table.fields]]).
+  list_to_tuple([Tab|[proplists:get_value(atom_to_binary(F,utf8),DocPropList) || F <- Table#table.fields]]).
 
 decode_value({type, <<"Point">>, coordinates, Coords}) -> {geo_point, lists:reverse(Coords)};
 decode_value({type, <<"Polygon">>, coordinates, Coords}) -> {geo_polygon, [lists:reverse(Coord) || Coord <- Coords]};
 decode_value(<<"true">>)          -> true;
 decode_value(<<"false">>)         -> false;
-decode_value({atom,Atom})         -> binary_to_atom(Atom,utf8);
-decode_value({pid,Pid})           -> list_to_pid(binary_to_list(Pid));
+decode_value({<<"atom">>,Atom})         -> binary_to_atom(Atom,utf8);
+decode_value({<<"pid">>,Pid})           -> list_to_pid(binary_to_list(Pid));
 decode_value(V) when is_binary(V) -> unicode:characters_to_list(V,utf8);
 decode_value(V)                   -> V.
 
@@ -111,8 +111,8 @@ decode_id(List) ->
 
 doc_to_proplist(Doc)                 -> doc_to_proplist(Doc,[]).
 doc_to_proplist([],Acc)              -> Acc;
-doc_to_proplist(['_id',V|Doc],Acc)   -> doc_to_proplist(Doc,[{id,decode_id(V)}|Acc]);
-doc_to_proplist([feed_id,V|Doc],Acc) -> doc_to_proplist(Doc,[{feed_id,decode_id(V)}|Acc]);
+doc_to_proplist([<<"_id">>,V|Doc],Acc)   -> doc_to_proplist(Doc,[{<<"id">>,decode_id(V)}|Acc]);
+doc_to_proplist([<<"feed_id">>,V|Doc],Acc) -> doc_to_proplist(Doc,[{<<"feed_id">>,decode_id(V)}|Acc]);
 doc_to_proplist([F,V|Doc],Acc)       -> doc_to_proplist(Doc,[{F,decode_value(V)}|Acc]).
 
 get(Tab,Key) ->
@@ -128,7 +128,7 @@ mongo_put(Record) ->
   Key          = element(2,Record),
   [_,_|Values] = tuple_to_list(Record),
   Sel          = {'_id', make_id(Key)},
-  transaction(fun (W) -> mongo:update(W,to_binary(Tab),Sel,make_document(Tab,Key,Values),true) end).
+  transaction(fun (W) -> mongo:update(W,to_binary(Tab),Sel,{<<"$set">>, make_document(Tab,Key,Values)},true) end).
 
 delete(Tab,Key) ->
   transaction(fun (W) -> mongo:delete_one(W,to_binary(Tab),{'_id',Key}) end),ok.
