@@ -74,9 +74,9 @@ make_id({<<ObjectId:12/binary>>}) -> {ObjectId};
 make_id(Term)                     -> to_binary(Term, true).
 
 make_field({geo_point, Coords}) when length(Coords) == 2; length(Coords) == 0 -> 
-  {type, <<"Point">>, coordinates, lists:reverse(Coords)};
+  {<<"type">>, <<"Point">>, <<"coordinates">>, lists:reverse(Coords)};
 make_field({geo_polygon, Coords}) when is_list(Coords) -> 
-  {type, <<"Polygon">>, coordinates, [lists:reverse(Coord) || Coord <- Coords]};
+  {<<"type">>, <<"Polygon">>, <<"coordinates">>, [lists:reverse(Coord) || Coord <- Coords]};
 make_field(V) ->
   if is_atom(V) -> case V of
                      true  -> to_binary(V);
@@ -93,8 +93,8 @@ make_record(Tab,Doc) ->
   DocPropList = doc_to_proplist(tuple_to_list(Doc)),
   list_to_tuple([Tab|[proplists:get_value(atom_to_binary(F,utf8),DocPropList) || F <- Table#table.fields]]).
 
-decode_value({type, <<"Point">>, coordinates, Coords}) -> {geo_point, lists:reverse(Coords)};
-decode_value({type, <<"Polygon">>, coordinates, Coords}) -> {geo_polygon, [lists:reverse(Coord) || Coord <- Coords]};
+decode_value({<<"type">>, <<"Point">>, <<"coordinates">>, Coords}) -> {geo_point, lists:reverse(Coords)};
+decode_value({<<"type">>, <<"Polygon">>, <<"coordinates">>, Coords}) -> {geo_polygon, [lists:reverse(Coord) || Coord <- Coords]};
 decode_value(<<"true">>)          -> true;
 decode_value(<<"false">>)         -> false;
 decode_value({<<"atom">>,Atom})         -> binary_to_atom(Atom,utf8);
