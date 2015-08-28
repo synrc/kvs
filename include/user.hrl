@@ -4,11 +4,10 @@
 -include("kvs.hrl").
 
 -ifndef(USER_EXT).
--define(USER_EXT, type).
+-define(USER_EXT, email).
 -endif.
 
--record(user, {?ITERATOR(feed, true),
-        email,
+-record(user, {?ITERATOR(feed, true), ?USER_EXT,
         username,
         password,
         display_name,
@@ -22,7 +21,7 @@
         date,
         status,
         zone,
-        ?USER_EXT }).
+        type }).
 
 -record(user2, {?ITERATOR(feed, true), % version 2
         everyting_getting_small,
