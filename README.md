@@ -243,7 +243,7 @@ represented as modules with handle_notice API.
 
 ```erlang
 -module(kvs_feed).
--inclue_lib("kvs/include/kvs.hrl").
+-inclue_lib("kvs/include/metainfo.hrl").
 
 metainfo() -> 
     #schema{name=kvs,tables=[
