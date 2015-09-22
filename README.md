@@ -141,7 +141,7 @@ Operations
 Try to add some data:
 
 ```erlang
-1> rr(kvs).
+1> rr(kvs_user).
 2> kvs:put(#user{id="maxim@synrc.com"}).
 ok
 3> kvs:get(user,"maxim@synrc.com").
