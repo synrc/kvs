@@ -289,37 +289,37 @@ dump() ->
 
 nonexistent()      -> [ T || #table{name=T} <- kvs:tables(), kvs:info(T) == [] ].
 rotate_new(Tables) -> kvs:info(?MODULE,"New Tables: ~p~n",[Tables]), [ kvs:rotate1(kvs:table(T)) || T<- Tables].
-rotate1(Table)     -> update_config(rname(Table),rname(Table),Table#table.name),
-                      kvs:put(#id_seq{thing=lists:concat([rname(Table),".tables"]),id=wf:to_integer(nname(Table))}).
+rotate1(Table)     -> update_config(rname(Table#table.name),Table#table.name),
+                      kvs:put(#id_seq{thing=lists:concat([rname(Table#table.name),".tables"]),id=wf:to_integer(nname(Table))}).
 load_partitions()  -> [ case kvs:get(config,Table) of
                              {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
 
 limit()        -> 10000000000000000000.
 store(Table,X) -> application:set_env(kvs,Table,X), X.
-last_table(Table)  -> list_to_atom(lists:concat([Table,(element(2,kvs:get(id_seq,lists:concat([Table,".tables"]))))#id_seq.id])).
-cname(Table)   -> list_to_atom(lists:concat([Table,(element(2,kvs:get(id_seq,lists:concat([Table,".tables"]))))#id_seq.id-1])).
-rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table#table.name))).
+last_table(Table) -> list_to_atom(lists:concat([Table,id_seq(lists:concat([Table,".tables"]))])).
+cname(Table)      -> list_to_atom(lists:concat([Table,id_seq(lists:concat([Table,".tables"]))-1])).
+rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
 nname(Table)   -> list_to_atom(lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table#table.name))).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
-top(Table)     -> (element(2,kvs:get(id_seq,atom_to_list(Table))))#id_seq.id.
+top(Table)     -> id_seq(Table).
 name(T)        -> list_to_atom(lists:concat([T,kvs:next_id(lists:concat([T,".tables"]),1)])).
 init(T)        -> store_mnesia:create_table(T#table.name, [{attributes,T#table.fields},{T#table.copy_type, [node()]}]),
                 [ store_mnesia:add_table_index(T#table.name, Key) || Key <- T#table.keys ].
-
+id_seq(Tab)    -> T = atom_to_list(Tab), case kvs:get(id_seq,T) of {ok,#id_seq{id=Id}} -> Id; _ -> kvs:next_id(T,1) end.
                     % rotate DETS table
 
 interval(L,R,Name) -> #interval{left=L,right=R,name=Name}.
-rotate(Table)      -> Name = name(Table), init(setelement(#table.name,kvs:table(Table),Name)), update_config(cname(Table),Table,Name).
-update_config(CName,Table,Name) ->
+rotate(Table)      -> Name = name(Table), init(setelement(#table.name,kvs:table(Table),Name)), update_config(rname(Table),Name).
+update_config(Table,Name) ->
     kvs:put(#config{key   = Table,
                     value = store(Table,case kvs:get(config,Table)  of
-                                            {error,not_found}        -> update_list(CName,Table,[],Name);
-                                            {ok,#config{value=List}} -> update_list(CName,Table,List,Name) end)}).
+                                            {error,not_found}        -> update_list(Table,[],Name);
+                                            {ok,#config{value=List}} -> update_list(Table,List,Name) end)}).
 
-update_list(CName,Table,List,Name) ->
-    io:format("Name ~p Table ~p ~n",[CName,Table]),
+update_list(Table,List,Name) ->
+    io:format("Name ~p Table ~p ~n",[Name,Table]),
     [ interval(top(Table)+1,limit(),Name) ] ++
-    case lists:keyfind(CName,#interval.name,List) of
+    case lists:keyfind(Name,#interval.name,List) of
          false -> List;
-         CI -> lists:keyreplace(CName,#interval.name,List,CI#interval{right=top(Table)}) end.
+         CI -> lists:keyreplace(Name,#interval.name,List,CI#interval{right=top(Table)}) end.
