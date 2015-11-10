@@ -44,6 +44,7 @@ all(R) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G
 next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
 many(Fun) -> case mnesia:activity(context(),Fun) of {atomic, R} -> R; X -> X end.
 void(Fun) -> case mnesia:activity(context(),Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error}; X -> X end.
+info(T) -> try mnesia:table_info(T,all) catch _:_ -> [] end.
 create_table(Name,Options) ->
     X = mnesia:create_table(Name, Options),
     kvs:info(?MODULE,"Create table ~p ~nOptions ~p~nReturn ~p~n",[Name, Options,X]),

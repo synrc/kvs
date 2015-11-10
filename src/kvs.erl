@@ -25,6 +25,7 @@ all(Table)         -> all     (Table, #kvs{mod=?DBA}).
 put(Table)         -> put     (Table, #kvs{mod=?DBA}).
 link(Table)        -> link    (Table, #kvs{mod=?DBA}).
 traversal(T,S,C,D) -> traversal(T,S,C,D, #kvs{mod=?DBA}).
+info(T)            -> info    (T,        #kvs{mod=?DBA}).
 start()            -> start   (#kvs{mod=?DBA}).
 stop()             -> stop    (#kvs{mod=?DBA}).
 destroy()          -> destroy (#kvs{mod=?DBA}).
@@ -45,11 +46,12 @@ stop(#kvs{mod=DBA}) -> DBA:stop().
 change_storage(Type) -> [ change_storage(Name,Type) || #table{name=Name} <- kvs:tables() ].
 change_storage(Table,Type,#kvs{mod=DBA}) -> DBA:change_storage(Table,Type).
 destroy(#kvs{mod=DBA}) -> DBA:destroy().
-join(Node,#kvs{mod=DBA}) -> DBA:join(Node), load_partitions().
+join(Node,#kvs{mod=DBA}) -> Tables = nonexistent(), DBA:join(Node), rotate_new(Tables), load_partitions().
 version(#kvs{mod=DBA}) -> DBA:version().
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
 table(Name) -> lists:keyfind(Name,#table.name,tables()).
 dir(#kvs{mod=DBA}) -> DBA:dir().
+info(T,#kvs{mod=DBA}) -> DBA:info(T).
 modules() -> kvs:config(schema).
 containers() ->
     lists:flatten([ [ {T#table.name,T#table.fields}
@@ -285,13 +287,17 @@ dump() ->
 
                 % Table Partitions
 
-load_partitions() -> [ case kvs:get(config,Table) of
-                            {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
+nonexistent()      -> [ T || #table{name=T} <- kvs:tables(), kvs:info(T) == [] ].
+rotate_new(Tables) -> kvs:info(?MODULE,"New Tables: ~p~n",[Tables]), [ kvs:rotate1(kvs:table(T)) || T<- Tables].
+rotate1(Table)     -> update_config(rname(Table),rname(Table),Table#table.name).
+load_partitions()  -> [ case kvs:get(config,Table) of
+                             {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
 
 limit()        -> 10000000000000000000.
 store(Table,X) -> application:set_env(kvs,Table,X), X.
-cname(Table)   -> list_to_atom(lists:concat([process,(element(2,kvs:get(id_seq,lists:concat([process,".tables"]))))#id_seq.id-1])).
+cname(Table)   -> list_to_atom(lists:concat([Table,(element(2,kvs:get(id_seq,lists:concat([Table,".tables"]))))#id_seq.id-1])).
+rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table#table.name))).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
 top(Table)     -> (element(2,kvs:get(id_seq,atom_to_list(Table))))#id_seq.id.
 name(T)        -> list_to_atom(lists:concat([T,kvs:next_id(lists:concat([T,".tables"]),1)])).
@@ -301,14 +307,16 @@ init(T)        -> store_mnesia:create_table(T#table.name, [{attributes,T#table.f
                     % rotate DETS table
 
 interval(L,R,Name) -> #interval{left=L,right=R,name=Name}.
-rotate(Table)      -> Name = name(Table), init(setelement(#table.name,kvs:table(Table),Name)),
-                      kvs:put(#config{key   = Table,
-                                      value = store(Table,case kvs:get(config,Table)  of
-                                              {error,not_found}        -> update_list(Table,[],Name);
-                                              {ok,#config{value=List}} -> update_list(Table,List,Name) end)}).
+rotate(Table)      -> Name = name(Table), init(setelement(#table.name,kvs:table(Table),Name)), update_config(cname(Table),Table,Name).
+update_config(CName,Table,Name) ->
+    kvs:put(#config{key   = Table,
+                    value = store(Table,case kvs:get(config,Table)  of
+                                            {error,not_found}        -> update_list(CName,Table,[],Name);
+                                            {ok,#config{value=List}} -> update_list(CName,Table,List,Name) end)}).
 
-update_list(Table,List,Name) ->
+update_list(CName,Table,List,Name) ->
+    io:format("Name ~p Table ~p ~n",[CName,Table]),
     [ interval(top(Table)+1,limit(),Name) ] ++
-    case lists:keyfind(cname(Table),#interval.name,List) of
+    case lists:keyfind(CName,#interval.name,List) of
          false -> List;
-         CI -> lists:keyreplace(cname(Table),#interval.name,List,CI#interval{right=top(Table)}) end.
+         CI -> lists:keyreplace(CName,#interval.name,List,CI#interval{right=top(Table)}) end.
