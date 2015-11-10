@@ -289,15 +289,18 @@ dump() ->
 
 nonexistent()      -> [ T || #table{name=T} <- kvs:tables(), kvs:info(T) == [] ].
 rotate_new(Tables) -> kvs:info(?MODULE,"New Tables: ~p~n",[Tables]), [ kvs:rotate1(kvs:table(T)) || T<- Tables].
-rotate1(Table)     -> update_config(rname(Table),rname(Table),Table#table.name).
+rotate1(Table)     -> update_config(rname(Table),rname(Table),Table#table.name),
+                      kvs:put(#id_seq{thing=lists:concat([rname(Table),".tables"]),id=wf:to_integer(nname(Table))}).
 load_partitions()  -> [ case kvs:get(config,Table) of
                              {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
 
 limit()        -> 10000000000000000000.
 store(Table,X) -> application:set_env(kvs,Table,X), X.
+last_table(Table)  -> list_to_atom(lists:concat([Table,(element(2,kvs:get(id_seq,lists:concat([Table,".tables"]))))#id_seq.id])).
 cname(Table)   -> list_to_atom(lists:concat([Table,(element(2,kvs:get(id_seq,lists:concat([Table,".tables"]))))#id_seq.id-1])).
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table#table.name))).
+nname(Table)   -> list_to_atom(lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table#table.name))).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
 top(Table)     -> (element(2,kvs:get(id_seq,atom_to_list(Table))))#id_seq.id.
 name(T)        -> list_to_atom(lists:concat([T,kvs:next_id(lists:concat([T,".tables"]),1)])).

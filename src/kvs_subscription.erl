@@ -7,7 +7,7 @@
 
 metainfo() ->
     #schema{name=kvs,tables=[
-        #table{name=subscription,fields=record_info(fields,subscription),keys=[whom,who]},
+        #table{name=subscription,fields=record_info(fields,subscription),keys=[id,whom,who]},
         #table{name=id_seq,fields=record_info(fields,id_seq),keys=[thing]}
     ]}.
 

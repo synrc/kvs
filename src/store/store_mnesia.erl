@@ -42,7 +42,7 @@ delete(Tab, Key) ->
 count(RecordName) -> mnesia:table_info(RecordName, size).
 all(R) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end)).
 next_id(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
-many(Fun) -> case mnesia:activity(context(),Fun) of {atomic, R} -> R; X -> X end.
+many(Fun) -> case mnesia:activity(context(),Fun) of {atomic, R} -> R; {aborted, Error} -> {error, Error}; X -> X end.
 void(Fun) -> case mnesia:activity(context(),Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error}; X -> X end.
 info(T) -> try mnesia:table_info(T,all) catch _:_ -> [] end.
 create_table(Name,Options) ->
