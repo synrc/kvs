@@ -152,20 +152,25 @@ relink(Container, E, Driver) ->
     C  = case Top of
                Id -> setelement(#container.top, Container, Prev);
                 _ -> Container end,
-    kvs:put(setelement(#container.count,C,element(#container.count,C)-1), Driver).
+    case element(#container.top,C) of
+         undefined -> kvs:delete(element(1,C),element(#container.id,C));
+         _ -> kvs:put(setelement(#container.count,C,element(#container.count,C)-1), Driver) end.
 
 
-delete(Tab, Key, #kvs{mod=Mod}) -> Mod:delete(Tab, Key).
+delete(Tab, Key, #kvs{mod=Mod}) ->
+    case range(Tab,Key) of
+         [] -> Mod:delete(Tab, Key);
+          T -> Mod:delete(T, Key) end.
 
 remove(Record,Id,#kvs{mod=Mod}=Driver) ->
-    case Mod:get(Record,Id) of
+    case get(Record,Id) of
          {error, not_found} -> kvs:error(?MODULE,"Can't remove ~p~n",[{Record,Id}]);
                      {ok,R} -> do_remove(R,Driver) end.
 
 do_remove(E,#kvs{mod=Mod}=Driver) ->
-    case Mod:get(element(#iterator.container,E),element(#iterator.feed_id,E)) of
-         {ok, Container} -> relink(Container,E,Driver);
-                       _ -> skip end,
+    case get(element(#iterator.container,E),element(#iterator.feed_id,E)) of
+         {ok, C} -> relink(C,E,Driver);
+               _ -> skip end,
     kvs:info(?MODULE,"Delete: ~p", [E]),
     kvs:delete(element(1,E),element(2,E), Driver).
 
