@@ -212,8 +212,7 @@ put(Record,#kvs{mod=Mod}) ->
          [] -> Mod:put(Record);
          Name ->  Mod:put(setelement(1,Record,Name)) end.
 
-table_type(user2) -> user;
-table_type(A) -> A.
+table_type(A) -> kvs:rname(A).
 
 
 
