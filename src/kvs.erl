@@ -78,9 +78,9 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
     Id    = element(2,Record),
     Type  = rname(element(1,Record)),
     CName = element(#iterator.container, Record),
-    Cid   = rname(case element(#iterator.feed_id, Record) of
+    Cid   = case element(#iterator.feed_id, Record) of
                undefined -> rname(element(1,Record));
-                     Fid -> Fid end),
+                     Fid -> Fid end,
 
     Container = case kvs:get(CName, Cid, Driver) of
         {ok,Res} -> Res;
@@ -190,12 +190,13 @@ traversal(Table, Start, Count, Direction, Driver)->
 fold(___,___,_,undefined,_,_,_) -> [];
 fold(___,Acc,_,_,0,_,_) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
-    io:format("fold: ~p~n",[{rname(Table), Start, Driver}]),
+    %io:format("fold: ~p~n",[{rname(Table), Start, Driver}]),
     case kvs:get(rname(Table), Start, Driver) of
          {ok, R} -> Prev = element(Direction, R),
                     Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                     fold(Fun, Fun(R,Acc), Table, Prev, Count1, Direction, Driver);
-           Error -> kvs:error(?MODULE,"Error: ~p~n",[Error]), Acc end.
+           Error -> %kvs:error(?MODULE,"Error: ~p~n",[Error]),
+                    Acc end.
 
 entries({error,_},_,_,_)      -> [];
 entries({ok,Container},N,C,Driver) -> entries(Container,N,C,Driver);
