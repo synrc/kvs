@@ -14,7 +14,6 @@ delete(Table,Key)  -> delete  (Table, Key, #kvs{mod=?DBA}).
 remove(Table,Key)  -> remove  (Table, Key, #kvs{mod=?DBA}).
 get(Table,Key)     -> get     (Table, Key, #kvs{mod=?DBA}).
 index(Table,K,V)   -> index   (Table, K,V, #kvs{mod=?DBA}).
-next_id(Table,DX)  -> next_id (Table, DX,  #kvs{mod=?DBA}).
 change_storage(Table,Type) -> change_storage(Table,Type, #kvs{mod=?DBA}).
 entries(A,B,C)     -> entries (A,B,C, #kvs{mod=?DBA}).
 join()             -> join    ([],    #kvs{mod=?DBA}).
@@ -31,6 +30,11 @@ stop()             -> stop    (#kvs{mod=?DBA}).
 destroy()          -> destroy (#kvs{mod=?DBA}).
 version()          -> version (#kvs{mod=?DBA}).
 dir()              -> dir     (#kvs{mod=?DBA}).
+next_id(Table,DX)  -> next_id(Table, DX,  #kvs{mod=?DBA}).
+                       % of
+                        %   Id when Id > 1000 -> kvs:rotate(Table);
+                        %                   E -> E end.
+
 
 % Implementation
 
@@ -213,16 +217,6 @@ put(Record,#kvs{mod=Mod}) ->
          [] -> Mod:put(Record);
          Name ->  Mod:put(setelement(1,Record,Name)) end.
 
-range(RecordName,Id) -> Ranges = kvs:config(kvs:rname(RecordName)), find(Ranges,RecordName,Id).
-
-find([],_,_Id) -> [];
-find([Range|T],RecordName,Id) ->
-     case lookup(Range,Id) of
-          [] -> find(T,RecordName,Id);
-          Name -> Name end.
-
-lookup(#interval{left=Left,right=Right,name=Name},Id) when Id =< Right, Id >= Left -> Name;
-lookup(#interval{},_Id) -> [].
 
 get(RecordName, Key, #kvs{mod=Mod}) ->
     case range(RecordName,Key) of
@@ -283,6 +277,17 @@ dump() ->
 
                 % Table Partitions
 
+range(RecordName,Id) -> Ranges = kvs:config(kvs:rname(RecordName)), find(Ranges,RecordName,Id).
+
+find([],_,_Id) -> [];
+find([Range|T],RecordName,Id) ->
+     case lookup(Range,Id) of
+          [] -> find(T,RecordName,Id);
+          Interval -> Interval end.
+
+lookup(#interval{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> Name;
+lookup(#interval{},_Id) -> [].
+
 rotate_new()       -> N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
                             length(proplists:get_value(attributes,kvs:info(last_disc(T)),[])) /=
                             length((kvs:table(kvs:last_table(rname(T))))#table.fields)
@@ -297,7 +302,7 @@ load_partitions()  -> [ case kvs:get(config,Table) of
 
 omitone(1)     -> [];
 omitone(X)     -> X.
-limit()        -> 10000000000000000000.
+limit()        -> infinity.
 store(Table,X) -> application:set_env(kvs,Table,X), X.
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
 nname(Table)   -> list_to_integer(case lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table)) of [] -> "1"; E -> E end).
