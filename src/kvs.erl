@@ -46,7 +46,7 @@ stop(#kvs{mod=DBA}) -> DBA:stop().
 change_storage(Type) -> [ change_storage(Name,Type) || #table{name=Name} <- kvs:tables() ].
 change_storage(Table,Type,#kvs{mod=DBA}) -> DBA:change_storage(Table,Type).
 destroy(#kvs{mod=DBA}) -> DBA:destroy().
-join(Node,#kvs{mod=DBA}) -> Tables = nonexistent(), DBA:join(Node), rotate_new(Tables), load_partitions().
+join(Node,#kvs{mod=DBA}) -> DBA:join(Node), rotate_new(), load_partitions().
 version(#kvs{mod=DBA}) -> DBA:version().
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
 table(Name) -> lists:keyfind(Name,#table.name,tables()).
@@ -186,9 +186,8 @@ traversal(Table, Start, Count, Direction, Driver)->
 fold(___,___,_,undefined,_,_,_) -> [];
 fold(___,Acc,_,_,0,_,_) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
-    RecordType = rname(Table),
-    %io:format("fold: ~p~n",[{RecordType, Start, Driver}]),
-    case kvs:get(RecordType, Start, Driver) of
+    io:format("fold: ~p~n",[{rname(Table), Start, Driver}]),
+    case kvs:get(rname(Table), Start, Driver) of
          {ok, R} -> Prev = element(Direction, R),
                     Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                     fold(Fun, Fun(R,Acc), Table, Prev, Count1, Direction, Driver);
@@ -284,33 +283,36 @@ dump() ->
 
                 % Table Partitions
 
-nonexistent()      -> [ T || #table{name=T} <- kvs:tables(), kvs:info(T) == [] ].
-rotate_new(Tables) -> kvs:info(?MODULE,"New Tables: ~p~n",[Tables]), [ kvs:rotate1(kvs:table(T)) || T<- Tables].
-rotate1(Table)     -> update_config(rname(Table#table.name),Table#table.name),
-                      kvs:put(#id_seq{thing=lists:concat([rname(Table#table.name),".tables"]),id=nname(Table#table.name)}).
+rotate_new()       -> N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
+                            length(proplists:get_value(attributes,kvs:info(last_disc(T)),[])) /=
+                            length((kvs:table(kvs:last_table(rname(T))))#table.fields)
+                         ], io:format("Nonexistent: ~p~n",[N]), N.
+rotate(#table{}=T) -> Name = name(rname(T#table.name)),
+                      init(setelement(#table.name,kvs:table(kvs:last_table(T#table.name)),Name)),
+                      update_config(rname(T#table.name),Name);
+rotate(Table)      -> rotate(kvs:table(Table)).
 load_partitions()  -> [ case kvs:get(config,Table) of
                              {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
 
+omitone(1)     -> [];
+omitone(X)     -> X.
 limit()        -> 10000000000000000000.
 store(Table,X) -> application:set_env(kvs,Table,X), X.
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
 nname(Table)   -> list_to_integer(case lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table)) of [] -> "1"; E -> E end).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
 top(Table)     -> id_seq(Table).
-name(T)        -> list_to_atom(lists:concat([T,kvs:next_id(lists:concat([T,".tables"]),1)])).
+name(T)        -> list_to_atom(lists:concat([T,omitone(kvs:next_id(lists:concat([T,".tables"]),1))])).
 init(T)        -> store_mnesia:create_table(T#table.name, [{attributes,T#table.fields},{T#table.copy_type, [node()]}]),
                 [ store_mnesia:add_table_index(T#table.name, Key) || Key <- T#table.keys ].
 id_seq(Tab)    -> T = atom_to_list(Tab), case kvs:get(id_seq,T) of {ok,#id_seq{id=Id}} -> Id; _ -> kvs:next_id(T,1) end.
-omitone(1) -> [];
-omitone(X) -> X.
-last_table(T)  -> list_to_atom(lists:concat([T,omitone(lists:max(proplists:get_value(T,lists:foldl(fun(#table{name=X},Acc) ->
-                     wf:setkey(kvs:rname(X),1,Acc,{kvs:rname(X),[kvs:nname(X)|proplists:get_value(kvs:rname(X),Acc,[])]}) end,
-                     [], kvs:tables()))))])).
-
-
+last_disc(T)   -> list_to_atom(lists:concat([T,omitone(kvs:id_seq(list_to_atom(lists:concat([T,".tables"]))))])).
+last_table(T)  -> list_to_atom(lists:concat([T,omitone(lists:max(proplists:get_value(T,fold_tables(),[1])))])).
+fold_tables()  -> lists:foldl(fun(#table{name=X},Acc) ->
+                  wf:setkey(kvs:rname(X),1,Acc,{kvs:rname(X),[kvs:nname(X)|proplists:get_value(kvs:rname(X),Acc,[])]}) end,
+                  [], kvs:tables()).
 interval(L,R,Name) -> #interval{left=L,right=R,name=Name}.
-rotate(Table)      -> Name = name(Table), init(setelement(#table.name,kvs:table(kvs:last_table(Table)),Name)), update_config(rname(Table),Name).
 update_config(Table,Name) ->
     kvs:put(#config{key   = Table,
                     value = store(Table,case kvs:get(config,Table)  of
