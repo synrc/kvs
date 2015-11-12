@@ -31,10 +31,11 @@ destroy()          -> destroy (#kvs{mod=?DBA}).
 version()          -> version (#kvs{mod=?DBA}).
 dir()              -> dir     (#kvs{mod=?DBA}).
 next_id(Table,DX)  -> next_id(Table, DX,  #kvs{mod=?DBA}).
-                       % of
-                        %   Id when Id > 1000 -> kvs:rotate(Table);
-                        %                   E -> E end.
 
+generation(Table,Key) ->
+    case Key - topleft(Table,Key) < application:get_env(kvs,generation,250000) of
+         true -> skip;
+         false -> kvs:rotate(Table) end.
 
 % Implementation
 
@@ -139,7 +140,9 @@ link(Record,#kvs{mod=_Store}=Driver) ->
 
 add(Record, #kvs{mod=_Store}=Driver) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
-    case kvs:get(rname(element(1,Record)), Id, Driver) of
+    Name = rname(element(1,Record)),
+    generation(Name, Id),
+    case kvs:get(Name, Id, Driver) of
                 {error, _} -> ensure_link(Record, Driver);
          {aborted, Reason} -> {aborted, Reason};
                    {ok, _} -> {error, exist} end.
@@ -278,16 +281,17 @@ dump() ->
 
                 % Table Partitions
 
-range(RecordName,Id) -> Ranges = kvs:config(kvs:rname(RecordName)), find(Ranges,RecordName,Id).
+range(RecordName,Id)   -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.name.
+topleft(RecordName,Id) -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.left.
 
-find([],_,_Id) -> [];
+find([],_,_Id) -> #interval{left=1,right=infinity,name=[]};
 find([Range|T],RecordName,Id) ->
      case lookup(Range,Id) of
           [] -> find(T,RecordName,Id);
           Interval -> Interval end.
 
-lookup(#interval{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> Name;
-lookup(#interval{},_Id) -> [].
+lookup(#interval{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> I;
+lookup(#interval{},_) -> [].
 
 rotate_new()       -> N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
                             length(proplists:get_value(attributes,kvs:info(last_disc(T)),[])) /=
