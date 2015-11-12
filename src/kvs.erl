@@ -289,7 +289,7 @@ dump() ->
 nonexistent()      -> [ T || #table{name=T} <- kvs:tables(), kvs:info(T) == [] ].
 rotate_new(Tables) -> kvs:info(?MODULE,"New Tables: ~p~n",[Tables]), [ kvs:rotate1(kvs:table(T)) || T<- Tables].
 rotate1(Table)     -> update_config(rname(Table#table.name),Table#table.name),
-                      kvs:put(#id_seq{thing=lists:concat([rname(Table#table.name),".tables"]),id=wf:to_integer(nname(Table))}).
+                      kvs:put(#id_seq{thing=lists:concat([rname(Table#table.name),".tables"]),id=nname(Table#table.name)}).
 load_partitions()  -> [ case kvs:get(config,Table) of
                              {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
@@ -299,7 +299,7 @@ store(Table,X) -> application:set_env(kvs,Table,X), X.
 last_table(Table) -> list_to_atom(lists:concat([Table,id_seq(lists:concat([Table,".tables"]))])).
 cname(Table)      -> list_to_atom(lists:concat([Table,id_seq(lists:concat([Table,".tables"]))-1])).
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
-nname(Table)   -> list_to_atom(lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table#table.name))).
+nname(Table)   -> list_to_integer(case lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table)) of [] -> "1"; E -> E end).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
 top(Table)     -> id_seq(Table).
 name(T)        -> list_to_atom(lists:concat([T,kvs:next_id(lists:concat([T,".tables"]),1)])).
@@ -316,9 +316,6 @@ update_config(Table,Name) ->
                                             {error,not_found}        -> update_list(Table,[],Name);
                                             {ok,#config{value=List}} -> update_list(Table,List,Name) end)}).
 
-update_list(Table,List,Name) ->
-    io:format("Name ~p Table ~p ~n",[Name,Table]),
-    [ interval(top(Table)+1,limit(),Name) ] ++
-    case lists:keyfind(Name,#interval.name,List) of
-         false -> List;
-         CI -> lists:keyreplace(Name,#interval.name,List,CI#interval{right=top(Table)}) end.
+update_list(Table,[],Name)                    -> [ interval(top(Table)+1,limit(),Name) ];
+update_list(Table,[#interval{}=CI|Tail],Name) -> [ interval(top(Table)+1,limit(),Name) ] ++
+                                                 [ CI#interval{right=top(Table)}       ] ++ Tail.
