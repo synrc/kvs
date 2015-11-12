@@ -72,10 +72,10 @@ create(ContainerName, Id, Driver) ->
 ensure_link(Record, #kvs{mod=_Store}=Driver) ->
 
     Id    = element(2,Record),
-    Type  = table_type(element(1,Record)),
+    Type  = rname(element(1,Record)),
     CName = element(#iterator.container, Record),
-    Cid   = table_type(case element(#iterator.feed_id, Record) of
-               undefined -> table_type(element(1,Record));
+    Cid   = rname(case element(#iterator.feed_id, Record) of
+               undefined -> rname(element(1,Record));
                      Fid -> Fid end),
 
     Container = case kvs:get(CName, Cid, Driver) of
@@ -92,20 +92,18 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
               error -> {error, no_container};
         _ when element(#container.top,Container) == Id -> {error,just_added};
                   _ ->
-                       Next = undefined,
-                       Prev = case element(#container.top, Container) of
+                       Top = case element(#container.top, Container) of
                                    undefined -> undefined;
                                    Tid -> case kvs:get(Type, Tid, Driver) of
                                                {error, _} -> undefined;
-                                               {ok, Top}  -> NewTop = setelement(#iterator.next, Top, Id),
-                                                             kvs:put(NewTop, Driver),
-                                                             element(#iterator.id, NewTop) end end,
+                                               {ok, T}  -> setelement(#iterator.next, T, Id) end end,
+
+                       Prev = case Top of undefined -> undefined; E -> element(#iterator.id, E) end,
+                       Next = undefined,
 
                        C1 = setelement(#container.top, Container, Id),
                        C2 = setelement(#container.count, C1,
-                                element(#container.count, Container)+1),
-
-                       kvs:put(C2, Driver), % Container
+                               element(#container.count, Container)+1),
 
                        R  = setelement(#iterator.feeds, Record,
                             [ case F1 of
@@ -117,7 +115,12 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
                        R2 = setelement(#iterator.prev,    R1, Prev),
                        R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
 
-                       kvs:put(R3, Driver), % Iterator
+                       case {kvs:put(R3, Driver),Top} of            % Iterator
+                            {ok,undefined} -> kvs:put(C2, Driver);  % Container
+                            {ok,Top}       -> kvs:put(C2, Driver),
+                                              kvs:put(Top, Driver);
+                                        __ -> kvs:error(?MODULE,"Error Updating Iterator: ~p~n",
+                                                                [element(#container.id,R3)]) end,
 
                        kvs:info(?MODULE,"Put: ~p~n", [element(#container.id,R3)]),
 
@@ -126,13 +129,13 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
 
 link(Record,#kvs{mod=_Store}=Driver) ->
     Id = element(#iterator.id, Record),
-    case kvs:get(table_type(element(1,Record)), Id, Driver) of
+    case kvs:get(rname(element(1,Record)), Id, Driver) of
               {ok, Exists} -> ensure_link(Exists, Driver);
         {error, not_found} -> {error, not_found} end.
 
 add(Record, #kvs{mod=_Store}=Driver) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
-    case kvs:get(table_type(element(1,Record)), Id, Driver) of
+    case kvs:get(rname(element(1,Record)), Id, Driver) of
                 {error, _} -> ensure_link(Record, Driver);
          {aborted, Reason} -> {aborted, Reason};
                    {ok, _} -> {error, exist} end.
@@ -157,7 +160,6 @@ relink(Container, E, Driver) ->
     case element(#container.top,C) of
          undefined -> kvs:delete(element(1,C),element(#container.id,C));
          _ -> kvs:put(setelement(#container.count,C,element(#container.count,C)-1), Driver) end.
-
 
 delete(Tab, Key, #kvs{mod=Mod}) ->
     case range(Tab,Key) of
@@ -184,7 +186,7 @@ traversal(Table, Start, Count, Direction, Driver)->
 fold(___,___,_,undefined,_,_,_) -> [];
 fold(___,Acc,_,_,0,_,_) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
-    RecordType = table_type(Table),
+    RecordType = rname(Table),
     %io:format("fold: ~p~n",[{RecordType, Start, Driver}]),
     case kvs:get(RecordType, Start, Driver) of
          {ok, R} -> Prev = element(Direction, R),
@@ -212,11 +214,7 @@ put(Record,#kvs{mod=Mod}) ->
          [] -> Mod:put(Record);
          Name ->  Mod:put(setelement(1,Record,Name)) end.
 
-table_type(A) -> kvs:rname(A).
-
-
-
-range(RecordName,Id) -> Ranges = kvs:config(RecordName), find(Ranges,RecordName,Id).
+range(RecordName,Id) -> Ranges = kvs:config(kvs:rname(RecordName)), find(Ranges,RecordName,Id).
 
 find([],_,_Id) -> [];
 find([Range|T],RecordName,Id) ->
@@ -296,8 +294,6 @@ load_partitions()  -> [ case kvs:get(config,Table) of
 
 limit()        -> 10000000000000000000.
 store(Table,X) -> application:set_env(kvs,Table,X), X.
-last_table(Table) -> list_to_atom(lists:concat([Table,id_seq(lists:concat([Table,".tables"]))])).
-cname(Table)      -> list_to_atom(lists:concat([Table,id_seq(lists:concat([Table,".tables"]))-1])).
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
 nname(Table)   -> list_to_integer(case lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table)) of [] -> "1"; E -> E end).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
@@ -306,10 +302,15 @@ name(T)        -> list_to_atom(lists:concat([T,kvs:next_id(lists:concat([T,".tab
 init(T)        -> store_mnesia:create_table(T#table.name, [{attributes,T#table.fields},{T#table.copy_type, [node()]}]),
                 [ store_mnesia:add_table_index(T#table.name, Key) || Key <- T#table.keys ].
 id_seq(Tab)    -> T = atom_to_list(Tab), case kvs:get(id_seq,T) of {ok,#id_seq{id=Id}} -> Id; _ -> kvs:next_id(T,1) end.
-                    % rotate DETS table
+omitone(1) -> [];
+omitone(X) -> X.
+last_table(T)  -> list_to_atom(lists:concat([T,omitone(lists:max(proplists:get_value(T,lists:foldl(fun(#table{name=X},Acc) ->
+                     wf:setkey(kvs:rname(X),1,Acc,{kvs:rname(X),[kvs:nname(X)|proplists:get_value(kvs:rname(X),Acc,[])]}) end,
+                     [], kvs:tables()))))])).
+
 
 interval(L,R,Name) -> #interval{left=L,right=R,name=Name}.
-rotate(Table)      -> Name = name(Table), init(setelement(#table.name,kvs:table(Table),Name)), update_config(rname(Table),Name).
+rotate(Table)      -> Name = name(Table), init(setelement(#table.name,kvs:table(kvs:last_table(Table)),Name)), update_config(rname(Table),Name).
 update_config(Table,Name) ->
     kvs:put(#config{key   = Table,
                     value = store(Table,case kvs:get(config,Table)  of
