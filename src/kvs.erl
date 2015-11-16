@@ -226,7 +226,7 @@ get(RecordName, Key, #kvs{mod=Mod}) ->
     case range(RecordName,Key) of
          []   -> Mod:get(RecordName, Key);
          Name -> case Mod:get(Name, Key) of
-                      {ok,Record} -> {ok,setelement(1,Record,RecordName)};
+                      {ok,Record} -> {ok,setelement(1,Record,kvs:last(RecordName,Key))};
                       Else -> Else end end.
 
 count(RecordName,#kvs{mod=DBA}) -> DBA:count(RecordName).
@@ -283,8 +283,9 @@ dump() ->
 
 range(RecordName,Id)   -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.name.
 topleft(RecordName,Id) -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.left.
+last(RecordName,Id)    -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.last.
 
-find([],_,_Id) -> #interval{left=1,right=infinity,name=[]};
+find([],_,_Id) -> #interval{left=1,right=infinity,name=[],last=[]};
 find([Range|T],RecordName,Id) ->
      case lookup(Range,Id) of
           [] -> find(T,RecordName,Id);
@@ -322,7 +323,7 @@ last_table(T)  -> list_to_atom(lists:concat([T,omitone(lists:max(proplists:get_v
 fold_tables()  -> lists:foldl(fun(#table{name=X},Acc) ->
                   wf:setkey(kvs:rname(X),1,Acc,{kvs:rname(X),[kvs:nname(X)|proplists:get_value(kvs:rname(X),Acc,[])]}) end,
                   [], kvs:tables()).
-interval(L,R,Name) -> #interval{left=L,right=R,name=Name}.
+interval(L,R,Name) -> #interval{left=L,right=R,name=Name,last=last_table(rname(Name))}.
 update_config(Table,Name) ->
     kvs:put(#config{key   = Table,
                     value = store(Table,case kvs:get(config,Table)  of
