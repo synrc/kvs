@@ -62,6 +62,6 @@ just_one(Fun) ->
         [_|_] -> {error, duplicated};
         Error -> Error end.
 
-add(Record) -> mnesia:activity(transaction,fun() -> kvs:append(Record,#kvs{mod=?MODULE}) end).
-remove(Record,Id) -> mnesia:activity(transaction,fun() -> kvs:takeoff(Record,Id,#kvs{mod=?MODULE}) end).
+add(Record) -> mnesia:activity(context(),fun() -> kvs:append(Record,#kvs{mod=?MODULE}) end).
+remove(Record,Id) -> mnesia:activity(context(),fun() -> kvs:takeoff(Record,Id,#kvs{mod=?MODULE}) end).
 context() -> kvs:config(kvs,mnesia_context,async_dirty).
