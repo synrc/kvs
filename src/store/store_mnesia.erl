@@ -63,4 +63,5 @@ just_one(Fun) ->
         Error -> Error end.
 
 add(Record) -> mnesia:activity(transaction,fun() -> kvs:append(Record,#kvs{mod=?MODULE}) end).
+remove(Record,Id) -> mnesia:activity(transaction,fun() -> kvs:takeoff(Record,Id,#kvs{mod=?MODULE}) end).
 context() -> kvs:config(kvs,mnesia_context,async_dirty).

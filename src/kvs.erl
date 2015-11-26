@@ -176,7 +176,10 @@ delete(Tab, Key, #kvs{mod=Mod}) ->
          [] -> Mod:delete(Tab, Key);
           T -> Mod:delete(T, Key) end.
 
-remove(Record,Id,#kvs{mod=Mod}=Driver) ->
+remove(Record, Id,#kvs{mod=store_mnesia}=Driver) -> store_mnesia:remove(Record,Id);
+remove(Record, Id,#kvs{mod=Store}=Driver) -> takeoff(Record,Id,Driver).
+
+takeoff(Record,Id,#kvs{mod=Mod}=Driver) ->
     case get(Record,Id) of
          {error, not_found} -> kvs:error(?MODULE,"Can't remove ~p~n",[{Record,Id}]);
                      {ok,R} -> do_remove(R,Driver) end.
