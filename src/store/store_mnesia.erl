@@ -1,6 +1,7 @@
 -module(store_mnesia).
 -copyright('Synrc Research Center s.r.o.').
 -include("config.hrl").
+-include("kvs.hrl").
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
@@ -61,4 +62,5 @@ just_one(Fun) ->
         [_|_] -> {error, duplicated};
         Error -> Error end.
 
+add(Record) -> mnesia:activity(transaction,fun() -> kvs:append(Record,#kvs{mod=?MODULE}) end).
 context() -> kvs:config(kvs,mnesia_context,async_dirty).

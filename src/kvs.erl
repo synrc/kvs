@@ -138,7 +138,10 @@ link(Record,#kvs{mod=_Store}=Driver) ->
               {ok, Exists} -> ensure_link(Exists, Driver);
         {error, not_found} -> {error, not_found} end.
 
-add(Record, #kvs{mod=_Store}=Driver) when is_tuple(Record) ->
+add(Record, #kvs{mod=store_mnesia}=Driver) when is_tuple(Record) -> store_mnesia:add(Record);
+add(Record, #kvs{mod=Store}=Driver) when is_tuple(Record) -> append(Record,Driver).
+
+append(Record, #kvs{mod=_Store}=Driver) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
     Name = rname(element(1,Record)),
     generation(Name, Id),
