@@ -32,6 +32,7 @@ index(Tab,Key,Value) ->
     Index = string:str(Table#table.fields,[Key]),
     lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Index+1) end)).
 
+get(RecordName, {SKey, Pos}) -> just_one(fun() -> mnesia:index_read(RecordName, SKey, Pos) end);
 get(RecordName, Key) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
 put(Record) -> put([Record]).
