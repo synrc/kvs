@@ -5,8 +5,6 @@
 -include("metainfo.hrl").
 -include("acl.hrl").
 -include("user.hrl").
--include("group.hrl").
--include("feed.hrl").
 
 metainfo() ->
     #schema{name=kvs,tables=[
