@@ -327,7 +327,7 @@ id_seq(Tab)    -> T = atom_to_list(Tab), case kvs:get(id_seq,T) of {ok,#id_seq{i
 last_disc(T)   -> list_to_atom(lists:concat([T,omitone(kvs:id_seq(list_to_atom(lists:concat([T,".tables"]))))])).
 last_table(T)  -> list_to_atom(lists:concat([T,omitone(lists:max(proplists:get_value(T,fold_tables(),[1])))])).
 fold_tables()  -> lists:foldl(fun(#table{name=X},Acc) ->
-                  wf:setkey(kvs:rname(X),1,Acc,{kvs:rname(X),[kvs:nname(X)|proplists:get_value(kvs:rname(X),Acc,[])]}) end,
+                  setkey(kvs:rname(X),1,Acc,{kvs:rname(X),[kvs:nname(X)|proplists:get_value(kvs:rname(X),Acc,[])]}) end,
                   [], kvs:tables()).
 interval(L,R,Name) -> #interval{left=L,right=R,name=Name,last=last_table(rname(Name))}.
 update_config(Table,Name) ->
@@ -339,3 +339,8 @@ update_config(Table,Name) ->
 update_list(Table,[],Name)                    -> [ interval(top(Table)+1,limit(),Name) ];
 update_list(Table,[#interval{}=CI|Tail],Name) -> [ interval(top(Table)+1,limit(),Name) ] ++
                                                  [ CI#interval{right=top(Table)}       ] ++ Tail.
+
+setkey(Name,Pos,List,New) ->
+    case lists:keyfind(Name,Pos,List) of
+        false -> [New|List];
+        _Element -> lists:keyreplace(Name,Pos,List,New) end.
