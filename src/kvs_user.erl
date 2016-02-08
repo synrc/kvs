@@ -2,7 +2,6 @@
 -copyright('Synrc Research Center s.r.o.').
 -include("user.hrl").
 -include("group.hrl").
--include("config.hrl").
 -include("metainfo.hrl").
 -compile(export_all).
 
