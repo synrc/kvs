@@ -33,9 +33,14 @@ dir()              -> dir     (#kvs{mod=?DBA}).
 next_id(Table,DX)  -> next_id(Table, DX,  #kvs{mod=?DBA}).
 
 generation(Table,Key) ->
-    case Key - topleft(Table,Key) < application:get_env(kvs,generation,250000) of
+    case Key - topleft(Table,Key) < norm(application:get_env(kvs,generation,{?MODULE,limit}),Table,Key) of
          true -> skip;
          false -> kvs:rotate(Table) end.
+
+norm({A,B},Table,Key) -> A:B(Table,Key);
+norm(_,Table,Key)     -> limit(Table,Key).
+
+limit(_Table,_Key)    -> 250000.
 
 % Implementation
 
