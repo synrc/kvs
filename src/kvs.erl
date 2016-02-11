@@ -5,6 +5,7 @@
 -include("config.hrl").
 -include("metainfo.hrl").
 -include("kvs.hrl").
+-include("user.hrl").
 -include("api.hrl").
 
 % Public Main Backend is given in sys.config and
@@ -40,7 +41,13 @@ generation(Table,Key) ->
 norm({A,B},Table,Key) -> A:B(Table,Key);
 norm(_,Table,Key)     -> limit(Table,Key).
 
-limit(_Table,_Key)    -> 250000.
+limit(user,_Key)       -> 2;
+limit(comment,_Key)    -> 2;
+limit(_Table,_Key)     -> 250000.
+
+forbid(user)           -> 3;
+forbid(comment)        -> 3;
+forbid(____)           -> 100.
 
 % Implementation
 
@@ -56,7 +63,7 @@ stop(#kvs{mod=DBA}) -> DBA:stop().
 change_storage(Type) -> [ change_storage(Name,Type) || #table{name=Name} <- kvs:tables() ].
 change_storage(Table,Type,#kvs{mod=DBA}) -> DBA:change_storage(Table,Type).
 destroy(#kvs{mod=DBA}) -> DBA:destroy().
-join(Node,#kvs{mod=DBA}) -> DBA:join(Node), rotate_new(), load_partitions().
+join(Node,#kvs{mod=DBA}) -> DBA:join(Node), rotate_new(), load_partitions(), load_config().
 version(#kvs{mod=DBA}) -> DBA:version().
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
 table(Name) -> lists:keyfind(Name,#table.name,tables()).
@@ -204,13 +211,14 @@ traversal(Table, Start, Count, Direction, Driver)->
 fold(___,___,_,undefined,_,_,_) -> [];
 fold(___,Acc,_,_,0,_,_) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
-    %io:format("fold: ~p~n",[{rname(Table), Start, Driver}]),
+    io:format("fold: ~p~n",[{Table, Start, Driver}]),
+    try
     case kvs:get(rname(Table), Start, Driver) of
          {ok, R} -> Prev = element(Direction, R),
                     Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                     fold(Fun, Fun(R,Acc), Table, Prev, Count1, Direction, Driver);
            Error -> %kvs:error(?MODULE,"Error: ~p~n",[Error]),
-                    Acc end.
+                    Acc end catch _:_ -> Acc end.
 
 entries({error,_},_,_,_)      -> [];
 entries({ok,Container},N,C,Driver) -> entries(Container,N,C,Driver);
@@ -312,7 +320,14 @@ rotate_new()       -> N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
 rotate(#table{}=T) -> Name = name(rname(T#table.name)),
                       init(setelement(#table.name,kvs:table(kvs:last_table(T#table.name)),Name)),
                       update_config(rname(T#table.name),Name);
-rotate(Table)      -> rotate(kvs:table(Table)).
+rotate(Table)      -> Intervals = kvs:config(Table),
+                      {M,F} = application:get_env(kvs,forbidding,{?MODULE,forbid}),
+                      New = lists:sublist(Intervals,M:F(Table)),
+                      Delete = Intervals -- New,
+                      [ mnesia:delete_table(Name) || #interval{name=Name} <- Delete ],
+                      kvs:put(#config{key=Table,value=New}),
+                      rotate(kvs:table(Table)),
+                      ok.
 load_partitions()  -> [ case kvs:get(config,Table) of
                              {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
@@ -320,6 +335,7 @@ load_partitions()  -> [ case kvs:get(config,Table) of
 omitone(1)     -> [];
 omitone(X)     -> X.
 limit()        -> infinity.
+load_config()  -> [ application:set_env(kvs,Key,Value) || #config{key=Key,value=Value}<- kvs:all(config) ].
 store(Table,X) -> application:set_env(kvs,Table,X), X.
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
 nname(Table)   -> list_to_integer(case lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table)) of [] -> "1"; E -> E end).
@@ -349,3 +365,9 @@ setkey(Name,Pos,List,New) ->
     case lists:keyfind(Name,Pos,List) of
         false -> [New|List];
         _Element -> lists:keyreplace(Name,Pos,List,New) end.
+
+test() ->
+    kvs:join(),
+    [ kvs:add(#user{id=kvs:next_id("user",1)}) || _ <- lists:seq(1,20) ],
+    io:format("Config: ~p~n",[kvs:all(config)]),
+    io:format("Fetch: ~p~n",[kvs:entries(kvs:get(feed,user),user,infinity)]).
