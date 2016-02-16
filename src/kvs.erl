@@ -211,7 +211,7 @@ traversal(Table, Start, Count, Direction, Driver)->
 fold(___,___,_,undefined,_,_,_) -> [];
 fold(___,Acc,_,_,0,_,_) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
-    io:format("fold: ~p~n",[{Table, Start, Driver}]),
+    %io:format("fold: ~p~n",[{Table, Start, Driver}]),
     try
     case kvs:get(rname(Table), Start, Driver) of
          {ok, R} -> Prev = element(Direction, R),
