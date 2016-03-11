@@ -24,6 +24,7 @@ add(Table)         -> add     (Table, #kvs{mod=?DBA}).
 all(Table)         -> all     (Table, #kvs{mod=?DBA}).
 put(Table)         -> put     (Table, #kvs{mod=?DBA}).
 link(Table)        -> link    (Table, #kvs{mod=?DBA}).
+fold(Fun,Acc,T,S,C,D) -> fold (Fun,Acc,T,S,C,D,#kvs{mod=?DBA}).
 traversal(T,S,C,D) -> traversal(T,S,C,D, #kvs{mod=?DBA}).
 info(T)            -> info    (T,        #kvs{mod=?DBA}).
 start()            -> start   (#kvs{mod=?DBA}).
