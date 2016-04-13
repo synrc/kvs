@@ -1,7 +1,7 @@
 -module(kvs).
 -copyright('Synrc Research Center s.r.o.').
 -compile(export_all).
--include_lib("stdlib/include/qlc.hrl").
+%-include_lib("stdlib/include/qlc.hrl").
 -include("config.hrl").
 -include("metainfo.hrl").
 -include("kvs.hrl").
@@ -82,7 +82,7 @@ create(ContainerName, Id, Driver) ->
     kvs:info(?MODULE,"Create: ~p",[ContainerName]),
     Instance = list_to_tuple([ContainerName|proplists:get_value(ContainerName, kvs:containers())]),
     Top  = setelement(#container.id,Instance,Id),
-    Top2 = setelement(#container.top,Top,undefined),
+    Top2 = setelement(#container.top,Top,[]),
     Top3 = setelement(#container.count,Top2,0),
     ok = kvs:put(Top3, Driver),
     Id.
@@ -93,12 +93,13 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
     Type  = rname(element(1,Record)),
     CName = element(#iterator.container, Record),
     Cid   = case element(#iterator.feed_id, Record) of
+                      [] -> rname(element(1,Record));
                undefined -> rname(element(1,Record));
                      Fid -> Fid end,
 
     Container = case kvs:get(CName, Cid, Driver) of
         {ok,Res} -> Res;
-        {error, _} when Cid /= undefined ->
+        {error, _} when Cid /= undefined andalso Cid /= [] ->
                 NC = setelement(#container.id,
                       list_to_tuple([CName|
                             proplists:get_value(CName, kvs:containers())]), Cid),
@@ -111,13 +112,17 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
         _ when element(#container.top,Container) == Id -> {error,just_added};
                   _ ->
                        Top = case element(#container.top, Container) of
-                                   undefined -> undefined;
+                             undefined -> [];
+                                    [] -> [];
                                    Tid -> case kvs:get(Type, Tid, Driver) of
-                                               {error, _} -> undefined;
+                                               {error, _} -> [];
                                                {ok, T}  -> setelement(#iterator.next, T, Id) end end,
 
-                       Prev = case Top of undefined -> undefined; E -> element(#iterator.id, E) end,
-                       Next = undefined,
+                       Prev = case Top of undefined -> [];
+                                          [] -> [];
+                                          E -> element(#iterator.id, E) end,
+
+                       Next = [],
 
                        C1 = setelement(#container.top, Container, Id),
                        C2 = setelement(#container.count, C1,
@@ -134,11 +139,11 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
                        R3 = setelement(#iterator.feed_id, R2, element(#container.id, Container)),
 
                        case {kvs:put(R3, Driver),Top} of            % Iterator
-                            {ok,undefined} -> kvs:put(C2, Driver);  % Container
-                            {ok,Top}       -> kvs:put(C2, Driver),
-                                              kvs:put(Top, Driver);
-                                        __ -> kvs:error(?MODULE,"Error Updating Iterator: ~p~n",
-                                                                [element(#container.id,R3)]) end,
+                            {ok,[]}   -> kvs:put(C2, Driver);  % Container
+                            {ok,Top}  -> kvs:put(C2, Driver),
+                                         kvs:put(Top, Driver);
+                                   __ -> kvs:error(?MODULE,"Error Updating Iterator: ~p~n",
+                                                     [element(#container.id,R3)]) end,
 
                        kvs:info(?MODULE,"Put: ~p~n", [element(#container.id,R3)]),
 
@@ -341,6 +346,7 @@ store(Table,X) -> application:set_env(kvs,Table,X), X.
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
 nname(Table)   -> list_to_integer(case lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table)) of [] -> "1"; E -> E end).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
+top(i)         -> id_seq(conv);
 top(Table)     -> id_seq(Table).
 name(T)        -> list_to_atom(lists:concat([T,omitone(kvs:next_id(lists:concat([T,".tables"]),1))])).
 init(T)        -> store_mnesia:create_table(T#table.name, [{attributes,T#table.fields},{T#table.copy_type, [node()]}]),

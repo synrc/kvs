@@ -1,9 +1,8 @@
 -ifndef(KVS_HRL).
 -define(KVS_HRL, true).
 
--define(CONTAINER, id, top, count=0).
--define(ITERATOR(Container, Guard), id, version, container=Container, feed_id, prev, next, feeds=[], guard=Guard, etc).
--define(ITERATOR(Container), ?ITERATOR(Container, false)).
+-define(CONTAINER, id=[], top=[], count=0).
+-define(ITERATOR(Container), id=[], container=Container, feed_id=[], prev=[], next=[], feeds=[]).
 
 -record(id_seq,    {thing, id}).
 -record(container, {?CONTAINER}).

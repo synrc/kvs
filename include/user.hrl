@@ -7,7 +7,7 @@
 -define(USER_EXT, email).
 -endif.
 
--record(user, {?ITERATOR(feed, true), ?USER_EXT,
+-record(user, {?ITERATOR(feed), ?USER_EXT,
         username,
         password,
         display_name,
@@ -23,7 +23,7 @@
         zone,
         type }).
 
--record(user2, {?ITERATOR(feed, true), % version 2
+-record(user2, {?ITERATOR(feed), % version 2
         everyting_getting_small,
         email,
         username,

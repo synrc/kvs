@@ -3,7 +3,7 @@
 
 -include("kvs.hrl").
 
--record(product, {?ITERATOR(feed, true),
+-record(product, {?ITERATOR(feed),
         ext_id                 :: term(),    % ext
         vendor_id              :: integer(), % auto
         categories             :: list(integer()), % admin
