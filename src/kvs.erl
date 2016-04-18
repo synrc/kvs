@@ -48,7 +48,7 @@ limit(_Table,_Key)     -> 250000.
 
 forbid(user)           -> 3;
 forbid(comment)        -> 3;
-forbid(____)           -> 100.
+forbid(____)           -> 100000.
 
 % Implementation
 
@@ -330,7 +330,8 @@ rotate(Table)      -> Intervals = kvs:config(Table),
                       {M,F} = application:get_env(kvs,forbidding,{?MODULE,forbid}),
                       New = lists:sublist(Intervals,M:F(Table)),
                       Delete = Intervals -- New,
-                      [ mnesia:delete_table(Name) || #interval{name=Name} <- Delete ],
+                      [ mnesia:change_table_copy_type(Name, node(), disc_only_copies)
+                                    || #interval{name=Name} <- Delete ],
                       kvs:put(#config{key=Table,value=New}),
                       rotate(kvs:table(Table)),
                       ok.
@@ -338,6 +339,10 @@ load_partitions()  -> [ case kvs:get(config,Table) of
                              {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
 
+wait()         -> timer:tc(fun() -> mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity) end).
+stl([])        -> [];
+stl(S)         -> tl(S).
+dat(T)         -> [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #interval{name=Name} <- stl((element(2,kvs:get(config,T)))#config.value) ].
 omitone(1)     -> [];
 omitone(X)     -> X.
 limit()        -> infinity.

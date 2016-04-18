@@ -24,8 +24,9 @@ change_storage(Table,Type) -> mnesia:change_table_copy_type(Table, node(), Type)
 initialize() ->
     kvs:info(?MODULE,"mnesia init.~n",[]),
     mnesia:create_schema([node()]),
-    [ kvs:init(store_mnesia,Module) || Module <- kvs:modules() ],
-    mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity).
+    Res = [ kvs:init(store_mnesia,Module) || Module <- kvs:modules() ],
+    mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity),
+    Res.
 
 index(Tab,Key,Value) ->
     Table = kvs:table(Tab),
