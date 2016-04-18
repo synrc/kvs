@@ -332,7 +332,7 @@ rotate(Table)      -> Intervals = kvs:config(Table),
                       Delete = Intervals -- New,
                       [ mnesia:change_table_copy_type(Name, node(), disc_only_copies)
                                     || #interval{name=Name} <- Delete ],
-                      kvs:put(#config{key=Table,value=New}),
+%                      kvs:put(#config{key=Table,value=New}),
                       rotate(kvs:table(Table)),
                       ok.
 load_partitions()  -> [ case kvs:get(config,Table) of
