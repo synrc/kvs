@@ -331,7 +331,7 @@ rotate(Table)      -> Intervals = kvs:config(Table),
                       New = lists:sublist(Intervals,M:F(Table)),
                       Delete = Intervals -- New,
                       [ mnesia:change_table_copy_type(Name, node(), disc_only_copies)
-                                    || #interval{name=Name} <- Delete ],
+                                    || #interval{name=Name} <- shd(Delete) ],
 %                      kvs:put(#config{key=Table,value=New}),
                       rotate(kvs:table(Table)),
                       ok.
@@ -339,6 +339,8 @@ load_partitions()  -> [ case kvs:get(config,Table) of
                              {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
                              Else -> ok end || {table,Table} <- kvs:dir() ].
 
+shd([])        -> [];
+shd(X)         -> [hd(X)].
 wait()         -> timer:tc(fun() -> mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity) end).
 stl([])        -> [];
 stl(S)         -> tl(S).
@@ -351,6 +353,7 @@ store(Table,X) -> application:set_env(kvs,Table,X), X.
 rname(Table)   -> list_to_atom(lists:filter(fun(X) -> not lists:member(X,"1234567890") end, atom_to_list(Table))).
 nname(Table)   -> list_to_integer(case lists:filter(fun(X) -> lists:member(X,"1234567890") end, atom_to_list(Table)) of [] -> "1"; E -> E end).
 fold(N)        -> kvs:fold(fun(X,A)->[X|A]end,[],process,N,-1,#iterator.next,#kvs{mod=store_mnesia}).
+top(acl)       -> id_seq(conv);
 top(i)         -> id_seq(conv);
 top(Table)     -> id_seq(Table).
 name(T)        -> list_to_atom(lists:concat([T,omitone(kvs:next_id(lists:concat([T,".tables"]),1))])).
