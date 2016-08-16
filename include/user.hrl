@@ -8,20 +8,20 @@
 -endif.
 
 -record(user, {?ITERATOR(feed), ?USER_EXT,
-        username,
-        password,
-        display_name,
-        register_date,
+        username=[],
+        password=[],
+        display_name=[],
+        register_date=[],
         tokens = [],
-        images,
-        names,
-        surnames,
-        birth,
-        sex,
-        date,
-        status,
-        zone,
-        type }).
+        images=[],
+        names=[],
+        surnames=[],
+        birth=[],
+        sex=[],
+        date=[],
+        status=[],
+        zone=[],
+        type=[] }).
 
 -record(user2, {?ITERATOR(feed), % version 2
         everyting_getting_small,

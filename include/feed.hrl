@@ -3,6 +3,6 @@
 
 -include("kvs.hrl").
 
--record(feed, {?CONTAINER, aclver}).
+-record(feed, {?CONTAINER, aclver=[]}).
 
 -endif.
