@@ -215,7 +215,7 @@ traversal(Table, Start, Count, Direction, Driver)->
 
 % kvs:fold(fun(X,A)->[X|A]end,[],process,2152,-1,#iterator.next,#kvs{mod=store_mnesia}).
 
-fold(___,___,_,undefined,_,_,_) -> [];
+fold(___,Acc,_,undefined,_,_,_) -> Acc;
 fold(___,Acc,_,_,0,_,_) -> Acc;
 fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
     %io:format("fold: ~p~n",[{Table, Start, Driver}]),
