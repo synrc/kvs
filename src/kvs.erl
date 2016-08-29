@@ -32,7 +32,7 @@ stop()             -> stop    (#kvs{mod=?DBA}).
 destroy()          -> destroy (#kvs{mod=?DBA}).
 version()          -> version (#kvs{mod=?DBA}).
 dir()              -> dir     (#kvs{mod=?DBA}).
-next_id(Table,DX)  -> next_id(Table, DX,  #kvs{mod=?DBA}).
+next_id(Table,DX)  -> next_id(Table, DX, #kvs{mod=?DBA}).
 
 generation(Table,Key) ->
     case Key - topleft(Table,Key) < norm(application:get_env(kvs,generation,{?MODULE,limit}),Table,Key) of
@@ -67,7 +67,8 @@ destroy(#kvs{mod=DBA}) -> DBA:destroy().
 join(Node,#kvs{mod=DBA}) -> DBA:join(Node), rotate_new(), load_partitions(), load_config().
 version(#kvs{mod=DBA}) -> DBA:version().
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
-table(Name) -> lists:keyfind(Name,#table.name,tables()).
+table(Name) when is_atom(Name) -> lists:keyfind(rname(Name),#table.name,tables());
+table(_) -> false.
 dir(#kvs{mod=DBA}) -> DBA:dir().
 info(T,#kvs{mod=DBA}) -> DBA:info(T).
 modules() -> kvs:config(schema).
@@ -254,10 +255,13 @@ get(RecordName, Key, #kvs{mod=Mod}) ->
                       {ok,Record} -> {ok,setelement(1,Record,kvs:last(RecordName,Key))};
                       Else -> Else end end.
 
-count(RecordName,#kvs{mod=DBA}) -> DBA:count(RecordName).
-all(RecordName,#kvs{mod=DBA}) -> DBA:all(RecordName).
-index(RecordName, Key, Value,#kvs{mod=DBA}) -> DBA:index(RecordName, Key, Value).
-next_id(RecordName, Incr,#kvs{mod=DBA}) -> DBA:next_id(RecordName, Incr).
+count(Tab,#kvs{mod=DBA}) -> lists:foldl(fun(T,A) -> DBA:count(T) + A end, 0, rlist(Tab)).
+all(Tab,#kvs{mod=DBA}) ->
+    lists:flatten([ rnorm(rname(Tab),DBA:all(T)) || T <- rlist(Tab) ]).
+index(Tab, Key, Value,#kvs{mod=DBA}) ->
+    lists:flatten([ rnorm(rname(Tab),DBA:index(T, Key, Value)) || T <- rlist(Tab) ]).
+next_id(Tab, Incr,#kvs{mod=DBA}) ->
+    DBA:next_id(case table(Tab) of #table{} -> atom_to_list(Tab); _ -> Tab end, Incr).
 
 save_db(Path) ->
     Data = lists:append([all(B) || B <- [list_to_atom(Name) || {table,Name} <- kvs:dir()] ]),
@@ -296,15 +300,27 @@ info(Module, String,   Args) -> log(Module, String, Args, info_msg).
 warning(Module,String, Args) -> log(Module, String, Args, warning_msg).
 error(Module, String,  Args) -> log(Module, String, Args, error_msg).
 
-dump() ->
-     io:format("~20w ~20w ~10w ~10w~n",[name,storage_type,memory,size]),
-   [ io:format("~20w ~20w ~10w ~10w~n",[Name,
-         mnesia:table_info(Name,storage_type),
-         mnesia:table_info(Name,memory),
-         mnesia:table_info(Name,size)]) || #table{name=Name} <- kvs:tables()],
-     io:format("Snapshot taken: ~p~n",[calendar:now_to_datetime(os:timestamp())]).
 
-                % Table Partitions
+dump() -> dump([ rlist(N) || #table{name=N} <- kvs:tables() ]).
+dump(short) ->
+    Gen = fun(T) ->
+        {S,M,C}=lists:unzip3([ dump_info(R) || R <- rlist(T) ]),
+        {lists:usort(S),lists:sum(M),lists:sum(C)}
+    end,
+    dump_format([ {T,Gen(T)} || T <- [ N || #table{name=N} <- kvs:tables() ] ]);
+dump(Table) when is_atom(Table) -> dump(rlist(Table));
+dump(Tables) ->
+    dump_format([{case nname(T) of 1 -> rname(T); _ -> T end,dump_info(T)} || T <- lists:flatten(Tables) ]).
+dump_info(T) ->
+    {mnesia:table_info(T,storage_type),
+    mnesia:table_info(T,memory) * erlang:system_info(wordsize) / 1024 / 1024,
+    mnesia:table_info(T,size)}.
+dump_format(List) ->
+    io:format("~20s ~32s ~14s ~10s~n~n",["NAME","STORAGE TYPE","MEMORY (MB)","ELEMENTS"]),
+    [ io:format("~20s ~32w ~14.2f ~10b~n",[T,S,M,C]) || {T,{S,M,C}} <- List ],
+    io:format("~nSnapshot taken: ~p~n",[calendar:now_to_datetime(os:timestamp())]).
+
+% Table Partitions
 
 range(RecordName,Id)   -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.name.
 topleft(RecordName,Id) -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.left.
@@ -318,27 +334,30 @@ find([Range|T],RecordName,Id) ->
 
 lookup(#interval{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> I;
 lookup(#interval{},_) -> [].
+    
+rotate_new() ->
+    N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
+        length(proplists:get_value(attributes,info(last_disc(T)),[])) /= length((table(rname(T)))#table.fields) ],
+    io:format("Nonexistent: ~p~n",[N]), N.
+rotate(#table{name=N}) ->
+    R = name(rname(N)),
+    init(setelement(N,kvs:table(N),R)),
+    update_config(rname(N),R);
+rotate(Table) ->
+    Intervals = kvs:config(Table),
+    {M,F} = application:get_env(kvs,forbidding,{?MODULE,forbid}),
+    New = lists:sublist(Intervals,M:F(Table)),
+    Delete = Intervals -- New,
+    [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #interval{name=Name}
+        <- shd(Delete) ],
+    rotate(kvs:table(Table)), ok.
+load_partitions()  ->
+    [ case kvs:get(config,Table) of
+        {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
+        Else -> ok end || {table,Table} <- kvs:dir() ].
 
-rotate_new()       -> N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
-                            length(proplists:get_value(attributes,kvs:info(last_disc(T)),[])) /=
-                            length((kvs:table(kvs:last_table(rname(T))))#table.fields)
-                         ], io:format("Nonexistent: ~p~n",[N]), N.
-rotate(#table{}=T) -> Name = name(rname(T#table.name)),
-                      init(setelement(#table.name,kvs:table(kvs:last_table(T#table.name)),Name)),
-                      update_config(rname(T#table.name),Name);
-rotate(Table)      -> Intervals = kvs:config(Table),
-                      {M,F} = application:get_env(kvs,forbidding,{?MODULE,forbid}),
-                      New = lists:sublist(Intervals,M:F(Table)),
-                      Delete = Intervals -- New,
-                      [ mnesia:change_table_copy_type(Name, node(), disc_only_copies)
-                                    || #interval{name=Name} <- shd(Delete) ],
-%                      kvs:put(#config{key=Table,value=New}),
-                      rotate(kvs:table(Table)),
-                      ok.
-load_partitions()  -> [ case kvs:get(config,Table) of
-                             {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
-                             Else -> ok end || {table,Table} <- kvs:dir() ].
-
+rnorm(Tag,List) -> [ setelement(1,R,Tag) || R <- List ].
+rlist(Table)   -> [ N || #interval{name=N} <- kvs:config(Table) ]++[Table].
 shd([])        -> [];
 shd(X)         -> [hd(X)].
 wait()         -> timer:tc(fun() -> mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity) end).
