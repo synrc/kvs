@@ -400,8 +400,11 @@ setkey(Name,Pos,List,New) ->
         false -> [New|List];
         _Element -> lists:keyreplace(Name,Pos,List,New) end.
 
-test() ->
+test() -> test(#user{}).
+
+test(Proto) ->
     kvs:join(),
-    [ kvs:add(#user{id=kvs:next_id("user",1)}) || _ <- lists:seq(1,20) ],
+    Table = element(1,Proto),
+    [ kvs:add(setelement(2,Proto,kvs:next_id(Table,1))) || _ <- lists:seq(1,20) ],
     io:format("Config: ~p~n",[kvs:all(config)]),
-    io:format("Fetch: ~p~n",[kvs:entries(kvs:get(feed,user),user,infinity)]).
+    io:format("Fetch: ~p~n",[kvs:entries(kvs:get(feed,Table),Table,infinity)]).
