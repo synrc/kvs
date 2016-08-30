@@ -322,18 +322,18 @@ dump_format(List) ->
 
 % Table Partitions
 
-range(RecordName,Id)   -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.name.
-topleft(RecordName,Id) -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.left.
-last(RecordName,Id)    -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#interval.last.
+range(RecordName,Id)   -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#block.name.
+topleft(RecordName,Id) -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#block.left.
+last(RecordName,Id)    -> (find(kvs:config(kvs:rname(RecordName)),RecordName,Id))#block.last.
 
-find([],_,_Id) -> #interval{left=1,right=infinity,name=[],last=[]};
+find([],_,_Id) -> #block{left=1,right=infinity,name=[],last=[]};
 find([Range|T],RecordName,Id) ->
      case lookup(Range,Id) of
           [] -> find(T,RecordName,Id);
-          Interval -> Interval end.
+          Range -> Range end.
 
-lookup(#interval{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> I;
-lookup(#interval{},_) -> [].
+lookup(#block{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> I;
+lookup(#block{},_) -> [].
 
 rotate_new() ->
     N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
@@ -344,11 +344,11 @@ rotate(#table{name=N}) ->
     init(setelement(#table.name,kvs:table(kvs:last_table(N)),R)),
     update_config(rname(N),R);
 rotate(Table) ->
-    Intervals = kvs:config(Table),
+    Ranges = kvs:config(Table),
     {M,F} = application:get_env(kvs,forbidding,{?MODULE,forbid}),
-    New = lists:sublist(Intervals,M:F(Table)),
-    Delete = Intervals -- New,
-    [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #interval{name=Name}
+    New = lists:sublist(Ranges,M:F(Table)),
+    Delete = Ranges -- New,
+    [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #block{name=Name}
         <- shd(Delete) ],
     rotate(kvs:table(Table)), ok.
 load_partitions()  ->
@@ -357,13 +357,13 @@ load_partitions()  ->
         Else -> ok end || {table,Table} <- kvs:dir() ].
 
 rnorm(Tag,List) -> [ setelement(1,R,Tag) || R <- List ].
-rlist(Table)   -> [ N || #interval{name=N} <- kvs:config(Table) ]++[Table].
+rlist(Table)   -> [ N || #block{name=N} <- kvs:config(Table) ]++[Table].
 shd([])        -> [];
 shd(X)         -> [hd(X)].
 wait()         -> timer:tc(fun() -> mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity) end).
 stl([])        -> [];
 stl(S)         -> tl(S).
-dat(T)         -> [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #interval{name=Name} <- stl((element(2,kvs:get(config,T)))#config.value) ].
+dat(T)         -> [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #block{name=Name} <- stl((element(2,kvs:get(config,T)))#config.value) ].
 omitone(1)     -> [];
 omitone(X)     -> X.
 limit()        -> infinity.
@@ -384,16 +384,16 @@ last_table(T)  -> list_to_atom(lists:concat([T,omitone(lists:max(proplists:get_v
 fold_tables()  -> lists:foldl(fun(#table{name=X},Acc) ->
                   setkey(kvs:rname(X),1,Acc,{kvs:rname(X),[kvs:nname(X)|proplists:get_value(kvs:rname(X),Acc,[])]}) end,
                   [], kvs:tables()).
-interval(L,R,Name) -> #interval{left=L,right=R,name=Name,last=last_table(rname(Name))}.
+range(L,R,Name) -> #block{left=L,right=R,name=Name,last=last_table(rname(Name))}.
 update_config(Table,Name) ->
     kvs:put(#config{key   = Table,
                     value = store(Table,case kvs:get(config,Table)  of
                                             {error,not_found}        -> update_list(Table,[],Name);
                                             {ok,#config{value=List}} -> update_list(Table,List,Name) end)}).
 
-update_list(Table,[],Name)                    -> [ interval(top(Table)+1,limit(),Name) ];
-update_list(Table,[#interval{}=CI|Tail],Name) -> [ interval(top(Table)+1,limit(),Name) ] ++
-                                                 [ CI#interval{right=top(Table)}       ] ++ Tail.
+update_list(Table,[],Name)                    -> [ range(top(Table)+1,limit(),Name) ];
+update_list(Table,[#block{}=CI|Tail],Name)    -> [ range(top(Table)+1,limit(),Name) ] ++
+                                                 [ CI#block{right=top(Table)}       ] ++ Tail.
 
 setkey(Name,Pos,List,New) ->
     case lists:keyfind(Name,Pos,List) of

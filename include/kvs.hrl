@@ -7,7 +7,7 @@
 -record(id_seq,    {thing, id}).
 -record(container, {?CONTAINER}).
 -record(iterator,  {?ITERATOR(undefined)}).
--record(interval,  {left,right,name,last}).
+-record(block,     {left,right,name,last}).
 -record(log,       {?CONTAINER, name, acc}).
 -record(operation, {?ITERATOR(log), body, name, status}).
 -record(kvs,       {mod,cx}).
