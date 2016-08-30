@@ -334,14 +334,14 @@ find([Range|T],RecordName,Id) ->
 
 lookup(#interval{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> I;
 lookup(#interval{},_) -> [].
-    
+
 rotate_new() ->
     N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
         length(proplists:get_value(attributes,info(last_disc(T)),[])) /= length((table(rname(T)))#table.fields) ],
     io:format("Nonexistent: ~p~n",[N]), N.
 rotate(#table{name=N}) ->
     R = name(rname(N)),
-    init(setelement(N,kvs:table(N),R)),
+    init(setelement(#table.name,kvs:table(kvs:last_table(N)),R)),
     update_config(rname(N),R);
 rotate(Table) ->
     Intervals = kvs:config(Table),
