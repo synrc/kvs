@@ -2,12 +2,12 @@
 -define(SUBSCRIPTION_HRL, true).
 
 -record(subscription,{
-        key,
-        who,
-        whom,
-        what,
-        how,
-        date,
-        note}).
+        key=[],
+        who=[],
+        whom=[],
+        what=[],
+        how=[],
+        date=[],
+        note=[]}).
 
 -endif.

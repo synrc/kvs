@@ -42,13 +42,13 @@ generation(Table,Key) ->
 norm({A,B},Table,Key) -> A:B(Table,Key);
 norm(_,Table,Key)     -> limit(Table,Key).
 
-limit(user,_Key)       -> 2;
-limit(comment,_Key)    -> 2;
-limit(_Table,_Key)     -> 250000.
+limit(user,_Key)       -> 25000;
+limit(comment,_Key)    -> 25000;
+limit(_Table,_Key)     -> 25000.
 
-forbid(user)           -> 3;
-forbid(comment)        -> 3;
-forbid(____)           -> 100000.
+forbid(user)           -> 5;
+forbid(comment)        -> 5;
+forbid(____)           -> 5.
 
 % Implementation
 
@@ -347,9 +347,11 @@ rotate(Table) ->
     Ranges = kvs:config(Table),
     {M,F} = application:get_env(kvs,forbidding,{?MODULE,forbid}),
     New = lists:sublist(Ranges,M:F(Table)),
+    
     Delete = Ranges -- New,
-    [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #block{name=Name}
-        <- shd(Delete) ],
+    io:format("Delete: ~p~n",[Delete]),
+%    [ mnesia:change_table_copy_type(Name, node(), disc_only_copies) || #block{name=Name} <- shd(Delete) ],
+    [ mnesia:delete_table(Name) || #block{name=Name} <- Delete ],
     rotate(kvs:table(Table)), ok.
 load_partitions()  ->
     [ case kvs:get(config,Table) of
@@ -386,10 +388,12 @@ fold_tables()  -> lists:foldl(fun(#table{name=X},Acc) ->
                   [], kvs:tables()).
 range(L,R,Name) -> #block{left=L,right=R,name=Name,last=last_table(rname(Name))}.
 update_config(Table,Name) ->
-    kvs:put(#config{key   = Table,
-                    value = store(Table,case kvs:get(config,Table)  of
+    Store = store(Table,case kvs:get(config,Table)  of
                                             {error,not_found}        -> update_list(Table,[],Name);
-                                            {ok,#config{value=List}} -> update_list(Table,List,Name) end)}).
+                                            {ok,#config{value=List}} -> update_list(Table,List,Name) end),
+%    {M,F} = application:get_env(kvs,forbidding,{?MODULE,forbid}),
+    New = Store, %lists:sublist(Store,M:F(Table)),
+    kvs:put(#config{key = Table, value = New }).
 
 update_list(Table,[],Name)                    -> [ range(top(Table)+1,limit(),Name) ];
 update_list(Table,[#block{}=CI|Tail],Name)    -> [ range(top(Table)+1,limit(),Name) ] ++
@@ -405,6 +409,6 @@ test() -> test(#user{}).
 test(Proto) ->
     kvs:join(),
     Table = element(1,Proto),
-    [ kvs:add(setelement(2,Proto,kvs:next_id(Table,1))) || _ <- lists:seq(1,20) ],
+    [ kvs:add(setelement(2,Proto,kvs:next_id(Table,1))) || _ <- lists:seq(1,20000) ],
     io:format("Config: ~p~n",[kvs:all(config)]),
-    io:format("Fetch: ~p~n",[kvs:entries(kvs:get(feed,Table),Table,infinity)]).
+    io:format("Fetch: ~p~n",[kvs:entries(kvs:get(feed,Table),Table,10)]).

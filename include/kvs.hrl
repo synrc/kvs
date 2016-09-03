@@ -6,10 +6,10 @@
 
 -record(id_seq,    {thing, id}).
 -record(container, {?CONTAINER}).
--record(iterator,  {?ITERATOR(undefined)}).
+-record(iterator,  {?ITERATOR([])}).
 -record(block,     {left,right,name,last}).
 -record(log,       {?CONTAINER, name, acc}).
--record(operation, {?ITERATOR(log), body, name, status}).
+-record(operation, {?ITERATOR(log), body=[], name=[], status=[]}).
 -record(kvs,       {mod,cx}).
 
 -compile({no_auto_import,[put/2]}).

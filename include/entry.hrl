@@ -4,18 +4,16 @@
 -include("kvs.hrl").
 
 -record(entry, {?ITERATOR(feed), % {entry_id, feed_id}
-        entry_id,
-        from,
-        to,
-        title,
-        description,
-        created,
-        hidden,
-        access,
-        shared,
-        starred,
-        deleted,
+        entry_id=[],
+        from=[],
+        to=[],
+        title=[],
+        description=[],
+        created=[],
+        access=[],
+        shared=[],
+        starred=[],
         media = [],
-        type = {user, normal}}).
+        type = []}).
 
 -endif.

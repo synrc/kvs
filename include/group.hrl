@@ -4,13 +4,13 @@
 -include("kvs.hrl").
 
 -record(group,{?ITERATOR(feed),
-        name,
-        description,
-        scope :: public | private,
-        creator,
-        created,
-        owner,
-        users_count = 0 :: integer(),
+        name=[],
+        description=[],
+        scope=[],
+        creator=[],
+        created=[],
+        owner=[],
+        users_count = 0,
         entries_count = 0}).
 
 -endif.

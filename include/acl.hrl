@@ -6,9 +6,9 @@
 -record(acl, {?CONTAINER}).
 
 -record(access, {?ITERATOR(acl),
-        entry_id,
-        acl_id,
-        accessor,
-        action}).
+        entry_id=[],
+        acl_id=[],
+        accessor=[],
+        action=[]}).
 
 -endif.
