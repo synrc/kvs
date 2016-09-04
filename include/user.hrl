@@ -4,7 +4,7 @@
 -include("kvs.hrl").
 
 -ifndef(USER_EXT).
--define(USER_EXT, email).
+-define(USER_EXT, email=[]).
 -endif.
 
 -record(user, {?ITERATOR(feed), ?USER_EXT,
