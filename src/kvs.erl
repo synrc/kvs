@@ -26,7 +26,6 @@ put(Record)        -> put     (Record, #kvs{mod=?DBA}).
 link(Record)       -> link    (Record, #kvs{mod=?DBA}).
 unlink(Record)     -> unlink  (Record, #kvs{mod=?DBA}).
 fold(Fun,Acc,T,S,C,D) -> fold (Fun,Acc,T,S,C,D, #kvs{mod=?DBA}).
-traversal(T,S,C,D) -> traversal(T,S,C,D, #kvs{mod=?DBA}).
 info(T)            -> info    (T, #kvs{mod=?DBA}).
 start()            -> start   (#kvs{mod=?DBA}).
 stop()             -> stop    (#kvs{mod=?DBA}).
@@ -227,11 +226,6 @@ do_remove(E,#kvs{mod=Mod}=Driver) ->
     kvs:info(?MODULE,"Delete: ~p", [E]),
     kvs:delete(element(1,E),element(2,E), Driver).
 
-traversal(Table, Start, Count, Direction, Driver)->
-    fold(fun(A,Acc) -> [A|Acc] end,[],Table,Start,Count,Direction,Driver).
-
-% kvs:fold(fun(X,A)->[X|A]end,[],process,2152,-1,#iterator.next,#kvs{mod=store_mnesia}).
-
 fold(___,Acc,_,[],_,_,_) -> Acc;
 fold(___,Acc,_,undefined,_,_,_) -> Acc;
 fold(___,Acc,_,_,0,_,_) -> Acc;
@@ -246,12 +240,9 @@ fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
                     Acc end catch _:_ -> Acc end.
 
 entries({error,_},_,_,_)      -> [];
-entries({ok,Container},N,C,Driver) -> entries(Container,N,C,Driver);
-entries(T,N,C,Driver)              -> traversal(N,element(#container.top,T),C,#iterator.prev,Driver).
-entries(N, Start, Count, Direction, Driver) ->
-    E = traversal(N, Start, Count, Direction, Driver),
-    case Direction of #iterator.next -> lists:reverse(E);
-                      #iterator.prev -> E end.
+entries({ok,T},N,C,Driver) ->
+    lists:reverse(fold(fun(A,Acc) -> [A|Acc] end,[],N,element(#container.top,T),C,#iterator.prev,Driver)).
+    
 
 add_seq_ids() ->
     Init = fun(Key) ->

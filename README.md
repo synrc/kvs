@@ -214,6 +214,19 @@ Read flat values by all keys from table:
  #user{id="dox@ua.fm"}]
 ```
 
+Table can be traversed from any element in any directions with ```fold/6``` processing function.
+
+Function ```entries/3``` which read the elements from top of container can be implemented by reversing the ```fold/6``` result list:
+
+```erlang
+4> {ok,F2} = kvs:get(feed,"f").
+{ok,{feed,"f",2,2,aclver}}
+
+5> lists:reverse(kvs:fold(fun(A,Acc)->[A|Acc] end, [], entry, element(#container.top, F2),2,#iterator.prev)).
+[#entry{id = 2,container = feed,feed_id = "f",prev = 1, next = [],...},
+ #entry{id = 1,container = feed,feed_id = "f",prev = [], next = 2,...}]
+ ```
+
 Containers
 ----------
 
