@@ -34,10 +34,11 @@ version()          -> version (#kvs{mod=?DBA}).
 dir()              -> dir     (#kvs{mod=?DBA}).
 next_id(Table,DX)  -> next_id(Table, DX, #kvs{mod=?DBA}).
 
-generation(Table,Key) ->
+generation(Table,Key) when is_integer(Key) ->
     case Key - topleft(Table,Key) < norm(application:get_env(kvs,generation,{?MODULE,limit}),Table,Key) of
          true -> skip;
-         false -> kvs:rotate(Table) end.
+         false -> kvs:rotate(Table) end;
+generation(_,_) -> skip.
 
 norm({A,B},Table,Key) -> A:B(Table,Key);
 norm(_,Table,Key)     -> limit(Table,Key).
