@@ -1,8 +1,16 @@
 -ifndef(KVS_HRL).
 -define(KVS_HRL, true).
 
--define(CONTAINER, id=[], top=[], rear=[], count=0).
--define(ITERATOR(Container), id=[], container=Container, feed_id=[], prev=[], next=[], feeds=[]).
+-define(CONTAINER, id=[] :: [] | integer(),
+                   top=[] :: [] | integer(),
+                   rear=[] :: [] | integer(),
+                   count=0 :: integer()).
+-define(ITERATOR(Container), id=[] :: [] | integer(),
+                             container=Container :: atom(),
+                             feed_id=[] :: term(),
+                             prev=[] :: [] | integer(),
+                             next=[] :: [] | integer(),
+                             feeds=[] :: list()).
 
 -record(id_seq,    {thing, id}).
 -record(container, {?CONTAINER}).
