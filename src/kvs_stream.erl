@@ -21,7 +21,7 @@ take(N,#cur{dir=D}=C)      -> take(D,N,C,[]).
 seek(Id, #cur{tab=T}=C)    -> {ok,R}=kvs:get(T,Id), C#cur{val=R}.
 add(M,#cur{dir=D}=C)       -> add(dir(D),M,C).
 remove(Id, #cur{tab=M}=C)  -> {ok,R}=kvs:get(M,Id), kvs:delete(M,Id),
-                              join([fix(kvs:get(M,X))||X<-[ep(R),en(R)]],C).
+                              join([fix(M,X)||X<-[ep(R),en(R)]],C).
 
 % PRIVATE
 
@@ -49,8 +49,10 @@ dir(prev) -> bot.
 down(C)   -> C#cur{dir=next}.
 up(C)     -> C#cur{dir=prev}.
 
-fix({ok,O})      -> O;
-fix(_)           -> [].
+fix(M,[])   -> [];
+fix(M,X)    -> fix(kvs:get(M,X)).
+fix({ok,O}) -> O;
+fix(_)      -> [].
 
 lookup({ok,R},C) -> C#cur{val=R};
 lookup(X,C)      -> X.
