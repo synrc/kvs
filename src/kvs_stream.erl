@@ -63,7 +63,7 @@ take(A,N,#cur{val=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
 
 % TESTS
 
-check() -> test(), test2(), test3(), ok.
+check() -> test1(), test2(), test3(), ok.
 
 test2() ->
     Cur = new(user),
@@ -87,7 +87,7 @@ test3() ->
     Y = remove(B,remove(D,remove(A,remove(C,S)))),
     [] = take(-1,down(top(Y))).
 
-test() ->
+test1() ->
     Cur = new(user),
     take(-1,down(top(Cur))),
     [A,B,C,D] = [ kvs:next_id(user,1) || _ <- lists:seq(1,4) ],
