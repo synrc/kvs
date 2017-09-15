@@ -23,12 +23,11 @@
         zone=[],
         type=[] }).
 
--record(user2, {?ITERATOR(feed), % version 2
-        everyting_getting_small,
-        email,
-        username,
-        password,
-        zone,
-        type }).
+-record(person, {?ITER, % version 2
+        mail=[]::[]|binary(),
+        name=[]::[]|binary(),
+        pass=[]::[]|binary(),
+        zone=[]::[]|binary(),
+        type=[]::[]|atom() }).
 
 -endif.
