@@ -1,12 +1,13 @@
 -ifndef(KVS_HRL).
 -define(KVS_HRL, true).
 
--record(cursor, {feed=[]::term(),
-                 tab= []::atom(),
-                 id=  []::[]|integer(),
-                 val= []::[]|tuple(),
-                 top= []::[]|integer(),
-                 bot= []::[]|integer()}).
+-record(cur, {feed=[]::term(),
+              tab= []::atom(),
+              id=  []::[]|integer(),
+              val= []::[]|tuple(),
+              dir= next::next|prev,
+              top= []::[]|integer(),
+              bot= []::[]|integer()}).
 
 -define(CONTAINER, id=[] :: [] | integer(),
                    top=[] :: [] | integer(),

@@ -251,6 +251,9 @@ add_seq_ids() ->
                 {ok, _} -> {Key,skip} end end,
     [ Init(atom_to_list(Name))  || {Name,_Fields} <- containers() ].
 
+
+put(Records,#kvs{mod=Mod}) when is_list(Records) -> Mod:put(Records);
+
 put(Record,#kvs{mod=Mod}) ->
     case range(element(1,Record),element(2,Record)) of
          [] -> Mod:put(Record);

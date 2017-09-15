@@ -10,7 +10,7 @@ metainfo() ->
     #schema{name=kvs,tables=[
 %        #table{name=user2,container=feed,fields=record_info(fields,user2)},
         #table{name=group,container=feed,fields=record_info(fields,group)},
-        #table{name=cursor,container=feed,fields=record_info(fields,cursor)},
+        #table{name=cur,container=feed,fields=record_info(fields,cur)},
         #table{name=user,container=feed,fields=record_info(fields,user),keys=[email]}
     ]}.
 

@@ -2,101 +2,59 @@
 -include("kvs.hrl").
 -include("user.hrl").
 -compile(export_all).
+-export([ new/1, top/1, bot/1, take/2, load/1, save/1, seek/2, next/1, prev/1, add/3 ]).
 
-new(Tab) -> #cursor{feed=kvs:next_id(cursor,1),tab=Tab}.
+% PUBLIC
 
-take(top,Number,Cursor)   -> take(next,Number,top(Cursor),[]);
-take(bot,Number,Cursor)   -> take(prev,Number,bot(Cursor),[]).
-take(___,_,{error,_},Res) -> lists:flatten(Res);
-take(___,0,Cursor,Res)    -> lists:flatten(Res);
-take(Atom,Number,#cursor{val=Body}=Cursor,Res) ->
-    take(Atom,Number-1,?MODULE:Atom(Cursor),[Body|Res]).
+new(T)                -> #cur{feed=kvs:next_id(cur,1),tab=T}.
+top(#cur{top=T}=C)    -> seek(T,C).
+bot(#cur{bot=B}=C)    -> seek(B,C).
+take(N,#cur{dir=D}=C) -> take(D,N,C,[]).
+save(C)               -> kvs:put(C), C.
+load(#cur{feed=K})    -> kvs:get(cur,K).
 
-add(top,Message,#cursor{tab=Table,top=Top,val=[]}=Cursor) ->
-    Id = element(2,Message),
-    M1 = setelement(#iterator.next, Message, Top),
-    M2 = setelement(#iterator.prev, M1,      []),
-    kvs:put(M2),
-    Cursor#cursor{val=M2,id=Id,bot=Id,top=Id};
+seek(Id, #cur{tab=T}=C)         -> {ok,R}=kvs:get(T,Id), C#cur{id=el(2,R),val=R}.
+next(#cur{tab=T,id=Id,val=B}=C) -> lookup(kvs:get(T,en(B)),C).
+prev(#cur{tab=T,id=Id,val=B}=C) -> lookup(kvs:get(T,ep(B)),C).
 
-add(bot,Message,#cursor{tab=Table,bot=Bot,val=[]}=Cursor) ->
-    Id = element(2,Message),
-    M1 = setelement(#iterator.prev, Message, Bot),
-    M2 = setelement(#iterator.next, M1,      []),
-    kvs:put(M2),
-    Cursor#cursor{val=M2,id=Id,bot=Id,top=Id};
+add(top,M,#cur{top=T,val=[]}=C) -> Id=el(2,M), M2=sp(sn(M,T),[]), kvs:put(M2), C#cur{val=M2,id=Id,bot=Id,top=Id};
+add(bot,M,#cur{bot=B,val=[]}=C) -> Id=el(2,M), M2=sn(sp(M,B),[]), kvs:put(M2), C#cur{val=M2,id=Id,bot=Id,top=Id};
+add(top,M,#cur{bot=[],top=T}=C) -> Id=el(2,M), M2=sp(sn(M,T),[]), kvs:put(M2), C#cur{val=M2,id=Id,top=Id,bot=Id};
+add(bot,M,#cur{top=[],bot=B}=C) -> Id=el(2,M), M2=sn(sp(M,B),[]), kvs:put(M2), C#cur{val=M2,id=Id,bot=Id,top=Id};
+add(top,M,#cur{top=T, val=D}=C) when element(2,D) /=T -> add(top, M, top(C));
+add(bot,M,#cur{bot=B, val=D}=C) when element(2,D) /=B -> add(bot, M, bot(C));
+add(top,M,#cur{top=T, val=D}=C) -> Id=el(2,M), M2=sp(sn(M,T),[]), kvs:put([M2,sp(D,Id)]), C#cur{val=M2,id=Id,top=Id};
+add(bot,M,#cur{bot=B, val=D}=C) -> Id=el(2,M), M2=sn(sp(M,B),[]), kvs:put([M2,sn(D,Id)]), C#cur{val=M2,id=Id,bot=Id}.
 
-add(top,Message,#cursor{tab=Table,top=Top,val=Body}=Cursor) when element(2, Body) /= Top ->
-    add(top,Message,top(Cursor));
+sn(M,T)   -> setelement(#iterator.next, M, T).
+sp(M,T)   -> setelement(#iterator.prev, M, T).
+el(X,T)   -> element(X,T).
+tn(T)     -> element(1,T).
+id(T)     -> element(2,T).
+en(T)     -> element(#iterator.next, T).
+ep(T)     -> element(#iterator.prev, T).
+dir(next) -> top;
+dir(prev) -> bot.
+down(C)   -> C#cur{dir=next}.
+up(C)     -> C#cur{dir=prev}.
 
-add(bot,Message,#cursor{tab=Table,bot=Bot,val=Body}=Cursor) when element(2, Body) /= Bot ->
-    add(bot,Message,bot(Cursor));
+lookup({ok,R},C) -> C#cur{id=el(2,R),val=R};
+lookup(X,C)      -> X.
 
-add(top,Message,#cursor{tab=Table,bot=[],top=Top,val=Body}=Cursor) ->
-    Id = element(2,Message),
-    M1 = setelement(#iterator.next, Message, Top),
-    M2 = setelement(#iterator.prev, M1,      []),
-    kvs:put(M2),
-    Cursor#cursor{val=M2,id=Id,top=Id,bot=Id};
-
-add(bot,Message,#cursor{tab=Table,bot=Bot,top=[],val=Body}=Cursor) ->
-    Id = element(2,Message),
-    M1 = setelement(#iterator.prev, Message, Bot),
-    M2 = setelement(#iterator.next, M1,      []),
-    kvs:put(M2),
-    Cursor#cursor{val=M2,id=Id,bot=Id,top=Id};
-
-add(top,Message,#cursor{tab=Table,top=Top,val=Body}=Cursor) ->
-    Id = element(2,Message),
-    M1 = setelement(#iterator.next, Message, Top),
-    M2 = setelement(#iterator.prev, M1,      []),
-    M3 = setelement(#iterator.prev, Body,    Id),
-    kvs:put(M2), kvs:put(M3),
-    Cursor#cursor{val=M2,id=Id,top=Id};
-
-add(bot,Message,#cursor{tab=Table,bot=Bot,val=Body}=Cursor) ->
-    Id = element(2,Message),
-    M1 = setelement(#iterator.prev, Message, Bot),
-    M2 = setelement(#iterator.next, M1,      []),
-    M3 = setelement(#iterator.next, Body,    Id),
-    kvs:put(M2), kvs:put(M3),
-    Cursor#cursor{val=M2,id=Id,bot=Id}.
-
-top(#cursor{top=Top}=Cursor) -> seek(Top,Cursor).
-bot(#cursor{bot=Bot}=Cursor) -> seek(Bot,Cursor).
-
-seek(Id, #cursor{tab=Tab}=Cursor) ->
-    case kvs:get(Tab,Id) of
-         {ok, Record} -> Tab = element(1,Record),
-                         Id = element(2,Record),
-                         Cursor#cursor{id=Id,val=Record} end.
-
-next(#cursor{tab=Table,id=Id,val=Body}=Cursor) ->
-    Next = element(#iterator.next,Body),
-    case kvs:get(Table,Next) of
-         {ok, Record} -> Cursor#cursor{id=element(2,Record),val=Record};
-         {error, Err} -> {error,Err} end.
-
-prev(#cursor{tab=Table,id=Id,val=Body}=Cursor) ->
-    Next = element(#iterator.prev,Body),
-    case kvs:get(Table,Next) of
-         {ok, Record} -> Cursor#cursor{id=element(2,Record),val=Record};
-         {error, Err} -> {error,Err} end.
-
-save(Cursor) ->
-    kvs:put(Cursor), Cursor.
-
-load(#cursor{feed=Key}) ->
-    kvs:get(cursor,Key).
+take(_,_,{error,_},R)     -> lists:flatten(R);
+take(_,0,_,R)             -> lists:flatten(R);
+take(A,N,#cur{val=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
 
 test() ->
-    A = save(
-        add(top,#user{id=kvs:next_id(user,1)},
-        add(bot,#user{id=kvs:next_id(user,1)},
-        add(top,#user{id=kvs:next_id(user,1)},
-        add(bot,#user{id=kvs:next_id(user,1)},
-        new(user)))))),
-    X = take(top,-1,A),
-    Y = take(bot,-1,A),
+    #cur{feed = K} = C = new(user),
+    Feed = lists:concat(["cur",K]),
+    A = save(add(top,#user{id=kvs:next_id(Feed,1)},
+             add(bot,#user{id=kvs:next_id(Feed,1)},
+             add(top,#user{id=kvs:next_id(Feed,1)},
+             add(bot,#user{id=kvs:next_id(Feed,1)}, C ))))),
+    X = take(-1,down(top(A))),
+    Y = take(-1,up(bot(A))),
     X = lists:reverse(Y),
-    length(X).
+    L = length(X),
+    {ok,{id_seq,Feed,L}} = kvs:get(id_seq,Feed),
+    ok.
