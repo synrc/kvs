@@ -20,7 +20,9 @@ prev(#cur{val=[]}=C)  -> {error,[]};
 prev(#cur{val=B}=C)   -> lookup(kvs:get(tab(B),ep(B)),C).
 take(N,#cur{dir=D}=C) -> take(acc(D),N,C,[]).
 
-seek(I,  #cur{val=[]}=C) -> {error,val};
+seek(I,  {ok,#cur{}=C})  -> seek(I,C);
+seek(I,  {error,X})      -> {error,X};
+seek(I,  #cur{val=[]}=C) -> {error,[]};
 seek(I,   #cur{val=B}=C) -> {ok,R}=kvs:get(tab(B),I), C#cur{val=R}.
 remove(I,#cur{val=[]}=C) -> {error,val};
 remove(I, #cur{val=B}=C) -> {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
@@ -74,19 +76,25 @@ check() -> test1(), test2(), create_destroy(), ok.
 test2() ->
     Cur = new(),
     [A,B,C,D] = [ kvs:next_id(person,1) || _ <- lists:seq(1,4) ],
-    R = save(add(#person{id=A},
+    R =      add(#person{id=A},
         down(add(#person{id=B},
           up(add(#person{id=C},
         down(add(#person{id=D},
-        up(Cur))))))))),
-    X = remove(A,remove(B,remove(C,remove(D,R)))),
+          up(Cur)))))))),
+    X = remove(A,
+        remove(B,
+        remove(C,
+        remove(D,R)))),
     [] = take(-1,down(top(X))).
 
 create_destroy() ->
     Cur = new(),
     [A,B,C,D] = [ kvs:next_id(person,1)
              || _ <- lists:seq(1,4) ],
-    S  = kvs_stream:save(
+    Y  = kvs_stream:remove(B,
+         kvs_stream:remove(D,
+         kvs_stream:remove(A,
+         kvs_stream:remove(C,
          kvs_stream:add(#person{id=A},
          kvs_stream:down(
          kvs_stream:add(#person{id=B},
@@ -95,11 +103,7 @@ create_destroy() ->
          kvs_stream:down(
          kvs_stream:add(#person{id=D},
          kvs_stream:up(
-         kvs_stream:new()))))))))),
-    Y  = kvs_stream:remove(B,
-         kvs_stream:remove(D,
-         kvs_stream:remove(A,
-         kvs_stream:remove(C,S)))),
+         kvs_stream:new())))))))))))),
     [] = kvs_stream:take(-1,
          kvs_stream:down(
          kvs_stream:top(Y))).
@@ -109,9 +113,9 @@ test1() ->
     take(-1,down(top(Cur))),
     [A,B,C,D] = [ kvs:next_id(person,1) || _ <- lists:seq(1,4) ],
     R = save(add(top,#person{id=A},
-             add(bot,#person{id=B},
-             add(top,#person{id=C},
-             add(bot,#person{id=D}, Cur ))))),
+        add(bot,#person{id=B},
+        add(top,#person{id=C},
+        add(bot,#person{id=D}, Cur ))))),
     X = take(-1,down(top(R))),
     Y = take(-1,up(bot(R))),
     X = lists:reverse(Y),
