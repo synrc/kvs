@@ -25,8 +25,8 @@ remove(Id, #cur{tab=M}=C)  -> {ok,R}=kvs:get(M,Id), kvs:delete(M,Id),
 
 % PRIVATE
 
-add(top,M,#cur{top=T,val=[]}=C) -> Id=id(M), N=sp(sn(M,T),[]), kvs:put(N), C#cur{val=N,bot=Id,top=Id};
-add(bot,M,#cur{bot=B,val=[]}=C) -> Id=id(M), N=sn(sp(M,B),[]), kvs:put(N), C#cur{val=N,bot=Id,top=Id};
+add(top,M,#cur{top=T,val=[]}=C) -> Id=id(M), N=sp(sn(M,T),[]), kvs:put(N),     C#cur{val=N,bot=Id,top=Id};
+add(bot,M,#cur{bot=B,val=[]}=C) -> Id=id(M), N=sn(sp(M,B),[]), kvs:put(N),     C#cur{val=N,bot=Id,top=Id};
 add(top,M,#cur{top=T, val=V}=C) when element(2,V) /=T -> add(top, M, top(C));
 add(bot,M,#cur{bot=B, val=V}=C) when element(2,V) /=B -> add(bot, M, bot(C));
 add(top,M,#cur{top=T, val=V}=C) -> Id=id(M), N=sp(sn(M,T),[]), kvs:put([N,sp(V,Id)]), C#cur{val=N,top=Id};
@@ -63,19 +63,22 @@ take(A,N,#cur{val=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
 
 % TESTS
 
-check() -> test(), test2(), ok.
+check() -> test(), test2(), test3(), ok.
 
 test2() ->
-    #cur{feed = K} = Cur = new(user),
-    Feed = lists:concat(["cur",K]),
-    Ids = [A,B,C,D] = [ kvs:next_id(user,1) || _ <- lists:seq(1,4) ],
+    Cur = new(user),
+    [A,B,C,D] = [ kvs:next_id(user,1) || _ <- lists:seq(1,4) ],
     R = save(add(#user{id=A},
         down(add(#user{id=B},
           up(add(#user{id=C},
         down(add(#user{id=D},
         up(Cur))))))))),
     X = remove(A,remove(B,remove(C,remove(D,R)))),
-    [] = take(-1,down(top(X))),
+    [] = take(-1,down(top(X))).
+
+test3() ->
+    Cur = new(user),
+    [A,B,C,D] = [ kvs:next_id(user,1) || _ <- lists:seq(1,4) ],
     S = save(add(#user{id=A},
         down(add(#user{id=B},
           up(add(#user{id=C},
@@ -85,10 +88,9 @@ test2() ->
     [] = take(-1,down(top(Y))).
 
 test() ->
-    #cur{feed = K} = Cur = new(user),
+    Cur = new(user),
     take(-1,down(top(Cur))),
-    Feed = lists:concat(["cur",K]),
-    Ids = [A,B,C,D] = [ kvs:next_id(user,1) || _ <- lists:seq(1,4) ],
+    [A,B,C,D] = [ kvs:next_id(user,1) || _ <- lists:seq(1,4) ],
     R = save(add(top,#user{id=A},
              add(bot,#user{id=B},
              add(top,#user{id=C},
