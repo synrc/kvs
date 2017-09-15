@@ -5,8 +5,6 @@
 
 new(Tab) -> #cursor{feed=kvs:next_id(cursor,1),tab=Tab}.
 
-
-
 take(top,Number,Cursor)   -> take(next,Number,top(Cursor),[]);
 take(bot,Number,Cursor)   -> take(prev,Number,bot(Cursor),[]).
 take(___,_,{error,_},Res) -> lists:flatten(Res);
@@ -15,66 +13,46 @@ take(Atom,Number,#cursor{val=Body}=Cursor,Res) ->
     take(Atom,Number-1,?MODULE:Atom(Cursor),[Body|Res]).
 
 add(Atom,Message,#cursor{tab=Table,bot=Bot,val=[]}=Cursor) ->
-    n2o:info(?MODULE, "add ~p val=[]:", [Atom]),
     Id = element(2,Message),
     M1 = setelement(#iterator.prev, Message, Bot),
     M2 = setelement(#iterator.next, M1,      []),
-    n2o:info(?MODULE, "M2: ~w",[M2]),
     kvs:put(M2),
     Cursor#cursor{val=M2,id=Id,bot=Id,top=Id};
 
 add(top,Message,#cursor{tab=Table,top=Top,val=Body}=Cursor) when element(2, Body) /= Top ->
-    n2o:info(?MODULE, "add top seek:", []),
     add(top,Message,top(Cursor));
 
 add(bot,Message,#cursor{tab=Table,bot=Bot,val=Body}=Cursor) when element(2, Body) /= Bot ->
-    n2o:info(?MODULE, "add bot seek:", []),
     add(bot,Message,bot(Cursor));
 
 add(top,Message,#cursor{tab=Table,bot=[],top=Top,val=Body}=Cursor) ->
-    n2o:info(?MODULE, "add top []:~w",[Body]),
     Id = element(2,Message),
     M1 = setelement(#iterator.next, Message, Top),
     M2 = setelement(#iterator.prev, M1,      []),
     kvs:put(M2),
-    n2o:info(?MODULE, "Body: ~w",[Body]),
-    n2o:info(?MODULE, "M2: ~w",[M2]),
     Cursor#cursor{val=M2,id=Id,top=Id,bot=Id};
 
 add(bot,Message,#cursor{tab=Table,bot=Bot,top=[],val=Body}=Cursor) ->
-    n2o:info(?MODULE, "add bot []:~w", [Body]),
     Id = element(2,Message),
     M1 = setelement(#iterator.prev, Message, Bot),
     M2 = setelement(#iterator.next, M1,      []),
-    n2o:info(?MODULE, "Body: ~w",[Body]),
-    n2o:info(?MODULE, "M2: ~w",[M2]),
     kvs:put(M2),
     Cursor#cursor{val=M2,id=Id,bot=Id,top=Id};
 
 add(top,Message,#cursor{tab=Table,top=Top,val=Body}=Cursor) ->
-    n2o:info(?MODULE, "add top:~w", [Body]),
     Id = element(2,Message),
     M1 = setelement(#iterator.next, Message, Top),
     M2 = setelement(#iterator.prev, M1,      []),
     M3 = setelement(#iterator.prev, Body,    Id),
-    n2o:info(?MODULE, "Body: ~w",[Body]),
-    n2o:info(?MODULE, "M2: ~w",[M2]),
-    n2o:info(?MODULE, "M3: ~w",[M3]),
-    kvs:put(M2),
-    kvs:put(M3),
+    kvs:put(M2), kvs:put(M3),
     Cursor#cursor{val=M2,id=Id,top=Id};
 
 add(bot,Message,#cursor{tab=Table,bot=Bot,val=Body}=Cursor) ->
-    n2o:info(?MODULE, "add bot:~w",[Body]),
     Id = element(2,Message),
     M1 = setelement(#iterator.prev, Message, Bot),
     M2 = setelement(#iterator.next, M1,      []),
     M3 = setelement(#iterator.next, Body,    Id),
-    kvs:put(M2),
-    kvs:put(M3),
-    n2o:info(?MODULE, "Body: ~w",[Body]),
-    n2o:info(?MODULE, "M2: ~w",[M2]),
-    n2o:info(?MODULE, "M3: ~w",[M3]),
+    kvs:put(M2), kvs:put(M3),
     Cursor#cursor{val=M2,id=Id,bot=Id}.
 
 top(#cursor{top=Top}=Cursor) -> seek(Top,Cursor).
