@@ -19,7 +19,7 @@ prev(#cur{tab=T,val=[]}=C) -> {error,[]};
 prev(#cur{tab=T,val=B}=C)  -> lookup(kvs:get(T,ep(B)),C).
 take(N,#cur{dir=D}=C)      -> take(D,N,C,[]).
 seek(Id, #cur{tab=T}=C)    -> {ok,R}=kvs:get(T,Id), C#cur{val=R}.
-add(M,#cur{}=C)            -> add(dir(C),M,C).
+add(M,#cur{dir=D}=C)       -> add(dir(D),M,C).
 remove(Id, #cur{tab=M}=C)  -> {ok,R}=kvs:get(M,Id),
                               join(M,Id,[fix(kvs:get(M,X))||X<-[ep(R),en(R)]],C).
 
@@ -67,10 +67,10 @@ test2() ->
     #cur{feed = K} = Cur = new(user),
     Feed = lists:concat(["cur",K]),
     Ids = [A,B,C,D] = [ kvs:next_id(user,1) || _ <- lists:seq(1,4) ],
-    R = save(add(top,#user{id=A},
-             add(bot,#user{id=B},
-             add(top,#user{id=C},
-             add(bot,#user{id=D}, Cur ))))),
+    R = save(add(#user{id=A},
+             down(add(#user{id=B},
+             up(add(#user{id=C},
+             down(add(#user{id=D}, up(Cur) )))))))),
     X = remove(A,
         remove(B,
         remove(C,
