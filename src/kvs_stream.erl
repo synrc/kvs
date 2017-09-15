@@ -20,8 +20,8 @@ prev(#cur{tab=T,val=B}=C)  -> lookup(kvs:get(T,ep(B)),C).
 take(N,#cur{dir=D}=C)      -> take(D,N,C,[]).
 seek(Id, #cur{tab=T}=C)    -> {ok,R}=kvs:get(T,Id), C#cur{val=R}.
 add(M,#cur{dir=D}=C)       -> add(dir(D),M,C).
-remove(Id, #cur{tab=M}=C)  -> {ok,R}=kvs:get(M,Id),
-                              join(M,Id,[fix(kvs:get(M,X))||X<-[ep(R),en(R)]],C).
+remove(Id, #cur{tab=M}=C)  -> {ok,R}=kvs:get(M,Id), kvs:delete(M,Id),
+                              join([fix(kvs:get(M,X))||X<-[ep(R),en(R)]],C).
 
 % PRIVATE
 
@@ -32,10 +32,10 @@ add(bot,M,#cur{bot=B, val=V}=C) when element(2,V) /=B -> add(bot, M, bot(C));
 add(top,M,#cur{top=T, val=V}=C) -> Id=id(M), N=sp(sn(M,T),[]), kvs:put([N,sp(V,Id)]), C#cur{val=N,top=Id};
 add(bot,M,#cur{bot=B, val=V}=C) -> Id=id(M), N=sn(sp(M,B),[]), kvs:put([N,sn(V,Id)]), C#cur{val=N,bot=Id}.
 
-join(T,I,[[],[]],C) ->                                          kvs:delete(T,I), C#cur{top=[],bot=[],val=[]};
-join(T,I,[[], R],C) -> N=sp(R,[]),    kvs:put(N),               kvs:delete(T,I), C#cur{top=id(N),val=N};
-join(T,I,[L, []],C) -> N=sn(L,[]),    kvs:put(N),               kvs:delete(T,I), C#cur{bot=id(N),val=N};
-join(T,I,[L,  R],C) -> N=sp(R,id(L)), kvs:put([N,sn(L,id(R))]), kvs:delete(T,I), C#cur{val=N}.
+join([[],[]],C) ->                                          C#cur{top=[],bot=[],val=[]};
+join([[], R],C) -> N=sp(R,[]),    kvs:put(N),               C#cur{top=id(N),val=N};
+join([L, []],C) -> N=sn(L,[]),    kvs:put(N),               C#cur{bot=id(N),val=N};
+join([L,  R],C) -> N=sp(R,id(L)), kvs:put([N,sn(L,id(R))]), C#cur{val=N}.
 
 sn(M,T)   -> setelement(#iterator.next, M, T).
 sp(M,T)   -> setelement(#iterator.prev, M, T).
