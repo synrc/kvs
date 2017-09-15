@@ -2,7 +2,7 @@
 -include("kvs.hrl").
 -include("user.hrl").
 -compile(export_all).
--export([ new/1, top/1, bot/1, take/2, load/1, save/1, seek/2, next/1, prev/1, add/3 ]).
+-export([ new/1, top/1, bot/1, take/2, load/1, save/1, seek/2, next/1, prev/1, add/2 ]).
 
 % PUBLIC
 
@@ -19,6 +19,7 @@ prev(#cur{tab=T,val=[]}=C) -> {error,[]};
 prev(#cur{tab=T,val=B}=C)  -> lookup(kvs:get(T,ep(B)),C).
 take(N,#cur{dir=D}=C)      -> take(D,N,C,[]).
 seek(Id, #cur{tab=T}=C)    -> {ok,R}=kvs:get(T,Id), C#cur{val=R}.
+add(M,#cur{}=C)            -> add(dir(C),M,C).
 remove(Id, #cur{tab=M}=C)  -> {ok,R}=kvs:get(M,Id),
                               join(M,Id,[fix(kvs:get(M,X))||X<-[ep(R),en(R)]],C).
 
@@ -51,7 +52,7 @@ up(C)     -> C#cur{dir=prev}.
 fix({ok,O})      -> O;
 fix(_)           -> [].
 
-lookup({ok,R},C) -> C#cur{id=el(2,R),val=R};
+lookup({ok,R},C) -> C#cur{val=R};
 lookup(X,C)      -> X.
 
 take(_,_,{error,_},R)     -> lists:flatten(R);

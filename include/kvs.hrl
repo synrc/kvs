@@ -3,7 +3,6 @@
 
 -record(cur, {feed=[]::term(),
               tab= []::atom(),
-              id=  []::[]|integer(),
               val= []::[]|tuple(),
               dir= next::next|prev,
               top= []::[]|integer(),
