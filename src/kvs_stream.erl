@@ -12,7 +12,14 @@ take(___,0,Cursor,Res)    -> lists:flatten(Res);
 take(Atom,Number,#cursor{val=Body}=Cursor,Res) ->
     take(Atom,Number-1,?MODULE:Atom(Cursor),[Body|Res]).
 
-add(Atom,Message,#cursor{tab=Table,bot=Bot,val=[]}=Cursor) ->
+add(top,Message,#cursor{tab=Table,top=Top,val=[]}=Cursor) ->
+    Id = element(2,Message),
+    M1 = setelement(#iterator.next, Message, Top),
+    M2 = setelement(#iterator.prev, M1,      []),
+    kvs:put(M2),
+    Cursor#cursor{val=M2,id=Id,bot=Id,top=Id};
+
+add(bot,Message,#cursor{tab=Table,bot=Bot,val=[]}=Cursor) ->
     Id = element(2,Message),
     M1 = setelement(#iterator.prev, Message, Bot),
     M2 = setelement(#iterator.next, M1,      []),
@@ -92,4 +99,4 @@ test() ->
     X = take(top,-1,A),
     Y = take(bot,-1,A),
     X = lists:reverse(Y),
-    ok.
+    length(X).
