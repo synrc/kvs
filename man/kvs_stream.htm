@@ -110,7 +110,8 @@
 
 <h4>seek(Id,#cur{}) -> #cur{} | #error{}.</h4>
 
-<p>Moves cursor to Id record. If cursor has no cached value then function returns error.</p>
+<p>Moves cursor to record by its id.
+   If cursor has no cached value then function returns error.</p>
 
 <h4>top(#cur{}) -> #cur{}.</h4>
 
@@ -123,7 +124,9 @@
 <h4>add(Message,#cur{}) -> #cur{}.</h4>
 
 <p>Adds message to datatabase and update cursor to new data.
-   Message is linked on next prev fields with existed data under cursor.</p>
+   Message is linked on next prev fields with existed data under cursor.
+   If cursor doesn't contain top or bottom value the additional
+   seek to the end is performed according to cursor direction.</p>
 
 <h4>remove(Id,#cur{}) -> #cur{} | #error{}.</h4>
 
@@ -132,7 +135,7 @@
 
 <h4>take(N,#cur{}) -> list().</h4>
 
-<p>Consumes records from stream using its current value and direction. Returns consumed data.</p>
+<p>Trying to consume N records from stream using its current value and direction. Returns consumed data.</p>
 
     </section>
     <section>
