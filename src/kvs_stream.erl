@@ -72,11 +72,15 @@ test2() ->
           up(add(#user{id=C},
         down(add(#user{id=D},
         up(Cur))))))))),
-    X = remove(A,
-        remove(B,
-        remove(C,
-        remove(D,R)))),
-    [] = take(-1,down(top(X))).
+    X = remove(A,remove(B,remove(C,remove(D,R)))),
+    [] = take(-1,down(top(X))),
+    S = save(add(#user{id=A},
+        down(add(#user{id=B},
+          up(add(#user{id=C},
+        down(add(#user{id=D},
+        up(Cur))))))))),
+    Y = remove(B,remove(D,remove(A,remove(C,S)))),
+    [] = take(-1,down(top(Y))).
 
 test() ->
     #cur{feed = K} = Cur = new(user),
