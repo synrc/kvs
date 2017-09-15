@@ -19,8 +19,6 @@ prev(#cur{tab=T,id=Id,val=B}=C) -> lookup(kvs:get(T,ep(B)),C).
 
 add(top,M,#cur{top=T,val=[]}=C) -> Id=el(2,M), M2=sp(sn(M,T),[]), kvs:put(M2), C#cur{val=M2,id=Id,bot=Id,top=Id};
 add(bot,M,#cur{bot=B,val=[]}=C) -> Id=el(2,M), M2=sn(sp(M,B),[]), kvs:put(M2), C#cur{val=M2,id=Id,bot=Id,top=Id};
-add(top,M,#cur{bot=[],top=T}=C) -> Id=el(2,M), M2=sp(sn(M,T),[]), kvs:put(M2), C#cur{val=M2,id=Id,top=Id,bot=Id};
-add(bot,M,#cur{top=[],bot=B}=C) -> Id=el(2,M), M2=sn(sp(M,B),[]), kvs:put(M2), C#cur{val=M2,id=Id,bot=Id,top=Id};
 add(top,M,#cur{top=T, val=D}=C) when element(2,D) /=T -> add(top, M, top(C));
 add(bot,M,#cur{bot=B, val=D}=C) when element(2,D) /=B -> add(bot, M, bot(C));
 add(top,M,#cur{top=T, val=D}=C) -> Id=el(2,M), M2=sp(sn(M,T),[]), kvs:put([M2,sp(D,Id)]), C#cur{val=M2,id=Id,top=Id};
