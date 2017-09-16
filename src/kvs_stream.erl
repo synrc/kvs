@@ -9,12 +9,8 @@
 new()                 -> #cur{id=kvs:next_id(cur,1)}.
 down(C)               -> C#cur{dir=0}.
 up(C)                 -> C#cur{dir=1}.
-top({ok,#cur{}=C})    -> top(C);
-top({error,X})        -> {error,X};
 top(#cur{top=[]}=C)   -> C#cur{val=[]};
 top(#cur{top=T}=C)    -> seek(T,C).
-bot({ok,#cur{}=C})    -> bot(C);
-bot({error,X})        -> {error,X};
 bot(#cur{bot=[]}=C)   -> C#cur{val=[]};
 bot(#cur{bot=B}=C)    -> seek(B,C).
 add(M,#cur{dir=D}=C) when element(2,M) == [] -> add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
