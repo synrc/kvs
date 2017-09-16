@@ -79,7 +79,6 @@
 
 check() ->
     Cur = new(),
-    take(-1,down(top(Cur))),
     [A,B,C,D] = [ kvs:next_id(person,1)
              || _ <- lists:seq(1,4) ],
     R = save(add(top,#person{id=A},
@@ -109,6 +108,10 @@ check() ->
     <section>
 
 <h3>API</h3>
+
+<p>We prepared for you sequential steps manual.
+   Just enter the erlang commands in shell in right order
+   and check the results.
 
 <h4>new() -> #cur{}.</h4>
 
