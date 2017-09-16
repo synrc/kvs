@@ -2,10 +2,10 @@
 -define(KVS_HRL, true).
 
 -record(cur, {id =  [] :: term(),
-              val=  [] :: [] | tuple(),
-              dir=   0 ::  0 | 1,
               top=  [] :: [] | integer(),
-              bot=  [] :: [] | integer()}).
+              bot=  [] :: [] | integer(),
+              dir=   0 ::  0 | 1,
+              val=  [] :: [] | tuple()}).
 
 -define(ITER, id=   [] :: term(),
               next= [] :: [] | integer(),

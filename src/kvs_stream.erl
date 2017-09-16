@@ -15,18 +15,15 @@ bot({ok,#cur{}=C})    -> bot(C);
 bot({error,X})        -> {error,X};
 bot(#cur{bot=[]}=C)   -> C#cur{val=[]};
 bot(#cur{bot=B}=C)    -> seek(B,C).
+add(M,#cur{dir=D}=C) when element(2,M) == [] -> add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
 add(M,#cur{dir=D}=C)  -> add(dir(D),M,C).
 save(#cur{}=C)        -> kvs:put(C), C.
-load(K)               -> kvs:get(cur,K).
+load(K)               -> case kvs:get(cur,K) of {ok,C} -> C; E -> E end.
 next(#cur{val=[]}=C)  -> {error,[]};
 next(#cur{val=B}=C)   -> lookup(kvs:get(tab(B),en(B)),C).
 prev(#cur{val=[]}=C)  -> {error,[]};
 prev(#cur{val=B}=C)   -> lookup(kvs:get(tab(B),ep(B)),C).
-take(N,{ok,#cur{}}=C)    -> take(N,C);
-take(N,{error,X})        -> {error,X};
-take(N,#cur{dir=D}=C)    -> take(acc(D),N,C,[]).
-seek(I,  {ok,#cur{}=C})  -> seek(I,C); % accept ok/error functors is ok
-seek(I,  {error,X})      -> {error,X};
+take(N,#cur{dir=D}=C)    -> take(acc(D),N,?MODULE:(dir(D))(C),[]).
 seek(I,  #cur{val=[]}=C) -> {error,[]};
 seek(I,   #cur{val=B}=C) -> {ok,R}=kvs:get(tab(B),I), C#cur{val=R}.
 remove(I,#cur{val=[]}=C) -> {error,val};
@@ -49,10 +46,10 @@ join([L,  R],C) -> N=sp(R,id(L)), kvs:put([N,sn(L,id(R))]), C#cur{              
 
 sn(M,T) -> setelement(#iter.next, M, T).
 sp(M,T) -> setelement(#iter.prev, M, T).
-el(X,T) -> element(X,T).
-tab(T)  -> element(1,T).
-id(T)   -> element(2,T).
-
+el(X,T) -> element(X, T).
+tab(T)  -> element(1, T).
+id(T)   -> element(#iter.id, T).
+si(M,T) -> setelement(#iter.id, M, T).
 en(T)   -> element(#iter.next, T).
 ep(T)   -> element(#iter.prev, T).
 dir(0)  -> top;
@@ -68,7 +65,7 @@ fix({ok,O}) -> O;
 fix(_)      -> [].
 
 lookup({ok,R},C)          -> C#cur{val=R};
-lookup({error,X},C)       -> {error,X}.
+lookup({error,X},C)       -> {error,C}.
 take(_,_,{error,_},R)     -> lists:flatten(R);
 take(_,0,_,R)             -> lists:flatten(R);
 take(A,N,#cur{val=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).

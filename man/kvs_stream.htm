@@ -54,6 +54,20 @@
 
 </code></figure>
 
+<p><ul>
+<li>id &mdash; Unique key of the cursor</li>
+<li>val &mdash; Cached value of current element of the list</li>
+<li>dir &mdash; 0 from top do next, 1 from bot do prev.</li>
+<li>top &mdash; The top of the list</li>
+<li>bot &mdash; The bottom of the list</li>
+</ul></p>
+
+<p><ul>
+<li>id &mdash; Unique key of the record in the list</li>
+<li>next &mdash; The next element of the list</li>
+<li>prev &mdash; The prev element of the list</li>
+</ul></p>
+
     </section>
     <section>
 
@@ -100,34 +114,41 @@ check() ->
 
 <p>Creates a KVS cursor.</p>
 
+<figure><code>
+ > kvs_stream:new().
+ {cur,1,[],0,[],[]}
+ > kvs:get(id_seq,"cur").
+ {ok,{id_seq,"cur",1}}
+ > kvs_stream:new().
+ {cur,2,[],0,[],[]}
+ > kvs:get(id_seq,"cur").
+ {ok,{id_seq,"cur",2}}
+
+</code></figure>
+
 <h4>save(#cur{}) -> #cur{}.</h4>
 
 <p>Saves the cursor to database.<?p>
 
-<h4>load() -> #ok{data::#cur{}} | #error{}.</h4>
+<figure><code>
+ > kvs:all(cur).
+ []
+ > kvs_stream:save(kvs_stream:new()).
+ {cur,3,[],0,[],[]}
+ > kvs:all(cur).
+ [{cur,3,[],0,[],[]}]
+
+</code></figure>
+
+<h4>load(Id) -> #ok{data::#cur{}} | #error{}.</h4>
 
 <p>Gets a cursor from database.</p>
 
-<h4>next(#cur{}) -> #cur{} | #error{}.</h4>
+<figure><code>
+  > kvs_stream:load(3).
+  {cur,3,[],[],0,[]}
 
-<p>Moves cursor to next. Consume data top down.</p>
-
-<h4>prev(#cur{}) -> #cur{} | #error{}.</h4>
-
-<p>Moves cursor to prev. Consume data bottom up.</p>
-
-<h4>seek(Id,#cur{}) -> #cur{} | #error{}.</h4>
-
-<p>Moves cursor to record by its id.
-   If cursor has no cached value then function returns error.</p>
-
-<h4>top(#cur{}) -> #cur{} | #error{}.</h4>
-
-<p>Moves cursor to top of the list.</p>
-
-<h4>bot(#cur{}) -> #cur{} | #error{}.</h4>
-
-<p>Moves cursor to bottom of the list.</p>
+</code></figure>
 
 <h4>add(Message,#cur{}) -> #cur{}.</h4>
 
@@ -136,14 +157,125 @@ check() ->
    If cursor doesn't contain top or bottom value the additional
    seek to the end is performed according to cursor direction.</p>
 
-<h4>remove(Id,#cur{}) -> #cur{} | #error{}.</h4>
+<figure><code>
+ > rr(kvs_user).
+ [block,column,container,cur,group,id_seq,iter,iterator,kvs,
+  log,operation,person,query,schema,table,user]
 
-<p>Removes record by id from database and unlink it from list.
+ > kvs_stream:save(
+   kvs_stream:add(#person{},
+   kvs_stream:load(3))).
+ #cur{id = 4,top = 1,bot = 1,dir = 0,
+      val = #person{id = 1,next = [],prev = [],mail = [],
+                    name = [],pass = [],zone = [],type = []}}
+
+</code></figure>
+
+<h4>prev(#cur{}) -> #cur{} | #error{}.</h4>
+
+<p>Moves cursor to prev. Consume data bottom up.
+   Reutrn error if lists is empty, otherwise next element or last.</p>
+
+<figure><code>
+ > kvs_stream:prev(kvs_stream:load(3)).
+ {error,#cur{id = 3,top = 1,bot = 1,dir = 0,
+             val = #person{id = 1,next = [],prev = [],mail = [],
+                           name = [],pass = [],zone = [],type = []}}}
+
+</code></figure>
+
+<h4>next(#cur{}) -> #cur{} | #error{}.</h4>
+
+<p>Moves cursor to next. Consume data top down.
+   Reutrn error if lists is empty, otherwise next element or last.</p>
+
+<figure><code>
+ > kvs_stream:next(
+   kvs_stream:save(
+   kvs_stream:add(#person{},
+   kvs_stream:load(3)))).
+ #cur{id = 3,top = 2,bot = 1,dir = 0,
+      val = #person{id = 1,next = [],prev = 2,mail = [],name = [],
+                     pass = [],zone = [],type = []}}
+
+</code></figure>
+
+<h4>seek(Id,#cur{}) -> #cur{} | #error{}.</h4>
+
+<p>Moves cursor to record by its id.
    If cursor has no cached value then function returns error.</p>
+
+<figure><code>
+ >  kvs_stream:seek(2,
+    kvs_stream:save(
+    kvs_stream:add(#person{id=kvs:next_id(person,1)},
+    kvs_stream:load(3)))).
+ #cur{id = 3,top = 3,bot = 1,dir = 0,
+      val = #person{id = 2,next = 1,prev = 3,mail = [],name = [],
+                    pass = [],zone = [],type = []}}
+
+</code></figure>
+
+<h4>top(#cur{}) -> #cur{} | #error{}.</h4>
+
+<p>Moves cursor to top of the list.</p>
+
+<figure><code>
+ > kvs_stream:top(
+   kvs_stream:load(3)).
+ #cur{id = 3,top = 3,bot = 1,dir = 0,
+      val = #person{id = 3,next = 2,prev = [],mail = [],name = [],
+                    pass = [],zone = [],type = []}}
+
+</code></figure>
+
+<h4>bot(#cur{}) -> #cur{} | #error{}.</h4>
+
+<p>Moves cursor to bottom of the list.</p>
+
+<figure><code>
+ > kvs_stream:bot(kvs_stream:load(3)).
+ #cur{id = 3,top = 3,bot = 1,dir = 0,
+      val = #person{id = 1,next = [],prev = 2,mail = [],name = [],
+                    pass = [],zone = [],type = []}}
+
+</code></figure>
 
 <h4>take(N,#cur{}) -> list().</h4>
 
-<p>Trying to consume N records from stream using its current value and direction. Returns consumed data.</p>
+<p>Trying to consume N records from stream using its current value and direction.
+   Returns consumed data. Usually you seek to some position and then consume some data.</p>
+
+<figure><code>
+ > kvs_stream:take(-1,kvs_stream:load(3)).
+ [#person{id = 1,next = [],prev = 2, mail = [],name = [],
+          pass = [],zone = [],type = []},
+  #person{id = 2,next = 1,prev = 3,mail = [],name = [],
+          pass = [],zone = [],type = []},
+  #person{id = 3,next = 2,prev = [],mail = [],name = [],
+          pass = [],zone = [],type = []}]
+
+</code></figure>
+
+<p>Moves cursor to bottom of the list.</p>
+
+<h4>remove(Id,#cur{}) -> #cur{} | #error{}.</h4>
+
+<p>Removes record by id from database and unlink it from list.
+   If cursor has no cached value then function returns error.
+   Please do not use remove, keep your data immutable :-)</p>
+
+<figure><code>
+ > kvs_stream:take(-1,
+   kvs_stream:save(
+   kvs_stream:remove(2,
+   kvs_stream:load(3)))).
+ [#person{id = 1,next = [],prev = 3,mail = [],name = [],
+          pass = [],zone = [],type = []},
+  #person{id = 3,next = 1,prev = [],mail = [],name = [],
+          pass = [],zone = [],type = []}]
+
+</code></figure>
 
     </section>
     <section>
