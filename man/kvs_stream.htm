@@ -74,7 +74,9 @@
 <h3>EXAMPLE</h3>
 
 <figure><code>
--module(kvs_stream).
+-module(test).
+-include_lib("kvs/include/kvs.hrl").
+-include_lib("kvs/include/user.hrl").
 -compile(export_all).
 
 check() ->
@@ -90,7 +92,7 @@ check() ->
     X = lists:reverse(Y),
     L = length(X).
 
- > kvs_stream:check().
+ > test:check().
  4
 
  > kvs:all(cur).
