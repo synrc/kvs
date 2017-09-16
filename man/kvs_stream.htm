@@ -74,23 +74,28 @@
 <h3>EXAMPLE</h3>
 
 <figure><code>
--module(test).
--include_lib("kvs/include/kvs.hrl").
--include_lib("kvs/include/user.hrl").
--compile(export_all).
+ -module(test).
+ -include_lib("kvs/include/kvs.hrl").
+ -include_lib("kvs/include/user.hrl").
+ -compile(export_all).
 
-check() ->
-    Cur = new(),
-    [A,B,C,D] = [ kvs:next_id(person,1)
-             || _ <- lists:seq(1,4) ],
-    R = save(add(top,#person{id=A},
-             add(bot,#person{id=B},
-             add(top,#person{id=C},
-             add(bot,#person{id=D}, Cur ))))),
-    X = take(-1,down(top(R))),
-    Y = take(-1,up(bot(R))),
-    X = lists:reverse(Y),
-    L = length(X).
+ check() ->
+     Cur = kvs_stream:new(),
+     [A,B,C,D] = [ kvs:next_id(person,1)
+              || _ <- lists:seq(1,4) ],
+     R = kvs_stream:save(
+         kvs_stream:add(#person{id=A},
+         kvs_stream:add(#person{id=B},
+         kvs_stream:add(#person{id=C},
+         kvs_stream:add(#person{id=D}, Cur ))))),
+     X = kvs_stream:take(-1,
+         kvs_stream:down(
+         kvs_stream:top(R))),
+     Y = kvs_stream:take(-1,
+         kvs_stream:up(
+         kvs_stream:bot(R))),
+     X = lists:reverse(Y),
+     L = length(X).
 
  > test:check().
  4
@@ -279,6 +284,14 @@ check() ->
           pass = [],zone = [],type = []}]
 
 </code></figure>
+
+<h4>down(#cur{}) -> #cur{}.</h4>
+
+<p>Changes the cursor direction.</p>
+
+<h4>up(#cur{}) -> #cur{}.</h4>
+
+<p>Changes the cursor direction.</p>
 
     </section>
     <section>

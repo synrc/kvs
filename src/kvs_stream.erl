@@ -2,11 +2,13 @@
 -include("kvs.hrl").
 -include("user.hrl").
 -compile(export_all).
--export([ new/0, top/1, bot/1, take/2, load/1, save/1, seek/2, next/1, prev/1, add/2, remove/2 ]).
+-export([ new/0, top/1, bot/1, take/2, load/1, save/1, seek/2, next/1, prev/1, add/2, remove/2, down/1, up/1 ]).
 
 % PUBLIC
 
-new() -> #cur{id=kvs:next_id(cur,1)}.
+new()                 -> #cur{id=kvs:next_id(cur,1)}.
+down(C)               -> C#cur{dir=0}.
+up(C)                 -> C#cur{dir=1}.
 top({ok,#cur{}=C})    -> top(C);
 top({error,X})        -> {error,X};
 top(#cur{top=[]}=C)   -> C#cur{val=[]};
@@ -56,8 +58,6 @@ dir(0)  -> top;
 dir(1)  -> bot.
 acc(0)  -> next;
 acc(1)  -> prev.
-down(C) -> C#cur{dir=0}.
-up(C)   -> C#cur{dir=1}.
 
 fix(M,[])   -> [];
 fix(M,X)    -> fix(kvs:get(M,X)).
