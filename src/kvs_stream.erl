@@ -86,7 +86,7 @@ test2() ->
         remove(B,
         remove(C,
         remove(D,R)))),
-    [] = take(-1,down(top(X))).
+    [] = take(-1,up(bot(X))).
 
 create_destroy() ->
     Cur = new(),
