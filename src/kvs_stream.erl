@@ -7,8 +7,12 @@
 % PUBLIC
 
 new() -> #cur{id=kvs:next_id(cur,1)}.
+top({ok,#cur{}=C})    -> top(C);
+top({error,X})        -> {error,X};
 top(#cur{top=[]}=C)   -> C#cur{val=[]};
 top(#cur{top=T}=C)    -> seek(T,C).
+bot({ok,#cur{}=C})    -> bot(C);
+bot({error,X})        -> {error,X};
 bot(#cur{bot=[]}=C)   -> C#cur{val=[]};
 bot(#cur{bot=B}=C)    -> seek(B,C).
 add(M,#cur{dir=D}=C)  -> add(dir(D),M,C).
@@ -18,6 +22,8 @@ next(#cur{val=[]}=C)  -> {error,[]};
 next(#cur{val=B}=C)   -> lookup(kvs:get(tab(B),en(B)),C).
 prev(#cur{val=[]}=C)  -> {error,[]};
 prev(#cur{val=B}=C)   -> lookup(kvs:get(tab(B),ep(B)),C).
+take(N,{ok,#cur{}}=C) -> take(N,C);
+take(N,{error,X})     -> {error,X};
 take(N,#cur{dir=D}=C) -> take(acc(D),N,C,[]).
 
 seek(I,  {ok,#cur{}=C})  -> seek(I,C);
@@ -62,9 +68,8 @@ fix(M,X)    -> fix(kvs:get(M,X)).
 fix({ok,O}) -> O;
 fix(_)      -> [].
 
-lookup({ok,R},C) -> C#cur{val=R};
-lookup(X,C)      -> X.
-
+lookup({ok,R},C)          -> C#cur{val=R};
+lookup({error,X},C)       -> {error,X}.
 take(_,_,{error,_},R)     -> lists:flatten(R);
 take(_,0,_,R)             -> lists:flatten(R);
 take(A,N,#cur{val=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
