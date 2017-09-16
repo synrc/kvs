@@ -22,11 +22,10 @@ next(#cur{val=[]}=C)  -> {error,[]};
 next(#cur{val=B}=C)   -> lookup(kvs:get(tab(B),en(B)),C).
 prev(#cur{val=[]}=C)  -> {error,[]};
 prev(#cur{val=B}=C)   -> lookup(kvs:get(tab(B),ep(B)),C).
-take(N,{ok,#cur{}}=C) -> take(N,C);
-take(N,{error,X})     -> {error,X};
-take(N,#cur{dir=D}=C) -> take(acc(D),N,C,[]).
-
-seek(I,  {ok,#cur{}=C})  -> seek(I,C);
+take(N,{ok,#cur{}}=C)    -> take(N,C);
+take(N,{error,X})        -> {error,X};
+take(N,#cur{dir=D}=C)    -> take(acc(D),N,C,[]).
+seek(I,  {ok,#cur{}=C})  -> seek(I,C); % accept ok/error functors is ok
 seek(I,  {error,X})      -> {error,X};
 seek(I,  #cur{val=[]}=C) -> {error,[]};
 seek(I,   #cur{val=B}=C) -> {ok,R}=kvs:get(tab(B),I), C#cur{val=R}.
