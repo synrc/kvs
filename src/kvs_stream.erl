@@ -61,7 +61,7 @@ fix({ok,O}) -> O;
 fix(_)      -> [].
 
 lookup({ok,R},C)          -> C#cur{val=R};
-lookup({error,X},C)       -> {error,C}.
+lookup({error,X},C)       -> {error,X}.
 take(_,_,{error,_},R)     -> lists:flatten(R);
 take(_,0,_,R)             -> lists:flatten(R);
 take(A,N,#cur{val=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
