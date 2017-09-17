@@ -42,14 +42,12 @@ add(top,M,#cur{top=B,val=[]}=C) ->
 add(bot,M,#cur{bot=T,val=V,pos=P}=C) ->
     Id=id(M), H=sn(sp(M,T),[]), N=sn(V,Id),
     kvs:put([H,N]), {L,R} = inc(C),
-    S = select(V,P,N),
-    C#cur{pos=S,val=H,bot=Id,left=L,right=R};
+    C#cur{pos=select(V,P,N),val=H,bot=Id,left=L,right=R};
 
 add(top,M,#cur{top=B,val=V,pos=P}=C) ->
     Id=id(M), H=sp(sn(M,B),[]), N=sp(V,Id),
     kvs:put([H,N]), {L,R} = inc(C),
-    S = select(V,P,N),
-    C#cur{pos=S,val=H,top=Id,left=L,right=R}.
+    C#cur{pos=select(V,P,N),val=H,top=Id,left=L,right=R}.
 
 select(P,P,X) -> X;
 select(P,N,X) -> N.
