@@ -1,13 +1,7 @@
 -ifndef(USER_HRL).
 -define(USER_HRL, true).
-
 -include("kvs.hrl").
-
--ifndef(USER_EXT).
--define(USER_EXT, email=[]).
--endif.
-
--record(user, {?ITERATOR(feed), ?USER_EXT,
+-record(user, {?ITERATOR(feed),
         username=[],
         password=[],
         display_name=[],
@@ -22,12 +16,10 @@
         status=[],
         zone=[],
         type=[] }).
-
 -record(person, {?ITER, % version 2
         mail=[]::[]|binary(),
         name=[]::[]|binary(),
         pass=[]::[]|binary(),
         zone=[]::[]|binary(),
         type=[]::[]|atom() }).
-
 -endif.

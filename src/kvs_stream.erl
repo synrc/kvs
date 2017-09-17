@@ -1,18 +1,18 @@
 -module(kvs_stream).
 -include("kvs.hrl").
--include("user.hrl").
--compile(export_all).
--export([ new/0, top/1, bot/1, take/2, load/1, save/1, seek/2, next/1, prev/1, add/2, remove/2, down/1, up/1 ]).
+-export([ new/0, top/1, bot/1, take/2, load/1, save/1, down/1, up/1,
+          check/0, seek/2, rewind/1, next/1, prev/1, add/2, remove/2 ]).
 
 % PUBLIC
 
-new()                 -> #cur{id=kvs:next_id(cur,1)}.
+new()                 -> application:set_env(kvs,mnesia_context,transaction),
+                         #cur{id=kvs:next_id(cur,1)}.
 up(C)                 -> C#cur{dir=0}.
 down(C)               -> C#cur{dir=1}.
 top(#cur{top=[]}=C)   -> C#cur{val=[]};
-top(#cur{top=T}=C)    -> seek(T,C).
+top(#cur{top=T,left=L,right=R}=C)    -> (seek(T,C))#cur{left=0,right=L+R}.
 bot(#cur{bot=[]}=C)   -> C#cur{val=[]};
-bot(#cur{bot=B}=C)    -> seek(B,C).
+bot(#cur{bot=B,left=L,right=R}=C)    -> (seek(B,C))#cur{left=L+R,right=0}.
 add(M,#cur{dir=D}=C) when element(2,M) == [] -> add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
 add(M,#cur{dir=D}=C)  -> add(dir(D),M,C).
 save(#cur{}=C)        -> kvs:put(C), C.
@@ -29,7 +29,7 @@ rewind(#cur{dir=D,top=T,bot=B,val=V}=C) -> {ok,R}=kvs:get(tab(V),select(D,T,B)),
 remove(I,#cur{val=[]}=C) -> {error,val};
 remove(I, #cur{val=B,pos=X}=C) ->
     {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
-    join(id(R)/=id(X),[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
+    join(I,[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
 
 % PRIVATE
 
@@ -41,10 +41,10 @@ add(top,M,#cur{top=B,val=[]}=C) ->
     Id=id(M), N=sp(sn(M,B),[]), kvs:put(N),
     C#cur{val=N,pos=N,top=Id,bot=Id};
 
-add(top,M,#cur{top=T, val=V}=C) when element(2,V)/=T ->
+add(top,M,#cur{top=T, val=V}=C) when element(2,V) /= T ->
     add(top, M, rewind(C));
 
-add(bot,M,#cur{bot=B, val=V}=C) when element(2,V)/=B ->
+add(bot,M,#cur{bot=B, val=V}=C) when element(2,V) /= B ->
     add(bot, M, rewind(C));
 
 add(bot,M,#cur{bot=T,val=V,pos=P}=C) ->
@@ -62,24 +62,41 @@ select(1,T,B) -> B;
 select(P,P,X) -> X;
 select(P,N,X) -> N.
 
-cas(true,  L, R) -> L;
-cas(false, L, R) -> R.
-
-join(F,[[],[]],C) ->
+join(I,[[],[]],C) ->
     {X,Y} = dec(C),
     C#cur{top=[],bot=[],val=[],pos=[],left=X,right=Y};
 
-join(F,[[], R],#cur{pos=P}=C) ->
-    N=sp(R,[]), kvs:put(N), {X,Y} = dec(C),
-    C#cur{top=id(N), val=N, pos=cas(F,P,N), left=X, right=Y};
+join(I,[[], R],#cur{pos=P,val=V}=Cur) ->
+    N=sp(R,[]), kvs:put(N), {X,Y} = dec(Cur),
+    [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
+    {NV,NP} = n(A,B,C,D,I,[],N,P,V),
+    Cur#cur{top=id(N), val=NV, pos=NP, left=X, right=Y};
 
-join(F,[L, []],#cur{pos=P}=C) ->
-    N=sn(L,[]), kvs:put(N), {X,Y} = dec(C),
-    C#cur{bot=id(N), val=N, left=X, pos=cas(F,P,N), right=Y};
+join(I,[L, []],#cur{pos=P,val=V}=Cur) ->
+    N=sn(L,[]), kvs:put(N), {X,Y} = dec(Cur),
+    [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
+    {NV,NP} = n(A,B,C,D,I,N,[],P,V),
+    Cur#cur{bot=id(N), val=NV, left=X, pos=NP, right=Y};
 
-join(F,[L,  R],#cur{pos=P}=C) ->
-    N=sp(R,id(L)), kvs:put([N,sn(L,id(R))]), {X,Y} = dec(C),
-    C#cur{val=N, left=X, pos=cas(F,P,N), right=Y}.
+join(I,[L,  R],#cur{pos=P,val=V}=Cur) ->
+    N=sp(R,id(L)), M=sn(L,id(R)), kvs:put([N,M]), {X,Y} = dec(Cur),
+    [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
+    {NV,NP} = n(A,B,C,D,I,N,M,P,V),
+    Cur#cur{left=X, pos=NP, val=NV, right=Y}.
+
+n(A,B,C,D,I,L,R,P,V) -> m(A,B,C,D,I,L,R,P,V).
+m(I,_,I,_,I,L,R,P,V) -> {R,R};
+m(_,I,I,_,I,L,R,P,V) -> {R,L};
+m(I,_,_,I,I,L,R,P,V) -> {L,R};
+m(_,I,_,I,I,L,R,P,V) -> {L,L};
+m(I,_,_,_,I,L,R,P,V) -> {sn(V,id(R)),P};
+m(_,I,_,_,I,L,R,P,V) -> {sp(V,id(R)),P};
+m(_,_,I,_,I,L,R,P,V) -> {V,sn(P,id(L))};
+m(_,_,_,I,I,L,R,P,V) -> {V,sp(P,id(L))};
+m(_,_,_,_,I,L,R,P,V) -> {V,P}.
+
+cas(true,  L, R) -> L;
+cas(false, L, R) -> R.
 
 cv(R,V) -> setelement(#cur.val,   R, V).
 cb(R,V) -> setelement(#cur.bot,   R, V).
@@ -114,6 +131,7 @@ take(_,0,_,R)               -> lists:flatten(R);
 take(A,N,#cur{pos=B}=C,R)   -> take(A,N-1,?MODULE:A(C),[B|R]).
 swap(1,{L,R})               -> {R,L};
 swap(0,{L,R})               -> {L,R}.
+
 inc(#cur{left=L,right=R,dir=D})   -> swap(D,{L+1,R}).
 dec(#cur{left=0,right=0,dir=D})   -> swap(D,{0,0});
 dec(#cur{left=L,right=0,dir=D})   -> swap(D,{L-1,0});
@@ -129,6 +147,7 @@ left(#cur{left=L,right=R,dir=D})  -> swap(D,{L-1,R+1}).
 % TESTS
 
 check() ->
+    te(),
     test1(),
     test2(),
     create_destroy(),
@@ -138,12 +157,14 @@ check() ->
     ok.
 
 rewind() ->
+    Empty = {person,[],[],[],[],[],[],[],[]},
     C = #cur{top=T,bot=B,left=L,right=R,val=V,pos=P} =
-    save(add(#person{},down(
-    add(#person{},up(
-    add(#person{},down(
-    add(#person{},up(
-    add(#person{},new())))))))))),
+    save(
+    add(Empty,down(
+    add(Empty,up(
+    add(Empty,down(
+    add(Empty,up(
+    add(Empty,new())))))))))),
     PId = id(P),
     VId = id(V),
     B = VId,
@@ -151,10 +172,12 @@ rewind() ->
     ok.
 
 test_sides() ->
+    Empty = {person,[],[],[],[],[],[],[],[]},
     #cur{top=T,bot=B,left=L,right=R,val=V,pos=P} =
-    add(#person{},up(
-    add(#person{},down(
-    add(#person{},new()))))),
+    save(
+    add(Empty,up(
+    add(Empty,down(
+    add(Empty,new())))))),
     PId = id(P),
     VId = id(V),
     VId = T,
@@ -166,9 +189,9 @@ next_prev_duality() ->
     Cur = new(),
     [A,B,C] = [ kvs:next_id(person,1) || _ <- lists:seq(1,3) ],
     R = save(
-        add(#person{id=A},
-        add(#person{id=B},
-        add(#person{id=C},
+        add({person,A,[],[],[],[],[],[],[]},
+        add({person,B,[],[],[],[],[],[],[]},
+        add({person,C,[],[],[],[],[],[],[]},
         Cur)))),
     X = load(id(Cur)),
     X = next(
@@ -186,10 +209,10 @@ test2() ->
          remove(B,
          remove(C,
          remove(D,
-         add(#person{id=A},
-         add(#person{id=B},
-         add(#person{id=C},
-         add(#person{id=D},
+         add({person,A,[],[],[],[],[],[],[]},
+         add({person,B,[],[],[],[],[],[],[]},
+         add({person,C,[],[],[],[],[],[],[]},
+         add({person,D,[],[],[],[],[],[],[]},
          up(Cur)))))))))))).
 
 create_destroy() ->
@@ -201,20 +224,39 @@ create_destroy() ->
          remove(D,
          remove(A,
          remove(C,
-         add(#person{id=D},
-         add(#person{id=C},
-         add(#person{id=B},
-         add(#person{id=A},
+         add({person,D,[],[],[],[],[],[],[]},
+         add({person,C,[],[],[],[],[],[],[]},
+         add({person,B,[],[],[],[],[],[],[]},
+         add({person,A,[],[],[],[],[],[],[]},
          up(new())))))))))).
 
 test1() ->
-    Cur = new(),
     [A,B,C,D] = [ kvs:next_id(person,1) || _ <- lists:seq(1,4) ],
-    R  = save(add(#person{id=D},
-              add(#person{id=C},
-              add(#person{id=B},
-              add(#person{id=A}, Cur ))))),
+    R  = save(
+         add({person,D,[],[],[],[],[],[],[]},
+         add({person,C,[],[],[],[],[],[],[]},
+         add({person,B,[],[],[],[],[],[],[]},
+         add({person,A,[],[],[],[],[],[],[]},
+         new() ))))),
     X  = take(-1,up(bot(R))),
     Y  = take(-1,down(top(R))),
     X  = lists:reverse(Y),
     L  = length(X).
+
+te() ->
+    #cur{id=S}=kvs_stream:save(kvs_stream:new()),
+    P = {person,[],[],[],[],[],[],[],[]},
+    S1 = kvs_stream:save(
+    kvs_stream:add(P,
+    kvs_stream:add(P,
+    kvs_stream:add(P,
+    kvs_stream:add(P,
+    kvs_stream:load(S)))))),
+    4 = length(kvs_stream:take(-1,S1)),
+    S2 = kvs_stream:save(kvs_stream:seek(S1#cur.top,S1)),
+    S3 = kvs_stream:save(kvs_stream:remove(S2#cur.top-1,S2)),
+    List = kvs_stream:take(-1,kvs_stream:up(kvs_stream:bot(S3))),
+    Rev  = kvs_stream:take(-1,kvs_stream:down(kvs_stream:top(S3))),
+    List = lists:reverse(Rev),
+    3 = length(List),
+    {S3,List}.

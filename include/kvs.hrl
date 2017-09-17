@@ -7,11 +7,11 @@
               dir=   0 ::  0 | 1,
               pos=  [] :: [] | tuple(),
               val=  [] :: [] | tuple()).
+-record(cur,  {?CUR, left=0, right=0}).
+
 -define(ITER, id=   [] :: term(),
               next= [] :: [] | integer(),
               prev= [] :: [] | integer()).
-
--record(cur,  {?CUR, left=0, right=0}).
 -record(iter, {?ITER}).
 
 -define(CONTAINER, id=[] :: [] | integer(),
