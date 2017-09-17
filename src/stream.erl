@@ -108,17 +108,19 @@ lookup({error,X},C,_)       -> {error,X}.
 take(_,_,{error,_},R)       -> lists:flatten(R);
 take(_,0,_,R)               -> lists:flatten(R);
 take(A,N,#cur{pos=B}=C,R)   -> take(A,N-1,?MODULE:A(C),[B|R]).
-inc(#cur{left=L,right=R})   -> {L+1,R}.
-dec(#cur{left=0,right=0})   -> {0,0};
-dec(#cur{left=L,right=0})   -> {L-1,0};
-dec(#cur{left=0,right=R})   -> {0,R-1};
-dec(#cur{left=L,right=R})   -> {L-1,R}.
-right(#cur{left=0,right=0}) -> {0,0};
-right(#cur{left=L,right=0}) -> {L,0};
-right(#cur{left=L,right=R}) -> {L+1,R-1}.
-left(#cur{left=0,right=0})  -> {0,0};
-left(#cur{left=0,right=R})  -> {0,R};
-left(#cur{left=L,right=R})  -> {L-1,R+1}.
+swap(1,{L,R})               -> {R,L};
+swap(0,{L,R})               -> {L,R}.
+inc(#cur{left=L,right=R,dir=D})   -> swap(D,{L+1,R}).
+dec(#cur{left=0,right=0,dir=D})   -> swap(D,{0,0});
+dec(#cur{left=L,right=0,dir=D})   -> swap(D,{L-1,0});
+dec(#cur{left=0,right=R,dir=D})   -> swap(D,{0,R-1});
+dec(#cur{left=L,right=R,dir=D})   -> swap(D,{L-1,R}).
+right(#cur{left=0,right=0,dir=D}) -> swap(D,{0,0});
+right(#cur{left=L,right=0,dir=D}) -> swap(D,{L,0});
+right(#cur{left=L,right=R,dir=D}) -> swap(D,{L+1,R-1}).
+left(#cur{left=0,right=0,dir=D})  -> swap(D,{0,0});
+left(#cur{left=0,right=R,dir=D})  -> swap(D,{0,R});
+left(#cur{left=L,right=R,dir=D})  -> swap(D,{L-1,R+1}).
 
 % TESTS
 
@@ -127,7 +129,20 @@ check() ->
     test2(),
     create_destroy(),
     next_prev_duality(),
+    test_sides(),
     ok.
+
+test_sides() ->
+    #cur{top=T,bot=B,left=L,right=R,val=V,pos=P} =
+    add(#person{},up(
+    add(#person{},down(
+    add(#person{},new()))))),
+    PId = id(P),
+    VId = id(V),
+    VId = T,
+    PId = B - 1,
+    1 = T - B,
+    L = R = 1.
 
 next_prev_duality() ->
     Cur = new(),
