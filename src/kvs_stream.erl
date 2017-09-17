@@ -88,8 +88,8 @@ save (C) -> kvs:put(C), C.
 load (K) -> case kvs:get(cur,K) of {ok,C} -> C; E -> E end.
 up   (C) -> C#cur{dir=0}.
 down (C) -> C#cur{dir=1}.
-top  (C) -> seek(up(C)).
-bot  (C) -> seek(down(C)).
+top  (C) -> seek(down(C)).
+bot  (C) -> seek(up(C)).
 
 % add
 
@@ -261,8 +261,8 @@ test1() ->
          add({'user2',B,[],[],[],[],[],[],[]},
          add({'user2',A,[],[],[],[],[],[],[]},
          new() ))))),
-    X  = take(-1,up(top(R))),
-    Y  = take(-1,down(bot(R))),
+    X  = take(-1,top(R)),
+    Y  = take(-1,bot(R)),
     X  = lists:reverse(Y),
     L  = length(X).
 

@@ -22,13 +22,17 @@
 
 <h3>INTRO</h3>
 
-<p>The <b>kvs_stream</b> is intended to store and retrieve doubly-linked lists using
-   simple key-value access to different databases through its backends:
+<p>The <b>kvs_stream</b> is intended to store and retrieve doubly-linked lists
+   using simple key-value access to different databases through its backends:
    redis, mongo, mnesia, riak, kai, fs.
-   The main descriptor of the list is the cursor which holds the cached value of one of list elements
-   and also two pointers to first and last elements along with default traversal direction.
-   Cursor should be stored in databse, if there is no cursor for some data then this data is not alive yet.
-   The data could be added only to list ends.
+   The main KVS cursor consist of two main parts (reader and writer).
+   Writer holds the cached value of the top or bottom of the stream.
+   Reader holds the cached valus of current cursor position.
+   Descriptor also tracks moving direction and distances to both ends,
+   which are updated during reader cursor repositioning.
+   Cursor should be stored in databse.
+   If there is no cursor for some data then this data is not alive yet.
+   The data could be added only to list ends using writer cursor.
    The data in list could be removed only by record id.
    The list could not contain duplicates or even records with the same id.
    When you consume the stream, the data is not deleted.</p>
@@ -43,10 +47,11 @@
  #error { data= [] :: term() }.
 
    #cur { id=   [] :: term(),
-          val=  [] :: [] | tuple(),
-          dir=   0 ::  0 | 1,
           top=  [] :: [] | integer(),
-          bot=  [] :: [] | integer()}).
+          bot=  [] :: [] | integer(),
+          dir=   0 ::  0 | 1,
+          pos=  [] :: [] | tuple(),
+          val=  [] :: [] | tuple()  }.
 
   #iter { id=   [] :: [] | integer(),
           prev= [] :: [] | integer(),
@@ -56,8 +61,10 @@
 
 <p><ul>
 <li>id &mdash; Unique key of the cursor</li>
-<li>val &mdash; Cached value of current element of the list</li>
-<li>dir &mdash; 0 from top do next, 1 from bot do prev.</li>
+<li>val &mdash; Writer cursor.</li>
+<li>pos &mdash; Reader cursor.</li>
+<li>dir=0 &mdash; Adding to top, reading up from bottom.</li>
+<li>dir=1 &mdash; Adding to bottom, reading down from top.</li>
 <li>top &mdash; The top of the list</li>
 <li>bot &mdash; The bottom of the list</li>
 </ul></p>
@@ -101,14 +108,14 @@
  4
 
  > kvs:all(cur).
- [{cur,1,{person,1,3,[],[],[],[],[],[]},0,1,2}]
+ [{cur,1,{user2,1,3,[],[],[],[],[],[]},0,1,2}]
 
  > kvs_stream:take(-1,
    kvs_stream:top(kvs:get(cur,1))).
-[{person,2,[],4,[],[],[],[],[]},
- {person,4,2,3,[],[],[],[],[]},
- {person,3,4,1,[],[],[],[],[]},
- {person,1,3,[],[],[],[],[],[]}]
+[{user2,2,[],4,[],[],[],[],[]},
+ {user2,4,2,3,[],[],[],[],[]},
+ {user2,3,4,1,[],[],[],[],[]},
+ {user2,1,3,[],[],[],[],[],[]}]
 
 </code></figure>
     </section>
@@ -171,11 +178,11 @@
  > rr(kvs_stream).
  [block,container,cur,id_seq,iter,iterator,kvs,log,operation]
 
- > P = {person,[],[],[],[],[],[],[],[]},
+ > P = {user2,[],[],[],[],[],[],[],[]},
    kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))).
  #cur{id = 3,top = 1,bot = 1,dir = 0,
-      pos = {person,1,[],[],[],[],[],[],[]},
-      val = {person,1,[],[],[],[],[],[],[]},
+      pos = {user2,1,[],[],[],[],[],[],[]},
+      val = {user2,1,[],[],[],[],[],[],[]},
       left = 0,right = 0}
 
 </code></figure>
@@ -199,10 +206,10 @@
 <figure><code>
  > kvs_stream:next(kvs_stream:top(
    kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))))).
- #cur{id = 3,top = 2,bot = 1,dir = 0,
-      pos = {person,1,[],2,[],[],[],[],[]},
-      val = {person,2,1,[],[],[],[],[],[]},
-      left = 1,right = 0}
+  #cur{id = 3,top = 2,bot = 1,dir = 1,
+      pos = {user2,1,[],2,[],[],[],[],[]},
+      val = {user2,2,1,[],[],[],[],[],[]},
+      left = 0,right = 1}
 
 </code></figure>
 
@@ -214,6 +221,10 @@
 <figure><code>
  > Stream = kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))),
    kvs_stream:seek(kvs_stream:up(Stream)).
+ #cur{id = 3,top = 3,bot = 1,dir = 0,
+      pos = {user2,1,[],2,[],[],[],[],[]},
+      val = {user2,3,2,[],[],[],[],[],[]},
+      left = 2,right = 0}
 
 </code></figure>
 
@@ -223,10 +234,10 @@
 
 <figure><code>
  > kvs_stream:top(kvs_stream:load(S)).
- #cur{id = 3,top = 3,bot = 1,dir = 0,
-      pos = {person,3,2,[],[],[],[],[],[]},
-      val = {person,3,2,[],[],[],[],[],[]},
-      left = 0,right = 2}
+ #cur{id = 3,top = 3,bot = 1,dir = 1,
+     pos = {user2,3,2,[],[],[],[],[],[]},
+     val = {user2,3,2,[],[],[],[],[],[]},
+     left = 2,right = 0}
 
 </code></figure>
 
@@ -237,8 +248,8 @@
 <figure><code>
  > kvs_stream:bot(kvs_stream:load(S)).
  #cur{id = 3,top = 3,bot = 1,dir = 0,
-      pos = {person,1,[],2,[],[],[],[],[]},
-      val = {person,3,2,[],[],[],[],[],[]},
+      pos = {user2,1,[],2,[],[],[],[],[]},
+      val = {user2,3,2,[],[],[],[],[],[]},
       left = 2,right = 0}
 
 </code></figure>
@@ -250,9 +261,9 @@
 
 <figure><code>
  > kvs_stream:take(-1,kvs_stream:load(S)).
- [{person,3,2,[],[],[],[],[],[]},
-  {person,2,1,3,[],[],[],[],[]},
-  {person,1,[],2,[],[],[],[],[]}]
+ [{user2,3,2,[],[],[],[],[],[]},
+  {user2,2,1,3,[],[],[],[],[]},
+  {user2,1,[],2,[],[],[],[],[]}]
 
 </code></figure>
 
@@ -273,10 +284,8 @@
 <figure><code>
  > kvs_stream:take(-1,kvs_stream:top(kvs_stream:save(
    kvs_stream:remove(Stream#cur.top-1,kvs_stream:load(S))))).
- [#person{id = 1,next = [],prev = 3,mail = [],name = [],
-          pass = [],zone = [],type = []},
-  #person{id = 3,next = 1,prev = [],mail = [],name = [],
-          pass = [],zone = [],type = []}]
+ [{user2,1,[],3,[],[],[],[],[]},
+  {user2,3,1,[],[],[],[],[],[]}]
 
 </code></figure>
 
