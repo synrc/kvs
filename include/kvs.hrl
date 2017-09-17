@@ -5,8 +5,8 @@
               top=  [] :: [] | integer(),
               bot=  [] :: [] | integer(),
               dir=   0 ::  0 | 1,
-              pos=  [] :: [] | tuple(),
-              val=  [] :: [] | tuple()).
+              reader=  [] :: [] | tuple(),
+              writer=  [] :: [] | tuple()).
 -record(cur,  {?CUR, left=0, right=0}).
 
 -define(ITER, id=   [] :: term(),

@@ -11,7 +11,7 @@
 
 se(X,Y,Z) -> setelement(X,Y,Z).
 e(X,Y)  -> element(X,Y).
-cv(R,V) -> se(#cur.val,   R, V).
+cv(R,V) -> se(#cur.writer,R, V).
 cb(R,V) -> se(#cur.bot,   R, V).
 ct(R,V) -> se(#cur.top,   R, V).
 cl(R,V) -> se(#cur.left,  R, V).
@@ -34,10 +34,10 @@ acc(1)  -> next.
 
 % section: next, prev
 
-next (#cur{pos=[]}=C) -> {error,[]};
-next (#cur{pos=B} =C) -> pos(kvs:get(tab(B),en(B)),C,right(C)).
-prev (#cur{pos=[]}=C) -> {error,[]};
-prev (#cur{pos=B} =C) -> pos(kvs:get(tab(B),ep(B)),C,left(C)).
+next (#cur{reader=[]}=C) -> {error,[]};
+next (#cur{reader=B} =C) -> pos(kvs:get(tab(B),en(B)),C,right(C)).
+prev (#cur{reader=[]}=C) -> {error,[]};
+prev (#cur{reader=B} =C) -> pos(kvs:get(tab(B),ep(B)),C,left(C)).
 
 left (#cur{left=0,right=0,dir=D}) -> swap(D,{0,  0});
 left (#cur{left=0,right=R,dir=D}) -> swap(D,{0,  R});
@@ -49,7 +49,7 @@ right(#cur{left=L,right=R,dir=D}) -> swap(D,{L+1,R-1}).
 swap(1,{L,R}) -> {R,L};
 swap(0,{L,R}) -> {L,R}.
 
-pos({ok,R},C,{X,Y}) -> C#cur{pos=R,left=X,right=Y};
+pos({ok,R},C,{X,Y}) -> C#cur{reader=R,left=X,right=Y};
 pos({error,X},C,_)  -> {error,X}.
 
 % section: take
@@ -58,13 +58,13 @@ take(N,#cur{dir=D}=C)  -> take(acc(D),N,C,[]).
 
 take(_,_,{error,_},R)     -> lists:flatten(R);
 take(_,0,_,R)             -> lists:flatten(R);
-take(A,N,#cur{pos=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
+take(A,N,#cur{reader=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
 
 % rewind
 
-rewind(#cur{val=[]}=C) -> {error,[]};
-rewind(#cur{dir=D,top=T,bot=B,val=V}=C) ->
-    C#cur{val=id(kvs:get(tab(V),select(D,T,B)))}.
+rewind(#cur{writer=[]}=C) -> {error,[]};
+rewind(#cur{dir=D,top=T,bot=B,writer=V}=C) ->
+    C#cur{writer=id(kvs:get(tab(V),select(D,T,B)))}.
 
 select(0,T,B) -> T;
 select(1,T,B) -> B;
@@ -73,13 +73,13 @@ select(P,N,X) -> N.
 
 % seek
 
-seek(#cur{val=[]}=C) -> C;
-seek(#cur{bot=X,pos=P,dir=0}=C) when element(2,P) == X -> C;
-seek(#cur{top=X,pos=P,dir=1}=C) when element(2,P) == X -> C;
-seek(#cur{top=T,bot=B,left=L,right=R,dir=0,pos=P}=C) ->
-     C#cur{pos=id(kvs:get(tab(P),B)),left=0,right=L+R};
-seek(#cur{top=T,bot=B,left=L,right=R,dir=1,pos=P}=C) ->
-     C#cur{pos=id(kvs:get(tab(P),T)),left=L+R,right=0}.
+seek(#cur{writer=[]}=C) -> C;
+seek(#cur{bot=X,reader=P,dir=0}=C) when element(2,P) == X -> C;
+seek(#cur{top=X,reader=P,dir=1}=C) when element(2,P) == X -> C;
+seek(#cur{top=T,bot=B,left=L,right=R,dir=0,reader=P}=C) ->
+     C#cur{reader=id(kvs:get(tab(P),B)),left=0,right=L+R};
+seek(#cur{top=T,bot=B,left=L,right=R,dir=1,reader=P}=C) ->
+     C#cur{reader=id(kvs:get(tab(P),T)),left=L+R,right=0}.
 
 % new, save, load, up, down, top, bot
 
@@ -100,32 +100,32 @@ add(M,#cur{dir=D}=C) ->
 
 inc(#cur{left=L,right=R,dir=D}) -> swap(D,{L+1,R}).
 
-add(bot,M,#cur{bot=T,val=[]}=C) ->
+add(bot,M,#cur{bot=T,writer=[]}=C) ->
     Id=id(M), N=sn(sp(M,T),[]), kvs:put(N),
-    C#cur{val=N,pos=N,bot=Id,top=Id};
+    C#cur{writer=N,reader=N,bot=Id,top=Id};
 
-add(top,M,#cur{top=B,val=[]}=C) ->
+add(top,M,#cur{top=B,writer=[]}=C) ->
     Id=id(M), N=sp(sn(M,B),[]), kvs:put(N),
-    C#cur{val=N,pos=N,top=Id,bot=Id};
+    C#cur{writer=N,reader=N,top=Id,bot=Id};
 
-add(top,M,#cur{top=T, val=V}=C) when element(2,V) /= T ->
+add(top,M,#cur{top=T, writer=V}=C) when element(2,V) /= T ->
     add(top, M, rewind(C));
 
-add(bot,M,#cur{bot=B, val=V}=C) when element(2,V) /= B ->
+add(bot,M,#cur{bot=B, writer=V}=C) when element(2,V) /= B ->
     add(bot, M, rewind(C));
 
-add(bot,M,#cur{bot=T,val=V,pos=P}=C) ->
+add(bot,M,#cur{bot=T,writer=V,reader=P}=C) ->
     Id=id(M), H=sn(sp(M,T),[]), N=sn(V,Id), kvs:put([H,N]),
-    {L,R} = inc(C), C#cur{pos=select(V,P,N),val=H,bot=Id,left=L,right=R};
+    {L,R} = inc(C), C#cur{reader=select(V,P,N),writer=H,bot=Id,left=L,right=R};
 
-add(top,M,#cur{top=B,val=V,pos=P}=C) ->
+add(top,M,#cur{top=B,writer=V,reader=P}=C) ->
     Id=id(M), H=sp(sn(M,B),[]), N=sp(V,Id), kvs:put([H,N]),
-    {L,R} = inc(C), C#cur{pos=select(V,P,N),val=H,top=Id,left=L,right=R}.
+    {L,R} = inc(C), C#cur{reader=select(V,P,N),writer=H,top=Id,left=L,right=R}.
 
 % remove
 
-remove(I,#cur{val=[]}=C)      -> {error,val};
-remove(I,#cur{val=B,pos=X}=C) -> {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
+remove(I,#cur{writer=[]}=C)      -> {error,val};
+remove(I,#cur{writer=B,reader=X}=C) -> {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
                                  join(I,[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
 
 fix(M,[])     -> [];
@@ -150,22 +150,22 @@ m(_,_,_,_,I,L,R,P,V) -> {V,P}.
 
 join(I,[[],[]],C) ->
     {X,Y} = dec(C),
-    C#cur{top=[],bot=[],val=[],pos=[],left=X,right=Y};
+    C#cur{top=[],bot=[],writer=[],reader=[],left=X,right=Y};
 
-join(I,[[], R],#cur{pos=P,val=V}=Cur) ->
+join(I,[[], R],#cur{reader=P,writer=V}=Cur) ->
     N=sp(R,[]), kvs:put(N), {X,Y} = dec(Cur),
     {NV,NP} = m(en(V),ep(V),en(P),ep(P),I,[],N,P,V),
-    Cur#cur{top=id(N), val=NV, pos=NP, left=X, right=Y};
+    Cur#cur{top=id(N), writer=NV, reader=NP, left=X, right=Y};
 
-join(I,[L, []],#cur{pos=P,val=V}=Cur) ->
+join(I,[L, []],#cur{reader=P,writer=V}=Cur) ->
     N=sn(L,[]), kvs:put(N), {X,Y} = dec(Cur),
     {NV,NP} = m(en(V),ep(V),en(P),ep(P),I,N,[],P,V),
-    Cur#cur{bot=id(N), val=NV, left=X, pos=NP, right=Y};
+    Cur#cur{bot=id(N), writer=NV, left=X, reader=NP, right=Y};
 
-join(I,[L,  R],#cur{pos=P,val=V}=Cur) ->
+join(I,[L,  R],#cur{reader=P,writer=V}=Cur) ->
     N=sp(R,id(L)), M=sn(L,id(R)), kvs:put([N,M]), {X,Y} = dec(Cur),
     {NV,NP} = m(en(V),ep(V),en(P),ep(P),I,N,M,P,V),
-    Cur#cur{left=X, pos=NP, val=NV, right=Y}.
+    Cur#cur{left=X, reader=NP, writer=NV, right=Y}.
 
 % TESTS
 
@@ -181,7 +181,7 @@ check() ->
 
 rewind() ->
     Empty = {'user2',[],[],[],[],[],[],[],[]},
-    C = #cur{top=T,bot=B,left=L,right=R,val=V,pos=P} =
+    C = #cur{top=T,bot=B,left=L,right=R,writer=V,reader=P} =
     save(
     add(Empty,down(
     add(Empty,up(
@@ -196,7 +196,7 @@ rewind() ->
 
 test_sides() ->
     Empty = {'user2',[],[],[],[],[],[],[],[]},
-    #cur{top=T,bot=B,left=L,right=R,val=V,pos=P} =
+    #cur{top=T,bot=B,left=L,right=R,writer=V,reader=P} =
     save(
     add(Empty,up(
     add(Empty,down(

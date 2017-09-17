@@ -50,8 +50,8 @@
           top=  [] :: [] | integer(),
           bot=  [] :: [] | integer(),
           dir=   0 ::  0 | 1,
-          pos=  [] :: [] | tuple(),
-          val=  [] :: [] | tuple()  }.
+          reader= [] :: [] | tuple(),
+          writer= [] :: [] | tuple()  }.
 
   #iter { id=   [] :: [] | integer(),
           prev= [] :: [] | integer(),
@@ -61,8 +61,8 @@
 
 <p><ul>
 <li>id &mdash; Unique key of the cursor</li>
-<li>val &mdash; Writer cursor.</li>
-<li>pos &mdash; Reader cursor.</li>
+<li>writer &mdash; Append writes to list edges.</li>
+<li>reader &mdash; Reader cursor tracks distances to edges.</li>
 <li>dir=0 &mdash; Adding to top, reading up from bottom (default).</li>
 <li>dir=1 &mdash; Adding to bottom, reading down from top.</li>
 <li>top &mdash; The top of the list</li>
@@ -181,8 +181,8 @@
  > P = {user2,[],[],[],[],[],[],[],[]},
    kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))).
  #cur{id = 3,top = 1,bot = 1,dir = 0,
-      pos = {user2,1,[],[],[],[],[],[],[]},
-      val = {user2,1,[],[],[],[],[],[],[]},
+      reader = {user2,1,[],[],[],[],[],[],[]},
+      writer = {user2,1,[],[],[],[],[],[],[]},
       left = 0,right = 0}
 
 </code></figure>
@@ -207,8 +207,8 @@
  > kvs_stream:next(kvs_stream:top(
    kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))))).
   #cur{id = 3,top = 2,bot = 1,dir = 1,
-      pos = {user2,1,[],2,[],[],[],[],[]},
-      val = {user2,2,1,[],[],[],[],[],[]},
+      reader = {user2,1,[],2,[],[],[],[],[]},
+      writer = {user2,2,1,[],[],[],[],[],[]},
       left = 0,right = 1}
 
 </code></figure>
@@ -222,8 +222,8 @@
  > Stream = kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))),
    kvs_stream:seek(kvs_stream:up(Stream)).
  #cur{id = 3,top = 3,bot = 1,dir = 0,
-      pos = {user2,1,[],2,[],[],[],[],[]},
-      val = {user2,3,2,[],[],[],[],[],[]},
+      reader = {user2,1,[],2,[],[],[],[],[]},
+      writer = {user2,3,2,[],[],[],[],[],[]},
       left = 2,right = 0}
 
 </code></figure>
@@ -235,8 +235,8 @@
 <figure><code>
  > kvs_stream:top(kvs_stream:load(S)).
  #cur{id = 3,top = 3,bot = 1,dir = 1,
-     pos = {user2,3,2,[],[],[],[],[],[]},
-     val = {user2,3,2,[],[],[],[],[],[]},
+     reader = {user2,3,2,[],[],[],[],[],[]},
+     writer = {user2,3,2,[],[],[],[],[],[]},
      left = 2,right = 0}
 
 </code></figure>
@@ -248,8 +248,8 @@
 <figure><code>
  > kvs_stream:bot(kvs_stream:load(S)).
  #cur{id = 3,top = 3,bot = 1,dir = 0,
-      pos = {user2,1,[],2,[],[],[],[],[]},
-      val = {user2,3,2,[],[],[],[],[],[]},
+      reader = {user2,1,[],2,[],[],[],[],[]},
+      writer = {user2,3,2,[],[],[],[],[],[]},
       left = 2,right = 0}
 
 </code></figure>
