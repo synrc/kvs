@@ -18,17 +18,13 @@ seek(#cur{bot=[],dir=0}=C) -> {error,[]};
 seek(#cur{top=[],dir=1}=C) -> {error,[]};
 seek(#cur{bot=X,pos=P,dir=0}=C) when element(2,P) == X -> C;
 seek(#cur{top=X,pos=P,dir=1}=C) when element(2,P) == X -> C;
-seek(#cur{top=T,bot=B,left=L,right=R,dir=0,pos=P}=C) ->
-    C#cur{pos=id(kvs:get(tab(P),B)),left=0,right=L+R};
-seek(#cur{top=T,bot=B,left=L,right=R,dir=1,pos=P}=C) ->
-    C#cur{pos=id(kvs:get(tab(P),T)),left=L+R,right=0}.
+seek(#cur{top=T,bot=B,left=L,right=R,dir=0,pos=P}=C) -> C#cur{pos=id(kvs:get(tab(P),B)),left=0,right=L+R};
+seek(#cur{top=T,bot=B,left=L,right=R,dir=1,pos=P}=C) -> C#cur{pos=id(kvs:get(tab(P),T)),left=L+R,right=0}.
 
 rewind(#cur{val=[]}=C) -> {error,[]};
-rewind(#cur{dir=D,top=T,bot=B,val=V}=C) ->
-    C#cur{val=id(kvs:get(tab(V),select(D,T,B)))}.
+rewind(#cur{dir=D,top=T,bot=B,val=V}=C) -> C#cur{val=id(kvs:get(tab(V),select(D,T,B)))}.
 
-add(M,#cur{dir=D}=C) when element(2,M) == [] ->
-    add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
+add(M,#cur{dir=D}=C) when element(2,M) == [] -> add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
 add(M,#cur{dir=D}=C) -> add(dir(D),M,C).
 
 save(C) -> kvs:put(C), C.
@@ -42,9 +38,8 @@ prev(#cur{pos=B} =C) -> pos(kvs:get(tab(B),ep(B)),C,left(C)).
 take(N,#cur{dir=D}=C) -> take(acc(D),N,C,[]).
 
 remove(I,#cur{val=[]}=C) -> {error,val};
-remove(I, #cur{val=B,pos=X}=C) ->
-    {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
-    join(I,[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
+remove(I, #cur{val=B,pos=X}=C) -> {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
+                                  join(I,[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
 
 % PRIVATE
 
