@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="" />
     <meta name="author" content="Maxim Sokhatsky" />
-    <title>STREAM</title>
+    <title>KVS</title>
     <link rel="stylesheet" href="https://n2o.space/n2o.css" />
 </head>
 
@@ -167,10 +167,10 @@
 
 </code></figure>
 
-<h4>add(Message,#cur{}) -> #cur{}.</h4>
+<h4>add(Object::tuple(),#cur{}) -> #cur{}.</h4>
 
-<p>Adds message to datatabase and update cursor to new data.
-   Message is linked on next prev fields with existed data under cursor.
+<p>Adds any object to datatabase and update writer cursor.
+   Object is linked on next prev fields with existed data under cursor.
    If cursor doesn't contain top or bottom value the additional
    seek to the end is performed according to cursor direction.</p>
 
