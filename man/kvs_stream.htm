@@ -206,18 +206,14 @@
 
 </code></figure>
 
-<h4>seek(Id,#cur{}) -> #cur{} | #error{}.</h4>
+<h4>seek(#cur{}) -> #cur{} | #error{}.</h4>
 
-<p>Moves cursor to record by its id.
+<p>Moves cursor to begin or end of the list depending of cursor order.
    If cursor has no cached value then function returns error.</p>
 
 <figure><code>
  > Stream = kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))),
-   kvs_stream:seek(Stream#cur.top-1,Stream).
- #cur{id = 3,top = 3,bot = 1,dir = 0,
-      pos = {person,2,1,[],[],[],[],[],[]},
-      val = {person,3,1,[],[],[],[],[],[]},
-      left = 2,right = 0}
+   kvs_stream:seek(kvs_stream:up(Stream)).
 
 </code></figure>
 
