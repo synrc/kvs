@@ -12,10 +12,7 @@ down(C) -> C#cur{dir=1}.
 top(C)  -> seek(up(C)).
 bot(C)  -> seek(down(C)).
 
-seek(#cur{bot=[],dir=0}=C) -> C#cur{val=[]};
-seek(#cur{top=[],dir=1}=C) -> C#cur{val=[]};
-seek(#cur{bot=[],dir=0}=C) -> {error,[]};
-seek(#cur{top=[],dir=1}=C) -> {error,[]};
+seek(#cur{val=[]}=C) -> C;
 seek(#cur{bot=X,pos=P,dir=0}=C) when element(2,P) == X -> C;
 seek(#cur{top=X,pos=P,dir=1}=C) when element(2,P) == X -> C;
 seek(#cur{top=T,bot=B,left=L,right=R,dir=0,pos=P}=C) -> C#cur{pos=id(kvs:get(tab(P),B)),left=0,right=L+R};
