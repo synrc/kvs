@@ -1,31 +1,46 @@
 -module(kvs_stream).
 -include("kvs.hrl").
--export([ new/0, top/1, bot/1, take/2, load/1, save/1, down/1, up/1,
-          check/0, seek/2, rewind/1, next/1, prev/1, add/2, remove/2 ]).
+-export([
+    new/0, top/1, bot/1, take/2, load/1, save/1, down/1, up/1,
+    check/0, seek/1, rewind/1, next/1, prev/1, add/2, remove/2 ]).
 
 % PUBLIC
 
-new()                 -> application:set_env(kvs,mnesia_context,transaction),
-                         #cur{id=kvs:next_id(cur,1)}.
-up(C)                 -> C#cur{dir=0}.
-down(C)               -> C#cur{dir=1}.
-top(#cur{top=[]}=C)   -> C#cur{val=[]};
-top(#cur{top=T,left=L,right=R}=C)    -> (seek(T,C))#cur{left=0,right=L+R}.
-bot(#cur{bot=[]}=C)   -> C#cur{val=[]};
-bot(#cur{bot=B,left=L,right=R}=C)    -> (seek(B,C))#cur{left=L+R,right=0}.
-add(M,#cur{dir=D}=C) when element(2,M) == [] -> add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
-add(M,#cur{dir=D}=C)  -> add(dir(D),M,C).
-save(#cur{}=C)        -> kvs:put(C), C.
-load(K)               -> case kvs:get(cur,K) of {ok,C} -> C; E -> E end.
-next(#cur{pos=[]}=C)  -> {error,[]};
-next(#cur{pos=B}=C)   -> {L,R} = right(C), lookup(kvs:get(tab(B),en(B)),C,{L,R}).
-prev(#cur{pos=[]}=C)  -> {error,[]};
-prev(#cur{pos=B}=C)   -> {L,R} = left(C), lookup(kvs:get(tab(B),ep(B)),C,{L,R}).
-take(N,#cur{dir=D}=C)    -> take(acc(D),N,C,[]).
-seek(I,  #cur{val=[]}=C) -> {error,[]};
-seek(I,   #cur{val=B}=C) -> {ok,R}=kvs:get(tab(B),I), C#cur{pos=R}.
-rewind(#cur{val=[]}=C)   -> {error,[]};
-rewind(#cur{dir=D,top=T,bot=B,val=V}=C) -> {ok,R}=kvs:get(tab(V),select(D,T,B)), C#cur{val=R}.
+new()   -> #cur{id=kvs:next_id(cur,1)}.
+up(C)   -> C#cur{dir=0}.
+down(C) -> C#cur{dir=1}.
+top(C)  -> seek(up(C)).
+bot(C)  -> seek(down(C)).
+
+seek(#cur{bot=[],dir=0}=C) -> C#cur{val=[]};
+seek(#cur{top=[],dir=1}=C) -> C#cur{val=[]};
+seek(#cur{bot=[],dir=0}=C) -> {error,[]};
+seek(#cur{top=[],dir=1}=C) -> {error,[]};
+seek(#cur{bot=X,pos=P,dir=0}=C) when element(2,P) == X -> C;
+seek(#cur{top=X,pos=P,dir=1}=C) when element(2,P) == X -> C;
+seek(#cur{top=T,bot=B,left=L,right=R,dir=0,pos=P}=C) ->
+    C#cur{pos=id(kvs:get(tab(P),B)),left=0,right=L+R};
+seek(#cur{top=T,bot=B,left=L,right=R,dir=1,pos=P}=C) ->
+    C#cur{pos=id(kvs:get(tab(P),T)),left=L+R,right=0}.
+
+rewind(#cur{val=[]}=C) -> {error,[]};
+rewind(#cur{dir=D,top=T,bot=B,val=V}=C) ->
+    C#cur{val=id(kvs:get(tab(V),select(D,T,B)))}.
+
+add(M,#cur{dir=D}=C) when element(2,M) == [] ->
+    add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
+add(M,#cur{dir=D}=C) -> add(dir(D),M,C).
+
+save(C) -> kvs:put(C), C.
+load(K) -> case kvs:get(cur,K) of {ok,C} -> C; E -> E end.
+
+next(#cur{pos=[]}=C) -> {error,[]};
+next(#cur{pos=B} =C) -> pos(kvs:get(tab(B),en(B)),C,right(C)).
+prev(#cur{pos=[]}=C) -> {error,[]};
+prev(#cur{pos=B} =C) -> pos(kvs:get(tab(B),ep(B)),C,left(C)).
+
+take(N,#cur{dir=D}=C) -> take(acc(D),N,C,[]).
+
 remove(I,#cur{val=[]}=C) -> {error,val};
 remove(I, #cur{val=B,pos=X}=C) ->
     {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
@@ -94,9 +109,6 @@ m(_,_,I,_,I,L,R,P,V) -> {V,sn(P,id(L))};
 m(_,_,_,I,I,L,R,P,V) -> {V,sp(P,id(L))};
 m(_,_,_,_,I,L,R,P,V) -> {V,P}.
 
-cas(true,  L, R) -> L;
-cas(false, L, R) -> R.
-
 cv(R,V) -> setelement(#cur.val,   R, V).
 cb(R,V) -> setelement(#cur.bot,   R, V).
 ct(R,V) -> setelement(#cur.top,   R, V).
@@ -109,10 +121,11 @@ si(M,T) -> setelement(#iter.id, M, T).
 
 el(X,T) -> element(X, T).
 tab(T)  -> element(1, T).
+et(T)   -> element(#cur.top, T).
+eb(T)   -> element(#cur.bot, T).
 id(T)   -> element(#iter.id, T).
 en(T)   -> element(#iter.next, T).
 ep(T)   -> element(#iter.prev, T).
-
 dir(0)  -> top;
 dir(1)  -> bot.
 acc(0)  -> prev;
@@ -123,13 +136,13 @@ fix(M,X)      -> fix(kvs:get(M,X)).
 fix({ok,O})   -> O;
 fix(_)        -> [].
 
-lookup({ok,R},C,{X,Y})      -> C#cur{pos=R,left=X,right=Y};
-lookup({error,X},C,_)       -> {error,X}.
-take(_,_,{error,_},R)       -> lists:flatten(R);
-take(_,0,_,R)               -> lists:flatten(R);
-take(A,N,#cur{pos=B}=C,R)   -> take(A,N-1,?MODULE:A(C),[B|R]).
-swap(1,{L,R})               -> {R,L};
-swap(0,{L,R})               -> {L,R}.
+pos({ok,R},C,{X,Y})       -> C#cur{pos=R,left=X,right=Y};
+pos({error,X},C,_)        -> {error,X}.
+take(_,_,{error,_},R)     -> lists:flatten(R);
+take(_,0,_,R)             -> lists:flatten(R);
+take(A,N,#cur{pos=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
+swap(1,{L,R})             -> {R,L};
+swap(0,{L,R})             -> {L,R}.
 
 inc(#cur{left=L,right=R,dir=D})   -> swap(D,{L+1,R}).
 dec(#cur{left=0,right=0,dir=D})   -> swap(D,{0,0});
@@ -237,8 +250,8 @@ test1() ->
          add({person,B,[],[],[],[],[],[],[]},
          add({person,A,[],[],[],[],[],[],[]},
          new() ))))),
-    X  = take(-1,up(bot(R))),
-    Y  = take(-1,down(top(R))),
+    X  = take(-1,up(top(R))),
+    Y  = take(-1,down(bot(R))),
     X  = lists:reverse(Y),
     L  = length(X).
 
@@ -252,10 +265,10 @@ te() ->
     kvs_stream:add(P,
     kvs_stream:load(S)))))),
     4 = length(kvs_stream:take(-1,S1)),
-    S2 = kvs_stream:save(kvs_stream:seek(S1#cur.top,S1)),
+    S2 = kvs_stream:save(kvs_stream:top(S1)),
     S3 = kvs_stream:save(kvs_stream:remove(S2#cur.top-1,S2)),
-    List = kvs_stream:take(-1,kvs_stream:up(kvs_stream:bot(S3))),
-    Rev  = kvs_stream:take(-1,kvs_stream:down(kvs_stream:top(S3))),
+    List = kvs_stream:take(-1,kvs_stream:seek(kvs_stream:up(S3))),
+    Rev  = kvs_stream:take(-1,kvs_stream:seek(kvs_stream:down(S3))),
     List = lists:reverse(Rev),
     3 = length(List),
     {S3,List}.
