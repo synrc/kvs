@@ -69,22 +69,21 @@ join(I,[[],[]],C) ->
 join(I,[[], R],#cur{pos=P,val=V}=Cur) ->
     N=sp(R,[]), kvs:put(N), {X,Y} = dec(Cur),
     [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
-    {NV,NP} = n(A,B,C,D,I,[],N,P,V),
+    {NV,NP} = m(A,B,C,D,I,[],N,P,V),
     Cur#cur{top=id(N), val=NV, pos=NP, left=X, right=Y};
 
 join(I,[L, []],#cur{pos=P,val=V}=Cur) ->
     N=sn(L,[]), kvs:put(N), {X,Y} = dec(Cur),
     [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
-    {NV,NP} = n(A,B,C,D,I,N,[],P,V),
+    {NV,NP} = m(A,B,C,D,I,N,[],P,V),
     Cur#cur{bot=id(N), val=NV, left=X, pos=NP, right=Y};
 
 join(I,[L,  R],#cur{pos=P,val=V}=Cur) ->
     N=sp(R,id(L)), M=sn(L,id(R)), kvs:put([N,M]), {X,Y} = dec(Cur),
     [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
-    {NV,NP} = n(A,B,C,D,I,N,M,P,V),
+    {NV,NP} = m(A,B,C,D,I,N,M,P,V),
     Cur#cur{left=X, pos=NP, val=NV, right=Y}.
 
-n(A,B,C,D,I,L,R,P,V) -> m(A,B,C,D,I,L,R,P,V).
 m(I,_,I,_,I,L,R,P,V) -> {R,R};
 m(_,I,I,_,I,L,R,P,V) -> {R,L};
 m(I,_,_,I,I,L,R,P,V) -> {L,R};
