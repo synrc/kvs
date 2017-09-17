@@ -23,7 +23,7 @@ prev(#cur{pos=[]}=C)  -> {error,[]};
 prev(#cur{pos=B}=C)   -> {L,R} = left(C), lookup(kvs:get(tab(B),ep(B)),C,{L,R}).
 take(N,#cur{dir=D}=C)    -> take(acc(D),N,C,[]).
 seek(I,  #cur{val=[]}=C) -> {error,[]};
-seek(I,   #cur{val=B}=C) -> {ok,R}=kvs:get(tab(B),I), C#cur{pos=R}.
+seek(I,   #cur{val=B}=C) -> {ok,R}=kvs:get(tab(B),I), C#cur{pos=R,val=R}.
 remove(I,#cur{val=[]}=C) -> {error,val};
 remove(I, #cur{val=B,pos=X}=C) ->
     {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
@@ -38,6 +38,12 @@ add(bot,M,#cur{bot=T,val=[]}=C) ->
 add(top,M,#cur{top=B,val=[]}=C) ->
     Id=id(M), N=sp(sn(M,B),[]), kvs:put(N),
     C#cur{val=N,pos=N,top=Id,bot=Id};
+
+add(top,M,#cur{top=T, val=V}=C) when element(2,V)/=T ->
+    add(top, M, top(C));
+
+add(bot,M,#cur{bot=B, val=V}=C) when element(2,V)/=B ->
+    add(bot, M, bot(C));
 
 add(bot,M,#cur{bot=T,val=V,pos=P}=C) ->
     Id=id(M), H=sn(sp(M,T),[]), N=sn(V,Id),
