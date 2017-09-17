@@ -98,15 +98,11 @@ add(M,#cur{dir=D}=C) ->
 inc(#cur{left=L,right=R,dir=D}) -> swap(D,{L+1,R}).
 
 add(bot,M,#cur{bot=T,val=[]}=C) ->
-    Id=id(M),
-    N=sn(sp(M,T),[]),
-    kvs:put(N),
+    Id=id(M), N=sn(sp(M,T),[]), kvs:put(N),
     C#cur{val=N,pos=N,bot=Id,top=Id};
 
 add(top,M,#cur{top=B,val=[]}=C) ->
-    Id=id(M),
-    N=sp(sn(M,B),[]),
-    kvs:put(N),
+    Id=id(M), N=sp(sn(M,B),[]), kvs:put(N),
     C#cur{val=N,pos=N,top=Id,bot=Id};
 
 add(top,M,#cur{top=T, val=V}=C) when element(2,V) /= T ->
@@ -116,20 +112,12 @@ add(bot,M,#cur{bot=B, val=V}=C) when element(2,V) /= B ->
     add(bot, M, rewind(C));
 
 add(bot,M,#cur{bot=T,val=V,pos=P}=C) ->
-    Id=id(M),
-    H=sn(sp(M,T),[]),
-    N=sn(V,Id),
-    kvs:put([H,N]),
-    {L,R} = inc(C),
-    C#cur{pos=select(V,P,N),val=H,bot=Id,left=L,right=R};
+    Id=id(M), H=sn(sp(M,T),[]), N=sn(V,Id), kvs:put([H,N]),
+    {L,R} = inc(C), C#cur{pos=select(V,P,N),val=H,bot=Id,left=L,right=R};
 
 add(top,M,#cur{top=B,val=V,pos=P}=C) ->
-    Id=id(M),
-    H=sp(sn(M,B),[]),
-    N=sp(V,Id),
-    kvs:put([H,N]),
-    {L,R} = inc(C),
-    C#cur{pos=select(V,P,N),val=H,top=Id,left=L,right=R}.
+    Id=id(M), H=sp(sn(M,B),[]), N=sp(V,Id), kvs:put([H,N]),
+    {L,R} = inc(C), C#cur{pos=select(V,P,N),val=H,top=Id,left=L,right=R}.
 
 % remove
 
@@ -162,32 +150,19 @@ join(I,[[],[]],C) ->
     C#cur{top=[],bot=[],val=[],pos=[],left=X,right=Y};
 
 join(I,[[], R],#cur{pos=P,val=V}=Cur) ->
-    N=sp(R,[]),
-    kvs:put(N),
-    {X,Y} = dec(Cur),
-    [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
-    {NV,NP} = m(A,B,C,D,I,[],N,P,V),
+    N=sp(R,[]), kvs:put(N), {X,Y} = dec(Cur),
+    {NV,NP} = m(en(V),ep(V),en(P),ep(P),I,[],N,P,V),
     Cur#cur{top=id(N), val=NV, pos=NP, left=X, right=Y};
 
 join(I,[L, []],#cur{pos=P,val=V}=Cur) ->
-    N=sn(L,[]),
-    kvs:put(N),
-    {X,Y} = dec(Cur),
-    [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
-    {NV,NP} = m(A,B,C,D,I,N,[],P,V),
+    N=sn(L,[]), kvs:put(N), {X,Y} = dec(Cur),
+    {NV,NP} = m(en(V),ep(V),en(P),ep(P),I,N,[],P,V),
     Cur#cur{bot=id(N), val=NV, left=X, pos=NP, right=Y};
 
 join(I,[L,  R],#cur{pos=P,val=V}=Cur) ->
-    N=sp(R,id(L)),
-    M=sn(L,id(R)),
-    kvs:put([N,M]),
-    {X,Y} = dec(Cur),
-    [A,B,C,D] = [en(V),ep(V),en(P),ep(P)],
-    {NV,NP} = m(A,B,C,D,I,N,M,P,V),
+    N=sp(R,id(L)), M=sn(L,id(R)), kvs:put([N,M]), {X,Y} = dec(Cur),
+    {NV,NP} = m(en(V),ep(V),en(P),ep(P),I,N,M,P,V),
     Cur#cur{left=X, pos=NP, val=NV, right=Y}.
-
-
-
 
 % TESTS
 
