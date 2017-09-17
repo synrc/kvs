@@ -1,16 +1,17 @@
 -ifndef(KVS_HRL).
 -define(KVS_HRL, true).
 
--record(cur, {id =  [] :: term(),
+-define(CUR,  id =  [] :: term(),
               top=  [] :: [] | integer(),
               bot=  [] :: [] | integer(),
               dir=   0 ::  0 | 1,
-              val=  [] :: [] | tuple()}).
-
+              pos=  [] :: [] | tuple(),
+              val=  [] :: [] | tuple()).
 -define(ITER, id=   [] :: term(),
               next= [] :: [] | integer(),
               prev= [] :: [] | integer()).
 
+-record(cur,  {?CUR, left=0, right=0}).
 -record(iter, {?ITER}).
 
 -define(CONTAINER, id=[] :: [] | integer(),
