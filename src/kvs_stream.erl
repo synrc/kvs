@@ -1,8 +1,11 @@
 -module(kvs_stream).
+-description('KVS STREAM').
+-copyrihgt('Synrc Research Center').
+-author('Maxim Sokhatsky').
+-license('ISC').
 -include("kvs.hrl").
--export([
-    new/0, top/1, bot/1, take/2, load/1, save/1, down/1, up/1,
-    check/0, seek/1, rewind/1, next/1, prev/1, add/2, remove/2 ]).
+-export([ new/0, top/1, bot/1, take/2, load/1, save/1, down/1, up/1,
+          check/0, seek/1, rewind/1, next/1, prev/1, add/2, remove/2 ]).
 
 % section: kvs_stream prelude
 
