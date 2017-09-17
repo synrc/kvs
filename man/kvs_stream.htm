@@ -27,7 +27,7 @@
    redis, mongo, mnesia, riak, kai, fs.
    The main KVS cursor consist of two main parts (reader and writer).
    Writer holds the cached value of the top or bottom of the stream.
-   Reader holds the cached valus of current cursor position.
+   Reader holds the cached value of current cursor position.
    Descriptor also tracks moving direction and distances to both ends,
    which are updated during reader cursor repositioning.
    Cursor should be stored in databse.
@@ -36,6 +36,12 @@
    The data in list could be removed only by record id.
    The list could not contain duplicates or even records with the same id.
    When you consume the stream, the data is not deleted.</p>
+
+   <p>You can download <a style="margin-bottom:30px;" href="https://github.com/synrc/kvs/blob/master/src/kvs_stream.erl">kvs_stream</a> as it's self-containing module.
+            &nbsp; <br><br>
+        <img src="https://n2o.space/img/Erlang.png" width=50>
+        </p>
+
     </section>
     <section>
 
