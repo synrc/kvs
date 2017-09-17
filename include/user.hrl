@@ -16,7 +16,7 @@
         status=[],
         zone=[],
         type=[] }).
--record(person, {?ITER, % version 2
+-record(user2, {?ITER, % version 2
         mail=[]::[]|binary(),
         name=[]::[]|binary(),
         pass=[]::[]|binary(),
