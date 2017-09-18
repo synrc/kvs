@@ -4,13 +4,13 @@
 -author('Maxim Sokhatsky').
 -license('ISC').
 -include("kvs.hrl").
--export([ new/0, top/1, bot/1, take/2, load/1, save/1, down/1, up/1,
+-export([ new/0, top/1, bot/1, take/2, drop/2, load/1, save/1, down/1, up/1, cons/2, snoc/2,
           check/0, seek/1, rewind/1, next/1, prev/1, add/2, remove/2 ]).
 
 % section: kvs_stream prelude
 
 se(X,Y,Z) -> setelement(X,Y,Z).
-e(X,Y)  -> element(X,Y).
+e(X,Y) -> element(X,Y).
 cv(R,V) -> se(#cur.writer,R, V).
 cb(R,V) -> se(#cur.bot,   R, V).
 ct(R,V) -> se(#cur.top,   R, V).
@@ -21,16 +21,16 @@ sn(M,T) -> se(#iter.next, M, T).
 sp(M,T) -> se(#iter.prev, M, T).
 si(M,T) -> se(#iter.id, M, T).
 el(X,T) -> e(X, T).
-tab(T)  -> e(1, T).
-et(T)   -> e(#cur.top, T).
-eb(T)   -> e(#cur.bot, T).
-id(T)   -> e(#iter.id, T).
-en(T)   -> e(#iter.next, T).
-ep(T)   -> e(#iter.prev, T).
-dir(0)  -> top;
-dir(1)  -> bot.
-acc(0)  -> prev;
-acc(1)  -> next.
+tab(T) -> e(1, T).
+et(T) -> e(#cur.top, T).
+eb(T) -> e(#cur.bot, T).
+id(T) -> e(#iter.id, T).
+en(T) -> e(#iter.next, T).
+ep(T) -> e(#iter.prev, T).
+dir(0) -> top;
+dir(1) -> bot.
+acc(0) -> prev;
+acc(1) -> next.
 
 % section: next, prev
 
@@ -52,13 +52,18 @@ swap(0,{L,R}) -> {L,R}.
 pos({ok,R},C,{X,Y}) -> C#cur{reader=R,left=X,right=Y};
 pos({error,X},C,_)  -> {error,X}.
 
-% section: take
+% section: take, drop
 
-take(N,#cur{dir=D}=C)  -> take(acc(D),N,C,[]).
+drop(N,#cur{dir=D}=C) -> drop(acc(D),N,C).
+take(N,#cur{dir=D}=C) -> take(acc(D),N,C,[]).
 
-take(_,_,{error,_},R)     -> lists:flatten(R);
-take(_,0,_,R)             -> lists:flatten(R);
+take(_,_,{error,_},R) -> lists:flatten(R);
+take(_,0,_,R) -> lists:flatten(R);
 take(A,N,#cur{reader=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
+
+drop(_,_,{error,X}) -> {error,X};
+drop(_,0,C) -> C;
+drop(A,N,C) -> drop(A,N-1,?MODULE:A(C)).
 
 % rewind
 
@@ -100,6 +105,9 @@ add(M,#cur{dir=D}=C) ->
 
 inc(#cur{left=L,right=R,dir=D}) -> swap(D,{L+1,R}).
 
+cons(M,C) -> add(top,M,C).
+snoc(M,C) -> add(bot,M,C).
+
 add(bot,M,#cur{bot=T,writer=[]}=C) ->
     Id=id(M), N=sn(sp(M,T),[]), kvs:put(N),
     C#cur{writer=N,reader=N,bot=Id,top=Id};
@@ -124,9 +132,10 @@ add(top,M,#cur{top=B,writer=V,reader=P}=C) ->
 
 % remove
 
-remove(I,#cur{writer=[]}=C)      -> {error,val};
-remove(I,#cur{writer=B,reader=X}=C) -> {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
-                                 join(I,[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
+remove(I,#cur{writer=[]}=C) -> {error,val};
+remove(I,#cur{writer=B,reader=X}=C) ->
+    {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
+    join(I,[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
 
 fix(M,[])     -> [];
 fix(M,X)      -> fix(kvs:get(M,X)).
@@ -173,6 +182,7 @@ check() ->
     te_remove(),
     test1(),
     test2(),
+    drop(),
     create_destroy(),
     next_prev_duality(),
     test_sides(),
@@ -265,6 +275,20 @@ test1() ->
     Y  = take(-1,bot(R)),
     X  = lists:reverse(Y),
     L  = length(X).
+
+drop() ->
+    #cur{id=S}=save(new()),
+    P = {'user2',[],[],[],[],[],[],[],[]},
+    S1 = save(
+         add(P,
+         add(P,
+         add(P,
+         add(P,
+         load(S)))))),
+    S2= drop(2,S1),
+    2 = length(take(-1,S2)),
+    4 = length(take(-1,S1)),
+    ok.
 
 te_remove() ->
     #cur{id=S}=save(new()),
