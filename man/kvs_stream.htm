@@ -90,7 +90,9 @@
           bot=  [] :: [] | integer(),
           dir=   0 ::  0 | 1,
           reader= [] :: [] | tuple(),
-          writer= [] :: [] | tuple()  }.
+          writer= [] :: [] | tuple(),
+          left=  0 :: integer(),
+          right= 0 :: inetegr() }.
 
   #iter { id=   [] :: [] | integer(),
           prev= [] :: [] | integer(),
@@ -106,6 +108,8 @@
 <li>dir=1 &mdash; Adding to bottom, reading down from top.</li>
 <li>top &mdash; The top of the list.</li>
 <li>bot &mdash; The bottom of the list.</li>
+<li>left &mdash; The distance to top from reader.</li>
+<li>right &mdash; The distance to bottom from reader.</li>
 </ul></p>
 
 <p><ul>
@@ -318,6 +322,18 @@
 
 <a name=drop></a>
 <h4>drop(N,#cur{}) -> #cur{}.</h4>
+
+<p>Drops N elements starting from reader.</p>
+
+<a name=cons></a>
+<h4>cons(M,#cur{}) -> #cur{}.</h4>
+
+<p>Adds element to top.</p>
+
+<a name=snoc></a>
+<h4>snoc(M,#cur{}) -> #cur{}.</h4>
+
+<p>Adds element to bottom.</p>
 
 <a name=down></a>
 <h4>down(#cur{}) -> #cur{}.</h4>
