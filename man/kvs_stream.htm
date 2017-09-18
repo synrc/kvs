@@ -23,9 +23,9 @@
 <h3>INTRO</h3>
 
 <p>The <b>kvs_stream</b> is intended to store and retrieve doubly-linked lists
-   using simple key-value access to different databases through its backends:
+   using simple key-value access to different KV databases through its backends:
    redis, mongo, mnesia, riak, kai, fs.
-   The main KVS cursor consist of two main parts (reader and writer).
+   The descriptor of the cursor consist mainly of two parts (reader and writer).
    Writer holds the cached value of the top or bottom of the stream.
    Reader holds the cached value of current cursor position.
    Descriptor also tracks moving direction and distances to both ends,
