@@ -37,6 +37,9 @@
    The list could not contain duplicates or even records with the same id.
    When you consume the stream, the data is not deleted.</p>
 
+   <p>This module could be used to manage different kinds of lists
+      including doubly-linked lists on top of any KV storage.</p>
+
    <p>You can download <a style="margin-bottom:30px;" href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a> as it's a self-containing module.
             &nbsp; <br><br>
         <img src="https://n2o.space/img/Erlang.png" width=50>
@@ -66,19 +69,19 @@
 </code></figure>
 
 <p><ul>
-<li>id &mdash; Unique key of the cursor</li>
+<li>id &mdash; Unique key of the cursor.</li>
 <li>writer &mdash; Append writes to list edges.</li>
 <li>reader &mdash; Reader cursor tracks distances to edges.</li>
 <li>dir=0 &mdash; Adding to top, reading up from bottom (default).</li>
 <li>dir=1 &mdash; Adding to bottom, reading down from top.</li>
-<li>top &mdash; The top of the list</li>
-<li>bot &mdash; The bottom of the list</li>
+<li>top &mdash; The top of the list.</li>
+<li>bot &mdash; The bottom of the list.</li>
 </ul></p>
 
 <p><ul>
-<li>id &mdash; Unique key of the record in the list</li>
-<li>next &mdash; The next element of the list</li>
-<li>prev &mdash; The prev element of the list</li>
+<li>id &mdash; Unique key of the record in the list.</li>
+<li>next &mdash; The next element of the list.</li>
+<li>prev &mdash; The prev element of the list.</li>
 </ul></p>
 
     </section>
