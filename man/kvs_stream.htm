@@ -22,9 +22,8 @@
 
 <h3>INTRO</h3>
 
-<p>The <b>kvs_stream</b> is intended to store and retrieve doubly-linked lists
-   using simple key-value access to different KV databases through its backends:
-   redis, mongo, mnesia, riak, kai, fs.
+<p>The <b>kvs_stream</b> is intended to store, retrieve and manage doubly-linked lists
+   using simple key-value interface as underlying API.
    The descriptor of the cursor consist mainly of two parts (reader and writer).
    Writer holds the cached value of the top or bottom of the stream.
    Reader holds the cached value of current cursor position.
@@ -35,17 +34,44 @@
    The data could be added only to list ends using writer cursor.
    The data in list could be removed only by record id.
    The list could not contain duplicates or even records with the same id.
-   When you consume the stream, the data is not deleted.</p>
+   When you consume the stream, the data is not deleted.
+   The possible applications are: public and private feeds, FIFO queues,
+   unread messages, chat applications, blockchain applications, etc.</p>
+
+        <p><blockquote><p><ul>
+            <li><b><a href="#new">new/0</a></b> &mdash; new list.</li>
+            <li><b><a href="#save">save/1</a></b> &mdash; store cursor to db.</li>
+            <li><b><a href="#load">load/1</a></b> &mdash; load cursor from db.</li>
+            <li><b><a href="#top">top/1</a></b> &mdash; top of the list.</li>
+            <li><b><a href="#bot">bot/1</a></b> &mdash; bottom of the list.</li>
+            <li><b><a href="#up">up/1</a></b> &mdash; up from bottom (default).</li>
+            <li><b><a href="#down">down/1</a></b> &mdash; down from top.</li>
+            <li><b><a href="#next">next/1</a></b> &mdash; move reader next.</li>
+            <li><b><a href="#prev">prev/1</a></b> &mdash; move reader prev.</li>
+            <li><b><a href="#take">take/2</a></b> &mdash; take N elements staring from reader.</li>
+            <li><b><a href="#drop">drop/2</a></b> &mdash; skip N elements staring from reader.</li>
+            <li><b><a href="#add">add/1</a></b> &mdash; add element to list.</li>
+            <li><b><a href="#remove">remove/2</a></b> &mdash; remove element from list.</li>
+            <li><b><a href="#cons">cons/1</a></b> &mdash; add element to top.</li>
+            <li><b><a href="#snoc">snoc/1</a></b> &mdash; add element to bot.</li>
+        </ul></p></blockquote></p>
 
    <p>This module could be used to manage different kinds of lists
       including doubly-linked lists on top of any KV storage.
-      The possible applications are: public and private feeds, FIFO queues,
-      unread messages, chat applications, blockchain applications, etc.</p>
+      It relies on KVS, an unified abstraction layer to several databases: <b>redis</b>,
+      <b>mongo</b>, <b>mnesia</b>, <b>riak</b>, <b>aerospike</b>; and imports only
+      following external functions:</p>
 
-   <p>You can download <a style="margin-bottom:30px;" href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a> as it's a self-containing module.
-            &nbsp; <br><br>
-        <img src="https://n2o.space/img/Erlang.png" width=50>
-        </p>
+    <blockquote><ul>
+            <li><b><a href="kvs.htm#get">kvs:get/2</a></b> &mdash; get record from db by key.</li>
+            <li><b><a href="kvs.htm#put">kvs:put/1</a></b> &mdash; put record to db with same key.</li>
+        </ul></blockquote></p>
+
+    <p>
+      You can download <a style="margin-bottom:30px;"
+       href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a>
+       as it's a self-containing module. &nbsp; <br><br>
+        <img src="https://n2o.space/img/Erlang.png" width=50></p>
 
     </section>
     <section>
@@ -138,6 +164,7 @@
    Just enter one by one the erlang commands
    in shell in right order and check the results.</p>
 
+<a name=new></a>
 <h4>new() -> #cur{}.</h4>
 
 <p>Creates a KVS cursor.</p>
@@ -154,6 +181,7 @@
 
 </code></figure>
 
+<a name=save></a>
 <h4>save(#cur{}) -> #cur{}.</h4>
 
 <p>Saves the cursor to database.<?p>
@@ -168,6 +196,7 @@
 
 </code></figure>
 
+<a name=load></a>
 <h4>load(Id) -> #ok{data::#cur{}} | #error{}.</h4>
 
 <p>Gets a cursor from database.</p>
@@ -178,6 +207,7 @@
 
 </code></figure>
 
+<a name=add></a>
 <h4>add(Object::tuple(),#cur{}) -> #cur{}.</h4>
 
 <p>Adds any object to datatabase and update writer cursor.
@@ -198,6 +228,7 @@
 
 </code></figure>
 
+<a name=prev></a>
 <h4>prev(#cur{}) -> #cur{} | #error{}.</h4>
 
 <p>Moves cursor to prev. Consume data up from bottom.
@@ -209,6 +240,7 @@
 
 </code></figure>
 
+<a name=next></a>
 <h4>next(#cur{}) -> #cur{} | #error{}.</h4>
 
 <p>Moves cursor to next. Consume data down from top.
@@ -224,6 +256,7 @@
 
 </code></figure>
 
+<a name=seek></a>
 <h4>seek(#cur{}) -> #cur{} | #error{}.</h4>
 
 <p>Moves cursor to begin or end of the list depending of cursor order.
@@ -239,6 +272,7 @@
 
 </code></figure>
 
+<a name=top></a>
 <h4>top(#cur{}) -> #cur{} | #error{}.</h4>
 
 <p>Moves cursor to top of the list.</p>
@@ -252,6 +286,7 @@
 
 </code></figure>
 
+<a name=bot></a>
 <h4>bot(#cur{}) -> #cur{} | #error{}.</h4>
 
 <p>Moves cursor to bottom of the list.</p>
@@ -265,6 +300,7 @@
 
 </code></figure>
 
+<a name=take></a>
 <h4>take(N,#cur{}) -> list().</h4>
 
 <p>Trying to consume N records from stream using its current value and direction.
@@ -278,14 +314,20 @@
 
 </code></figure>
 
+<a name=drop></a>
+<h4>drop(N,#cur{}) -> #cur{}.</h4>
+
+<a name=down></a>
 <h4>down(#cur{}) -> #cur{}.</h4>
 
 <p>Changes the cursor direction.</p>
 
+<a name=up></a>
 <h4>up(#cur{}) -> #cur{}.</h4>
 
 <p>Changes the cursor direction (default).</p>
 
+<a name=remove></a>
 <h4>remove(Id,#cur{}) -> #cur{} | #error{}.</h4>
 
 <p>Removes record by id from database and unlink it from list.
