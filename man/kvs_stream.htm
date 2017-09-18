@@ -195,7 +195,7 @@
 
 <h4>prev(#cur{}) -> #cur{} | #error{}.</h4>
 
-<p>Moves cursor to prev. Consume data bottom up.
+<p>Moves cursor to prev. Consume data up from bottom.
    Reutrn error if lists is empty, otherwise next element or last.</p>
 
 <figure><code>
@@ -206,7 +206,7 @@
 
 <h4>next(#cur{}) -> #cur{} | #error{}.</h4>
 
-<p>Moves cursor to next. Consume data top down.
+<p>Moves cursor to next. Consume data down from top.
    Reutrn error if lists is empty, otherwise next element or last.</p>
 
 <figure><code>
