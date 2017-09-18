@@ -7,7 +7,7 @@
               dir=   0 ::  0 | 1,
               reader=  [] :: [] | tuple(),
               writer=  [] :: [] | tuple()).
--record(cur,  {?CUR, left=0, right=0, money=0,}).
+-record(cur,  {?CUR, left=0, right=0}).
 
 -define(ITER, id=   [] :: term(),
               next= [] :: [] | integer(),
