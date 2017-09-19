@@ -1,0 +1,106 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="" />
+    <meta name="author" content="Maxim Sokhatsky" />
+    <title>KVS</title>
+    <link rel="stylesheet" href="https://n2o.space/n2o.css" />
+</head>
+
+<body>
+
+<header>
+    <a href="../index.html"><img src="https://n2o.space/img/Synrc Neo.svg"></a>
+    <h1>KVS</h1>
+</header>
+
+<main>
+    <section>
+
+<h3>INTRO</h3>
+
+   <p>This module is used to manage different KV backends to your cloud of Erlang apps.
+      This is an unified abstraction layer to several databases: <b>redis</b>,
+      <b>mongo</b>, <b>mnesia</b>, <b>riak</b>, <b>aerospike</b>.</p>
+
+        <p><blockquote><p><ul>
+            <li><b><a href="#dir">dir/0</a></b> &mdash; table list.</li>
+            <li><b><a href="#ver">ver/0</a></b> &mdash; KVS version.</li>
+            <li><b><a href="#seq">seq/2</a></b> &mdash; generate new sequence id for table.</li>
+            <li><b><a href="#count">count/1</a></b> &mdash; records in table.</li>
+            <li><b><a href="#put">put/1</a></b> &mdash; put record using element 2 as key.</li>
+            <li><b><a href="#get">get/2</a></b> &mdash; get record by key from table.</li>
+            <li><b><a href="#delete">delete/1</a></b> &mdash; delete record from table.</li>
+            <li><b><a href="#index">index/3</a></b> &mdash; index by field and its value.</li>
+        </ul></p></blockquote></p>
+
+ <p>You can change backend by setting application env. This behaves well on </p>
+
+<figure><code>
+ application:set_env(kvs,dba,store_mnesia).
+
+</code></figure>
+
+    </section>
+    <section>
+
+<h3>RECORDS</h3>
+
+<figure><figcaption>KVS CORE</figcaption><code>
+    #ok { data= [] :: term() }.
+
+ #error { data= [] :: term() }.
+
+   #cur { id=   [] :: term(),
+          top=  [] :: [] | integer(),
+          bot=  [] :: [] | integer(),
+          dir=   0 ::  0 | 1,
+          reader= [] :: [] | tuple(),
+          writer= [] :: [] | tuple(),
+          left=  0 :: integer(),
+          right= 0 :: inetegr() }.
+
+  #iter { id=   [] :: [] | integer(),
+          prev= [] :: [] | integer(),
+          next= [] :: [] | integer()).
+
+</code></figure>
+
+<p><ul>
+<li>id &mdash; Unique key of the cursor.</li>
+</ul></p>
+
+    </section>
+    <section>
+
+<h3>CONFIG</h3>
+
+<p>In sys.config you should specify kvs backend and list of modules
+   containing <b>metainfo/0</b> exported function.</p>
+
+<figure><code>
+  [{kvs, [{dba, store_mnesia},
+          {schema, [kvs]} ]}].
+
+</code></figure>
+
+    </section>
+    <section>
+
+<p>This module may refer to:
+<a href="http://erlang.org/doc/man/mnesia.html">mnesia</a></b>,
+<a href="kvs_stream.htm"><b>kvs_stream</b></a>.
+</p>
+
+    </section>
+</main>
+
+<footer>
+    2005&mdash;2017 &copy; Synrc Research Center
+</footer>
+
+</body>
+</html>

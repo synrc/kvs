@@ -49,22 +49,11 @@
             <li><b><a href="#prev">prev/1</a></b> &mdash; move reader prev.</li>
             <li><b><a href="#take">take/2</a></b> &mdash; take N elements staring from reader.</li>
             <li><b><a href="#drop">drop/2</a></b> &mdash; skip N elements staring from reader.</li>
-            <li><b><a href="#add">add/1</a></b> &mdash; add element to list.</li>
+            <li><b><a href="#add">add/2</a></b> &mdash; add element to list.</li>
             <li><b><a href="#remove">remove/2</a></b> &mdash; remove element from list.</li>
-            <li><b><a href="#cons">cons/1</a></b> &mdash; add element to top.</li>
-            <li><b><a href="#snoc">snoc/1</a></b> &mdash; add element to bot.</li>
+            <li><b><a href="#cons">cons/2</a></b> &mdash; add element to top.</li>
+            <li><b><a href="#snoc">snoc/2</a></b> &mdash; add element to bot.</li>
         </ul></p></blockquote></p>
-
-   <p>This module could be used to manage different kinds of lists
-      including doubly-linked lists on top of any KV storage.
-      It relies on KVS, an unified abstraction layer to several databases: <b>redis</b>,
-      <b>mongo</b>, <b>mnesia</b>, <b>riak</b>, <b>aerospike</b>; and imports only
-      following external functions:</p>
-
-    <blockquote><ul>
-            <li><b><a href="kvs.htm#get">kvs:get/2</a></b> &mdash; get record from table by key.</li>
-            <li><b><a href="kvs.htm#put">kvs:put/1</a></b> &mdash; put record to database.</li>
-        </ul></blockquote></p>
 
     <p>
       You can grab <a style="margin-bottom:30px;"
