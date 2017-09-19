@@ -4,12 +4,13 @@
 -author('Maxim Sokhatsky').
 -license('ISC').
 -include("kvs.hrl").
--export([ new/0, top/1, bot/1, take/2, drop/2, load/1, save/1, down/1, up/1, cons/2, snoc/2,
-          check/0, seek/1, rewind/1, next/1, prev/1, add/2, remove/2 ]).
+-export([ new/0, top/1, bot/1, take/1, drop/1, load/1, save/1, down/1, up/1, cons/1, snoc/1,
+          check/0, seek/1, rewind/1, next/1, prev/1, add/1, remove/1 ]).
 
 % section: kvs_stream prelude
 
 se(X,Y,Z) -> setelement(X,Y,Z).
+set(X,Y,Z) -> setelement(X,Z,Y).
 e(X,Y) -> element(X,Y).
 cv(R,V) -> se(#cur.writer,R, V).
 cb(R,V) -> se(#cur.bot,   R, V).
@@ -54,16 +55,16 @@ pos({error,X},C,_)  -> {error,X}.
 
 % section: take, drop
 
-drop(N,#cur{dir=D}=C) -> drop(acc(D),N,C).
-take(N,#cur{dir=D}=C) -> take(acc(D),N,C,[]).
+drop(#cur{dir=D,reader=P,args=N}=C) -> drop(acc(D),N,C,C).
+take(#cur{dir=D,reader=P,args=N}=C) -> take(acc(D),N,C,C,[]).
 
-take(_,_,{error,_},R) -> lists:flatten(R);
-take(_,0,_,R) -> lists:flatten(R);
-take(A,N,#cur{reader=B}=C,R) -> take(A,N-1,?MODULE:A(C),[B|R]).
+take(_,_,{error,C},C2,R) -> C2#cur{args=lists:flatten(R)};
+take(_,0,C,C2,R) -> C2#cur{args=lists:flatten(R)};
+take(A,N,#cur{reader=B}=C,C2,R) -> take(A,N-1,?MODULE:A(C),C2,[B|R]).
 
-drop(_,_,{error,X}) -> {error,X};
-drop(_,0,C) -> C;
-drop(A,N,C) -> drop(A,N-1,?MODULE:A(C)).
+drop(_,_,{error,C},C2) -> C2;
+drop(_,0,C,C2) -> C2;
+drop(A,N,#cur{reader=B}=C,C2) -> drop(A,N-1,?MODULE:A(C),C2).
 
 % rewind
 
@@ -98,15 +99,15 @@ bot  (C) -> seek(up(C)).
 
 % add
 
-add(M,#cur{dir=D}=C) when element(2,M) == [] ->
+add(#cur{dir=D,args=M}=C) when element(2,M) == [] ->
     add(dir(D),si(M,kvs:next_id(tab(M),1)),C);
-add(M,#cur{dir=D}=C) ->
+add(#cur{dir=D,args=M}=C) ->
     add(dir(D),M,C).
 
 inc(#cur{left=L,right=R,dir=D}) -> swap(D,{L+1,R}).
 
-cons(M,C) -> add(top,M,C).
-snoc(M,C) -> add(bot,M,C).
+cons(#cur{args=M}=C) -> add(top,M,C).
+snoc(#cur{args=M}=C) -> add(bot,M,C).
 
 add(bot,M,#cur{bot=T,writer=[]}=C) ->
     Id=id(M), N=sn(sp(M,T),[]), kvs:put(N),
@@ -132,8 +133,8 @@ add(top,M,#cur{top=B,writer=V,reader=P}=C) ->
 
 % remove
 
-remove(I,#cur{writer=[]}=C) -> {error,val};
-remove(I,#cur{writer=B,reader=X}=C) ->
+remove(#cur{writer=[]}=C) -> {error,val};
+remove(#cur{writer=B,reader=X,args=I}=C) ->
     {ok,R}=kvs:get(tab(B),I), kvs:delete(tab(B),I),
     join(I,[fix(tab(B),X)||X<-[ep(R),en(R)]],C).
 
@@ -192,12 +193,11 @@ check() ->
 rewind() ->
     Empty = {'user2',[],[],[],[],[],[],[],[]},
     C = #cur{top=T,bot=B,left=L,right=R,writer=V,reader=P} =
-    save(
-    add(Empty,down(
-    add(Empty,up(
-    add(Empty,down(
-    add(Empty,up(
-    add(Empty,new())))))))))),
+    save(add(set(#cur.args,Empty,down(
+         add(set(#cur.args,Empty,up(
+         add(set(#cur.args,Empty,down(
+         add(set(#cur.args,Empty,down(
+         add(set(#cur.args,Empty,up(new())))))))))))))))),
     PId = id(P),
     VId = id(V),
     B = VId,
@@ -208,9 +208,9 @@ test_sides() ->
     Empty = {'user2',[],[],[],[],[],[],[],[]},
     #cur{top=T,bot=B,left=L,right=R,writer=V,reader=P} =
     save(
-    add(Empty,up(
-    add(Empty,down(
-    add(Empty,new())))))),
+    add(set(#cur.args,Empty,up(
+    add(set(#cur.args,Empty,down(
+    add(set(#cur.args,Empty,new()))))))))),
     PId = id(P),
     VId = id(V),
     VId = T,
@@ -222,10 +222,10 @@ next_prev_duality() ->
     Cur = new(),
     [A,B,C] = [ kvs:next_id('user2',1) || _ <- lists:seq(1,3) ],
     R = save(
-        add({'user2',A,[],[],[],[],[],[],[]},
-        add({'user2',B,[],[],[],[],[],[],[]},
-        add({'user2',C,[],[],[],[],[],[],[]},
-        Cur)))),
+        add(set(#cur.args,{'user2',A,[],[],[],[],[],[],[]},
+        add(set(#cur.args,{'user2',B,[],[],[],[],[],[],[]},
+        add(set(#cur.args,{'user2',C,[],[],[],[],[],[],[]},
+        Cur))))))),
     X = load(id(Cur)),
     X = next(
         next(
@@ -235,44 +235,44 @@ next_prev_duality() ->
 test2() ->
     Cur = new(),
     [A,B,C,D] = [ kvs:next_id('user2',1) || _ <- lists:seq(1,4) ],
-    [] = take(-1,
+    #cur{args=[]} = take(
          up(
          bot(
-         remove(A,
-         remove(B,
-         remove(C,
-         remove(D,
-         add({'user2',A,[],[],[],[],[],[],[]},
-         add({'user2',B,[],[],[],[],[],[],[]},
-         add({'user2',C,[],[],[],[],[],[],[]},
-         add({'user2',D,[],[],[],[],[],[],[]},
-         up(Cur)))))))))))).
+         remove(set(#cur.args,A,
+         remove(set(#cur.args,B,
+         remove(set(#cur.args,C,
+         remove(set(#cur.args,D,
+         add(set(#cur.args,{'user2',A,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',B,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',C,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',D,[],[],[],[],[],[],[]},
+         up(Cur#cur{args=-1})))))))))))))))))))).
 
 create_destroy() ->
     Cur = new(),
     [A,B,C,D] = [ kvs:next_id('user2',1)
              || _ <- lists:seq(1,4) ],
-    [] = take(-1,
-         remove(B,
-         remove(D,
-         remove(A,
-         remove(C,
-         add({'user2',D,[],[],[],[],[],[],[]},
-         add({'user2',C,[],[],[],[],[],[],[]},
-         add({'user2',B,[],[],[],[],[],[],[]},
-         add({'user2',A,[],[],[],[],[],[],[]},
-         up(new())))))))))).
+    #cur{args=[]} = take(
+         remove(set(#cur.args,B,
+         remove(set(#cur.args,D,
+         remove(set(#cur.args,A,
+         remove(set(#cur.args,C,
+         add(set(#cur.args,{'user2',D,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',C,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',B,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',A,[],[],[],[],[],[],[]},
+         up(new())))))))))))))))))).
 
 test1() ->
     [A,B,C,D] = [ kvs:next_id('user2',1) || _ <- lists:seq(1,4) ],
     R  = save(
-         add({'user2',D,[],[],[],[],[],[],[]},
-         add({'user2',C,[],[],[],[],[],[],[]},
-         add({'user2',B,[],[],[],[],[],[],[]},
-         add({'user2',A,[],[],[],[],[],[],[]},
-         new() ))))),
-    X  = take(-1,top(R)),
-    Y  = take(-1,bot(R)),
+         add(set(#cur.args,{'user2',D,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',C,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',B,[],[],[],[],[],[],[]},
+         add(set(#cur.args,{'user2',A,[],[],[],[],[],[],[]},
+         new() ))))))))),
+    #cur{args=X}  = take(top(R#cur{args=-1})),
+    #cur{args=Y}  = take(bot(R#cur{args=-1})),
     X  = lists:reverse(Y),
     L  = length(X).
 
@@ -280,30 +280,32 @@ drop() ->
     #cur{id=S}=save(new()),
     P = {'user2',[],[],[],[],[],[],[],[]},
     S1 = save(
-         add(P,
-         add(P,
-         add(P,
-         add(P,
-         load(S)))))),
-    S2= drop(2,S1),
-    2 = length(take(-1,S2)),
-    4 = length(take(-1,S1)),
+         add(set(#cur.args,P,
+         add(set(#cur.args,P,
+         add(set(#cur.args,P,
+         add(set(#cur.args,P,
+         load(S)))))))))),
+    S2= drop(S1#cur{args=2}),
+    4 = length(e(#cur.args,take(S2#cur{args=-1}))),
+    4 = length(e(#cur.args,take(S1#cur{args=-1}))),
     ok.
 
 te_remove() ->
     #cur{id=S}=save(new()),
     P = {'user2',[],[],[],[],[],[],[],[]},
     S1 = save(
-         add(P,
-         add(P,
-         add(P,
-         add(P,
-         load(S)))))),
-    4 = length(take(-1,S1)),
+         add(set(#cur.args,P,
+         add(set(#cur.args,P,
+         add(set(#cur.args,P,
+         add(set(#cur.args,P,
+         load(S)))))))))),
+
+    Res = e(#cur.args,take(S1#cur{args=-1})),
+    4 = length(Res),
     S2 = save(top(S1)),
-    S3 = save(remove(S2#cur.top-1,S2)),
-    List = take(-1,top(S3)),
-    Rev  = take(-1,bot(S3)),
+    S3 = save(remove(S2#cur{args=S2#cur.top-1})),
+    #cur{args=List} = take(top(S3#cur{args=-1})),
+    #cur{args=Rev}  = take(bot(S3#cur{args=-1})),
     List = lists:reverse(Rev),
     3 = length(List),
     {S3,List}.
