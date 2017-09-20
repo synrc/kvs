@@ -7,6 +7,20 @@
 -export([ new/0, top/1, bot/1, take/1, drop/1, load/1, save/1, down/1, up/1, cons/1, snoc/1,
           check/0, seek/1, rewind/1, next/1, prev/1, add/1, remove/1 ]).
 
+% n2o stream protocol
+
+info(#cur{id=I,status=get}=C,R,S) -> {reply, {bert, kvs_stream:load(I)},   R, S};
+info(#cur{status=put}     =C,R,S) -> {reply, {bert, kvs_stream:save(C)},   R, S};
+info(#cur{status=add}     =C,R,S) -> {reply, {bert, kvs_stream:add(C)},    R, S};
+info(#cur{status=remove}  =C,R,S) -> {reply, {bert, kvs_stream:remove(C)}, R, S};
+info(#cur{status=next}    =C,R,S) -> {reply, {bert, kvs_stream:next(C)},   R, S};
+info(#cur{status=prev}    =C,R,S) -> {reply, {bert, kvs_stream:prev(C)},   R, S};
+info(#cur{status=top}     =C,R,S) -> {reply, {bert, kvs_stream:top(C)},    R, S};
+info(#cur{status=bot}     =C,R,S) -> {reply, {bert, kvs_stream:bot(C)},    R, S};
+info(#cur{status=take}    =C,R,S) -> {reply, {bert, kvs_stream:take(C)},   R, S};
+info(#cur{status=drop}    =C,R,S) -> {reply, {bert, kvs_stream:drop(C)},   R, S};
+info(                      C,R,S) -> {reply, {unknown,C},                  R, S}.
+
 % section: kvs_stream prelude
 
 se(X,Y,Z) -> setelement(X,Y,Z).
@@ -66,7 +80,7 @@ drop(_,_,{error,C},C2) -> C2;
 drop(_,0,C,C2) -> C2;
 drop(A,N,#cur{reader=B}=C,C2) -> drop(A,N-1,?MODULE:A(C),C2).
 
-% rewind
+% rewind (moves writer)
 
 rewind(#cur{writer=[]}=C) -> {error,[]};
 rewind(#cur{dir=D,top=T,bot=B,writer=V}=C) ->
@@ -77,7 +91,7 @@ select(1,T,B) -> B;
 select(P,P,X) -> X;
 select(P,N,X) -> N.
 
-% seek
+% seek (moves reader)
 
 seek(#cur{writer=[]}=C) -> C;
 seek(#cur{bot=X,reader=P,dir=0}=C) when element(2,P) == X -> C;
