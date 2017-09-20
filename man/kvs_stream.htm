@@ -124,21 +124,23 @@
  -include_lib("kvs/include/user.hrl").
  -compile(export_all).
 
+ set(X,Y,Z) -> setelement(X,Z,Y).
+
  check() ->
      Cur = kvs_stream:new(),
-     [A,B,C,D] = [ kvs:next_id(person,1)
+     [A,B,C,D] = [ kvs:seq(person,1)
               || _ <- lists:seq(1,4) ],
      R = kvs_stream:save(
-         kvs_stream:add(#person{id=A},
-         kvs_stream:add(#person{id=B},
-         kvs_stream:add(#person{id=C},
-         kvs_stream:add(#person{id=D}, Cur ))))),
-     X = kvs_stream:take(-1,
+         kvs_stream:add(set(#cur.args,#person{id=A},
+         kvs_stream:add(set(#cur.args,#person{id=B},
+         kvs_stream:add(set(#cur.args,#person{id=C},
+         kvs_stream:add(set(#cur.args,#person{id=D}, Cur ))))))))),
+     X = kvs_stream:take(
          kvs_stream:down(
-         kvs_stream:top(R))),
-     Y = kvs_stream:take(-1,
+         kvs_stream:top(R#cur{args=-1}))),
+     Y = kvs_stream:take(
          kvs_stream:up(
-         kvs_stream:bot(R))),
+         kvs_stream:bot(R#cur{args=-1}))),
      X = lists:reverse(Y),
      L = length(X).
 
@@ -148,8 +150,8 @@
  > kvs:all(cur).
  [{cur,1,{user2,1,3,[],[],[],[],[],[]},0,1,2}]
 
- > kvs_stream:take(-1,
-   kvs_stream:top(kvs:get(cur,1))).
+ > kvs_stream:take(
+   kvs_stream:top((kvs:get(cur,1))#cur{args=-1})).
 [{user2,2,[],4,[],[],[],[],[]},
  {user2,4,2,3,[],[],[],[],[]},
  {user2,3,4,1,[],[],[],[],[]},
@@ -172,11 +174,11 @@
 
 <figure><code>
  > kvs_stream:new().
- {cur,1,[],0,[],[]}
+ {cur,1,[],[],0,[],[],0,0,[],0,[]}
  > kvs:get(id_seq,"cur").
  {ok,{id_seq,"cur",1}}
  > kvs_stream:new().
- {cur,2,[],0,[],[]}
+ {cur,2,[],[],0,[],[],0,0,[],0,[]}
  > kvs:get(id_seq,"cur").
  {ok,{id_seq,"cur",2}}
 
@@ -191,9 +193,9 @@
  > kvs:all(cur).
  []
  > kvs_stream:save(kvs_stream:new()).
- {cur,3,[],0,[],[]}
+ {cur,3,[],[],0,[],[],0,0,[],0,[]}
  > kvs:all(cur).
- [{cur,3,[],0,[],[]}]
+ [{cur,3,[],[],0,[],[],0,0,[],0,[]}]
 
 </code></figure>
 
@@ -204,12 +206,12 @@
 
 <figure><code>
   > S = 3, kvs_stream:load(S).
-  {cur,3,[],[],0,[]}
+  {cur,3,[],[],0,[],[],0,0,[],0,[]}
 
 </code></figure>
 
 <a name=add></a>
-<h4>add(Object::tuple(),#cur{}) -> #cur{}.</h4>
+<h4>add(#cur{args::tuple()}) -> #cur{}.</h4>
 
 <p>Adds any object to datatabase and update writer cursor.
    Object is linked on next prev fields with existed data under cursor.
@@ -221,11 +223,11 @@
  [block,container,cur,id_seq,iter,iterator,kvs,log,operation]
 
  > P = {user2,[],[],[],[],[],[],[],[]},
-   kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))).
+   kvs_stream:save(kvs_stream:add((kvs_stream:load(S))#cur{args=P})).
  #cur{id = 3,top = 1,bot = 1,dir = 0,
       reader = {user2,1,[],[],[],[],[],[],[]},
       writer = {user2,1,[],[],[],[],[],[],[]},
-      left = 0,right = 0}
+      left = 0,right = 0,args = [],money = 0,status = []}
 
 </code></figure>
 
@@ -249,11 +251,11 @@
 
 <figure><code>
  > kvs_stream:next(kvs_stream:top(
-   kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))))).
+   kvs_stream:save(kvs_stream:add((kvs_stream:load(S))#cur{args=P})))).
   #cur{id = 3,top = 2,bot = 1,dir = 1,
       reader = {user2,1,[],2,[],[],[],[],[]},
       writer = {user2,2,1,[],[],[],[],[],[]},
-      left = 0,right = 1}
+      left = 0,right = 1,args = [],money = 0,status = []}
 
 </code></figure>
 
@@ -264,12 +266,12 @@
    If cursor has no cached value then function returns error.</p>
 
 <figure><code>
- > Stream = kvs_stream:save(kvs_stream:add(P,kvs_stream:load(S))),
+ > Stream = kvs_stream:save(kvs_stream:add((kvs_stream:load(S))#cur{args=P})),
    kvs_stream:seek(kvs_stream:up(Stream)).
  #cur{id = 3,top = 3,bot = 1,dir = 0,
       reader = {user2,1,[],2,[],[],[],[],[]},
       writer = {user2,3,2,[],[],[],[],[],[]},
-      left = 2,right = 0}
+      left = 2,right = 0,args = [],money = 0,status = []}
 
 </code></figure>
 
@@ -283,7 +285,7 @@
  #cur{id = 3,top = 3,bot = 1,dir = 1,
      reader = {user2,3,2,[],[],[],[],[],[]},
      writer = {user2,3,2,[],[],[],[],[],[]},
-     left = 2,right = 0}
+     left = 2,right = 0,args = [],money = 0,status = []}
 
 </code></figure>
 
@@ -297,7 +299,7 @@
  #cur{id = 3,top = 3,bot = 1,dir = 0,
       reader = {user2,1,[],2,[],[],[],[],[]},
       writer = {user2,3,2,[],[],[],[],[],[]},
-      left = 2,right = 0}
+      left = 2,right = 0,args = [],money = 0,status = []}
 
 </code></figure>
 
@@ -308,10 +310,15 @@
    Returns consumed data. Usually you seek to some position and then consume some data.</p>
 
 <figure><code>
- > kvs_stream:take(-1,kvs_stream:load(S)).
- [{user2,3,2,[],[],[],[],[],[]},
-  {user2,2,1,3,[],[],[],[],[]},
-  {user2,1,[],2,[],[],[],[],[]}]
+ > kvs_stream:take((kvs_stream:load(S))#cur{args=-1}).
+ #cur{id = 3,top = 3,bot = 1,dir = 0,
+      reader = {user2,1,[],2,[],[],[],[],[]},
+      writer = {user2,3,2,[],[],[],[],[],[]},
+      left = 2,right = 0,
+      args = [{user2,3,2,[],[],[],[],[],[]},
+              {user2,2,1,3,[],[],[],[],[]},
+              {user2,1,[],2,[],[],[],[],[]}],
+      money = 0,status = []}
 
 </code></figure>
 
@@ -348,10 +355,16 @@
    Please do not use remove, keep your data immutable :-)</p>
 
 <figure><code>
- > kvs_stream:take(-1,kvs_stream:top(kvs_stream:save(
-   kvs_stream:remove(Stream#cur.top-1,kvs_stream:load(S))))).
- [{user2,1,[],3,[],[],[],[],[]},
-  {user2,3,1,[],[],[],[],[],[]}]
+ > kvs_stream:take((kvs_stream:top(kvs_stream:save(
+   kvs_stream:remove((kvs_stream:load(S))#cur{args=
+   Stream#cur.top-1}))))#cur{args=-1}).
+ #cur{id = 3,top = 3,bot = 1,dir = 1,
+      reader = {user2,3,1,[],[],[],[],[],[]},
+      writer = {user2,1,[],3,[],[],[],[],[]},
+      left = 1,right = 0,
+      args = [{user2,1,[],3,[],[],[],[],[]},
+              {user2,3,1,[],[],[],[],[],[]}],
+      money = 0,status = []}
 
 </code></figure>
 

@@ -96,7 +96,7 @@ seek(#cur{top=T,bot=B,left=L,right=R,dir=1,reader=P}=C) ->
 % new, save, load, up, down, top, bot
 
 new   () -> #cur{id=kvs:next_id(cur,1)}.
-save (C) -> kvs:put(C), C.
+save (C) -> NC = C#cur{args=[]}, kvs:put(NC), NC.
 load (K) -> case kvs:get(cur,K) of {ok,C} -> C; E -> E end.
 up   (C) -> C#cur{dir=0}.
 down (C) -> C#cur{dir=1}.

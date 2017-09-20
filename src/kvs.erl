@@ -32,6 +32,7 @@ stop()             -> stop    (#kvs{mod=?DBA}).
 destroy()          -> destroy (#kvs{mod=?DBA}).
 version()          -> version (#kvs{mod=?DBA}).
 dir()              -> dir     (#kvs{mod=?DBA}).
+seq(Table,DX) -> next_id(Table,DX).
 next_id(Table,DX)  -> next_id(Table, DX, #kvs{mod=?DBA}).
 
 generation(Table,Key) ->
