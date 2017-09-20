@@ -304,7 +304,7 @@
 </code></figure>
 
 <a name=take></a>
-<h4>take(N,#cur{}) -> list().</h4>
+<h4>take(#cur{args=N::integer()}) -> list().</h4>
 
 <p>Trying to consume N records from stream using its current value and direction.
    Returns consumed data. Usually you seek to some position and then consume some data.</p>
@@ -323,7 +323,7 @@
 </code></figure>
 
 <a name=drop></a>
-<h4>drop(N,#cur{}) -> #cur{}.</h4>
+<h4>drop(#cur{args=N::integer()}) -> #cur{}.</h4>
 
 <p>Drops N elements starting from reader.</p>
 
