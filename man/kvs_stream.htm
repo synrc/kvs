@@ -47,12 +47,12 @@
             <li><b><a href="#down">down/1</a></b> &mdash; down from top.</li>
             <li><b><a href="#next">next/1</a></b> &mdash; move reader next.</li>
             <li><b><a href="#prev">prev/1</a></b> &mdash; move reader prev.</li>
-            <li><b><a href="#take">take/2</a></b> &mdash; take N elements staring from reader.</li>
-            <li><b><a href="#drop">drop/2</a></b> &mdash; skip N elements staring from reader.</li>
-            <li><b><a href="#add">add/2</a></b> &mdash; add element to list.</li>
-            <li><b><a href="#remove">remove/2</a></b> &mdash; remove element from list.</li>
-            <li><b><a href="#cons">cons/2</a></b> &mdash; add element to top.</li>
-            <li><b><a href="#snoc">snoc/2</a></b> &mdash; add element to bot.</li>
+            <li><b><a href="#take">take/1</a></b> &mdash; take N elements staring from reader.</li>
+            <li><b><a href="#drop">drop/1</a></b> &mdash; skip N elements staring from reader.</li>
+            <li><b><a href="#add">add/1</a></b> &mdash; add element to list.</li>
+            <li><b><a href="#remove">remove/1</a></b> &mdash; remove element from list.</li>
+            <li><b><a href="#cons">cons/1</a></b> &mdash; add element to top.</li>
+            <li><b><a href="#snoc">snoc/1</a></b> &mdash; add element to bot.</li>
         </ul></p></blockquote></p>
 
     <p>
@@ -81,7 +81,11 @@
           reader= [] :: [] | tuple(),
           writer= [] :: [] | tuple(),
           left=  0 :: integer(),
-          right= 0 :: inetegr() }.
+          right= 0 :: inetegr(),
+          args= [] :: term(),
+          status=[]:: add | remove | save | load
+                    | next | prev | take | drop
+                    | top | bot }.
 
   #iter { id=   [] :: [] | integer(),
           prev= [] :: [] | integer(),
@@ -97,6 +101,8 @@
 <li>dir=1 &mdash; Adding to bottom, reading down from top.</li>
 <li>top &mdash; The top of the list.</li>
 <li>bot &mdash; The bottom of the list.</li>
+<li>args &mdash; integer for take/drop/remove/get, tuple for add/put</li>
+<li>status &mdash; operation</li>
 <li>left &mdash; The distance to top from reader.</li>
 <li>right &mdash; The distance to bottom from reader.</li>
 </ul></p>

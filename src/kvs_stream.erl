@@ -9,17 +9,9 @@
 
 % n2o stream protocol
 
-info(#cur{id=I,status=get}=C,R,S) -> {reply, {bert, kvs_stream:load(I)},   R, S};
-info(#cur{status=put}     =C,R,S) -> {reply, {bert, kvs_stream:save(C)},   R, S};
-info(#cur{status=add}     =C,R,S) -> {reply, {bert, kvs_stream:add(C)},    R, S};
-info(#cur{status=remove}  =C,R,S) -> {reply, {bert, kvs_stream:remove(C)}, R, S};
-info(#cur{status=next}    =C,R,S) -> {reply, {bert, kvs_stream:next(C)},   R, S};
-info(#cur{status=prev}    =C,R,S) -> {reply, {bert, kvs_stream:prev(C)},   R, S};
-info(#cur{status=top}     =C,R,S) -> {reply, {bert, kvs_stream:top(C)},    R, S};
-info(#cur{status=bot}     =C,R,S) -> {reply, {bert, kvs_stream:bot(C)},    R, S};
-info(#cur{status=take}    =C,R,S) -> {reply, {bert, kvs_stream:take(C)},   R, S};
-info(#cur{status=drop}    =C,R,S) -> {reply, {bert, kvs_stream:drop(C)},   R, S};
-info(                      C,R,S) -> {reply, {unknown,C},                  R, S}.
+info(#cur{id=I,status=load}=C,R,S) -> {reply, {bert, kvs_stream:load(I)},   R, S};
+info(#cur{status=Method}   =C,R,S) -> {reply, {bert, kvs_stream:Method(C)}, R, S};
+info(                       C,R,S) -> {reply, {unknown,C},                  R, S}.
 
 % section: kvs_stream prelude
 
