@@ -10,6 +10,8 @@
 -record(cur,  {?CUR, left=0, right=0, args=[]::list(tuple()|integer()), money=0, status=[]}).
 
 -define(ITER, id=   [] :: term(),
+              container = cur :: cur,
+              feed_id = [] :: term(),
               next= [] :: [] | integer(),
               prev= [] :: [] | integer()).
 -record(iter, {?ITER}).
