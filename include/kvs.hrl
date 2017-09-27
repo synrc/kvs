@@ -9,7 +9,7 @@
               writer=  [] :: [] | tuple()).
 -record(cur,  {?CUR, left=0, right=0, args=[]::list(tuple()|integer()), money=0, status=[]}).
 
--define(ITER, id=   [] :: term(),
+-define(ITER, id=   [] :: [] | inetger(),
               container = cur :: atom(),
               feed_id = [] :: term(),
               next= [] :: [] | integer(),
