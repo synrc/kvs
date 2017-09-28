@@ -1,6 +1,19 @@
 -ifndef(KVS_HRL).
 -define(KVS_HRL, true).
 
+-record(writer,  {id    = [] :: term(), % {p2p,_,_} | {muc,_}
+                  count =  0 :: integer(),
+                  cache = [] :: [] | tuple(),
+                  args  = [] :: term(),
+                  first = [] :: [] | tuple()}).
+
+-record(reader,  {id    = [] :: term(), % phone_id
+                  pos   = [] :: [] | integer(),
+                  cache = [] :: [] | integer(),
+                  args  = [] :: term(),
+                  feed  = [] :: term(), % {p2p,_,_} | {muc,_} -- link to writer
+                  dir   =  0 :: 0 | 1}).
+
 -define(CUR,  id =  [] :: term(),
               top=  [] :: [] | integer(),
               bot=  [] :: [] | integer(),
@@ -9,11 +22,10 @@
               writer=  [] :: [] | tuple()).
 -record(cur,  {?CUR, left=0, right=0, args=[]::list(tuple()|integer()), money=0, status=[]}).
 
--define(ITER, id=   [] :: [] | integer(),
-              container = cur :: atom(),
-              feed_id = [] :: term(),
-              next= [] :: [] | integer(),
-              prev= [] :: [] | integer()).
+-define(ITER, id   = [] :: [] | integer(),
+              feed = [] :: term(),
+              next = [] :: [] | integer(),
+              prev = [] :: [] | integer()).
 -record(iter, {?ITER}).
 
 -define(CONTAINER, id=[] :: [] | integer(),
