@@ -7,8 +7,8 @@
                   args  = [] :: term(),
                   first = [] :: [] | tuple()}).
 
--record(reader,  {id    = [] :: term(), % phone_id
-                  pos   = [] :: [] | integer(),
+-record(reader,  {id    = [] :: term(), % phone_id | {p2p,_,_} | {muc,_,_}
+                  pos   = 0 :: [] | integer(),
                   cache = [] :: [] | integer(),
                   args  = [] :: term(),
                   feed  = [] :: term(), % {p2p,_,_} | {muc,_} -- link to writer
@@ -23,15 +23,18 @@
 -record(cur,  {?CUR, left=0, right=0, args=[]::list(tuple()|integer()), money=0, status=[]}).
 
 -define(ITER, id   = [] :: [] | integer(),
+              container=[] :: atom(),
               feed = [] :: term(),
               next = [] :: [] | integer(),
               prev = [] :: [] | integer()).
+
 -record(iter, {?ITER}).
 
 -define(CONTAINER, id=[] :: [] | integer(),
                    top=[] :: [] | integer(),
                    rear=[] :: [] | integer(),
                    count=0 :: integer()).
+
 -define(ITERATOR(Container), id=[] :: [] | integer(),
                              container=Container :: atom(),
                              feed_id=[] :: term(),
