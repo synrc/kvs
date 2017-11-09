@@ -65,8 +65,8 @@ take(_,0,C,C2,R,P,B)         -> C2#reader{args=lists:flatten(R),pos=P,cache=B};
 take(A,N,#reader{cache={T,I},pos=P}=C,C2,R,_,_) ->
     take(A,N-1,?MODULE:A(C),C2,[element(2,kvs:get(T,I))|R],P,{T,I}).
 
-drop(_,_,{error,C},C2,P,B)     -> C2#reader{pos=P};
-drop(_,0,C,C2,P,B)             -> C2#reader{pos=P};
+drop(_,_,{error,C},C2,P,B)     -> C2#reader{pos=P,cache=B};
+drop(_,0,C,C2,P,B)             -> C2#reader{pos=P,cache=B};
 drop(A,N,#reader{cache=B,pos=P}=C,C2,_,_) ->
     drop(A,N-1,?MODULE:A(C),C2,P,B).
 
