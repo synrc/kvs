@@ -1,4 +1,4 @@
 language: erlang
 otp_release:
-  - R19.3
+  - 19.3
 script: "curl -fsSL https://raw.github.com/synrc/mad/master/mad > mad && chmod +x mad && ./mad dep com"
