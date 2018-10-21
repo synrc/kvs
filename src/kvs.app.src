@@ -1,6 +1,6 @@
 {application, kvs,
    [{description, "KVS Abstract Term Database"},
-    {vsn, "1"},
+    {vsn, "5.10"},
     {registered, []},
     {applications, [kernel,stdlib,mnesia]},
     {mod, { kvs_app, []}},
