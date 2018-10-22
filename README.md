@@ -1,12 +1,12 @@
 KVS: Erlang Abstract Term Database
 ==================================
 
-Online Presentation: http://slid.es/maximsokhatsky/kvs
+[![Build Status](https://travis-ci.org/synrc/kvs.svg?branch=master)](https://travis-ci.org/synrc/kvs)
 
 Features
 --------
 
-* Polymorphic Tuples
+* Polymorphic Tuples aka Extensible Records
 * Managing Linked-Lists
 * Various Backends Support: Mnesia, Riak, KAI, Redis, MongoDB
 * Sequential Consistency via Feed Server
@@ -311,59 +311,6 @@ dispatch({rollback,_,_,Tx}, #state{})  ->
 ```
 
 See: https://github.com/spawnproc/cr
-
-### Feeds Server
-
-Here is Consumer behavior handlers of KVS FEEDS supervised processes
-
-```erlang
-handle_notice(  [kvs_feed,user,Owner,entry,Eid,add],
-                [#entry{feed_id=Fid}=Entry],
-                #state{feeds=Feeds}) ->
-
-                case lists:keyfind(Fid,2, S#state.feeds) of
-                    false -> skip;
-                    {_,_} -> add_entry(Eid,Fid,Entry) end,
-                {noreply, S};
-
-handle_notice(  [kvs_feed,user,Owner,entry,{Eid,FeedName},edit],
-                [#entry{feed_id=Fid}=Entry],
-                #state{feeds=Feeds}) ->
-
-                case lists:keyfind(FeedName,1,Feeds) of
-                    false -> skip;
-                    {_,Fid}-> update_entry(Eid,Fid,Entry) end,
-                {noreply, S};
-
-handle_notice(  [kvs_feed,user,Owner,entry,Eid,edit],
-                [#entry{feed_id=Fid}=Entry],
-                #state{feeds=Feeds}) ->
-
-                case lists:keyfind(Fid, 2, Feeds) of
-                    false -> skip;
-                    {_,_} -> update_entry(Eid,Fid,Entry) end,
-                {noreply, S};
-```
-
-Here is the private implementation
-
-```erlang
-add_entry(Eid,Fid,Entry) ->
-    E = Entry#entry{id = {Eid, Fid}, entry_id = Eid, feeds=[comments]},
-    Added = case kvs:add(E) of {error, Err} -> {error,Err}; {ok, En} -> En end,
-    msg:notify([kvs_feed, entry, {Eid, Fid}, added], [Added]).
-
-update_entry(Eid,Fid,Entry) -> ...
-```
-
-And that is how you can call it
-
-```erlang
-kvs:notify([kvs_feed, user, "maxim@synrc.com", entry, Eid, add],
-           [#entry{}]).
-```
-
-See: https://github.com/synrc/feeds
 
 Credits
 -------

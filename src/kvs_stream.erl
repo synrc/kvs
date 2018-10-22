@@ -5,6 +5,7 @@
 -license('ISC').
 -include_lib("kvs/include/kvs.hrl").
 -compile(export_all).
+-include_lib("stdlib/include/assert.hrl").
 
 % section: kvs_stream prelude
 
@@ -40,33 +41,33 @@ acc(1)  -> prev.
 top(#reader{feed=F}=C) -> w(kvs:get(writer,F),top,C).
 bot(#reader{feed=F}=C) -> w(kvs:get(writer,F),bot,C).
 
-next(#reader{feed=F,cache=[]}=C)          -> {error,empty};
-next(#reader{feed=F,cache={T,R},pos=P}=C) -> n(kvs:get(T,R),C,P+1).
-prev(#reader{feed=F,cache=[]}=C)          -> {error,empty};
-prev(#reader{feed=F,cache={T,R},pos=P}=C) -> p(kvs:get(T,R),C,P-1).
+next(#reader{cache=[]}) -> {error,empty};
+next(#reader{cache={T,R},pos=P}=C) -> n(kvs:get(T,R),C,P+1).
+prev(#reader{cache=[]}) -> {error,empty};
+prev(#reader{cache={T,R},pos=P}=C) -> p(kvs:get(T,R),C,P-1).
 
 n({ok,R},C,P)    -> r(kvs:get(tab(R),en(R)),C,P);
-n({error,X},C,_) -> {error,X}.
+n({error,X},_,_) -> {error,X}.
 p({ok,R},C,P)    -> r(kvs:get(tab(R),ep(R)),C,P);
-p({error,X},C,_) -> {error,X}.
+p({error,X},_,_) -> {error,X}.
 r({ok,R},C,P)    -> C#reader{cache={tab(R),id(R)},pos=P};
-r({error,X},C,_) -> {error,X}.
+r({error,X},_,_) -> {error,X}.
 w({ok,#writer{first=B}},bot,C)            -> C#reader{cache={tab(B),id(B)},pos=1};
-w({ok,#writer{cache=B,count=Size}}=X,top,C) -> C#reader{cache={tab(B),id(B)},pos=Size};
-w({error,X},_,C)                          -> {error,X}.
+w({ok,#writer{cache=B,count=Size}},top,C) -> C#reader{cache={tab(B),id(B)},pos=Size};
+w({error,X},_,_)                          -> {error,X}.
 
 % section: take, drop
 
 drop(#reader{dir=D,cache=B,args=N,pos=P}=C) -> drop(acc(D),N,C,C,P,B).
 take(#reader{dir=D,cache=B,args=N,pos=P}=C) -> take(acc(D),N,C,C,[],P,B).
 
-take(_,_,{error,C},C2,R,P,B) -> C2#reader{args=lists:flatten(R),pos=P,cache=B};
-take(_,0,C,C2,R,P,B)         -> C2#reader{args=lists:flatten(R),pos=P,cache=B};
+take(_,_,{error,_},C2,R,P,B) -> C2#reader{args=lists:flatten(R),pos=P,cache=B};
+take(_,0,_,C2,R,P,B)         -> C2#reader{args=lists:flatten(R),pos=P,cache=B};
 take(A,N,#reader{cache={T,I},pos=P}=C,C2,R,_,_) ->
     take(A,N-1,?MODULE:A(C),C2,[element(2,kvs:get(T,I))|R],P,{T,I}).
 
-drop(_,_,{error,C},C2,P,B)     -> C2#reader{pos=P,cache=B};
-drop(_,0,C,C2,P,B)             -> C2#reader{pos=P,cache=B};
+drop(_,_,{error,_},C2,P,B)     -> C2#reader{pos=P,cache=B};
+drop(_,0,_,C2,P,B)             -> C2#reader{pos=P,cache=B};
 drop(A,N,#reader{cache=B,pos=P}=C,C2,_,_) ->
     drop(A,N-1,?MODULE:A(C),C2,P,B).
 
@@ -90,7 +91,7 @@ add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:next_id(tab(M),1)
 add(#writer{args=M}=C) -> add(M,C).
 
 add(M,#writer{cache=[]}=C) ->
-    Id=id(M), N=sp(sn(M,[]),[]), kvs:put(N),
+    _Id=id(M), N=sp(sn(M,[]),[]), kvs:put(N),
     C#writer{cache=N,count=1,first=N};
 
 add(M,#writer{cache=V,count=S}=C) ->
@@ -104,7 +105,7 @@ check() -> test1().
 test1() ->
     Id  = {p2p,1,2},
     X   = 5,
-    W   = kvs_stream:save(kvs_stream:writer(Id)),
+    _W   = kvs_stream:save(kvs_stream:writer(Id)),
     #reader{id=R1} = kvs_stream:save(kvs_stream:reader(Id)),
     #reader{id=R2} = kvs_stream:save(kvs_stream:reader(Id)),
     [ kvs_stream:save(
@@ -115,5 +116,5 @@ test1() ->
     Top = kvs_stream:top(kvs_stream:load_reader(R2)),
     #reader{args=F} = kvs_stream:take(Bot#reader{args=20,dir=0}),
     #reader{args=B} = kvs_stream:take(Top#reader{args=20,dir=1}),
-    X == length(F),
-    F == lists:reverse(B).
+    ?assertMatch(X,length(F)),
+    ?assertMatch(F,lists:reverse(B)).

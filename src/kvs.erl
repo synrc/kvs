@@ -108,7 +108,7 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
             NC1 = list_to_tuple([CName | lists:map(fun(_) -> [] end,Fields)]),
             NC2 = setelement(#container.id, NC1, Cid),
             NC3 = setelement(#container.rear, NC2, Id),
-            NC4 = setelement(#container.count, NC3, 0);
+            setelement(#container.count, NC3, 0);
         _Error -> error end,
 
     case Container of
@@ -160,7 +160,7 @@ link(Record,#kvs{mod=_Store}=Driver) ->
         {error, not_found} -> {error, not_found} end.
 
 %add(Record, #kvs{mod=store_mnesia}=Driver) when is_tuple(Record) -> store_mnesia:add(Record);
-add(Record, #kvs{mod=Store}=Driver) when is_tuple(Record) -> append(Record,Driver).
+add(Record, #kvs{}=Driver) when is_tuple(Record) -> append(Record,Driver).
 
 append(Record, #kvs{mod=_Store}=Driver) when is_tuple(Record) ->
     Id = element(#iterator.id, Record),
@@ -212,15 +212,15 @@ delete(Tab, Key, #kvs{mod=Mod}) ->
          [] -> Mod:delete(Tab, Key);
           T -> Mod:delete(T, Key) end.
 
-remove(Record, Id,#kvs{mod=store_mnesia}=Driver) -> store_mnesia:remove(Record,Id);
-remove(Record, Id,#kvs{mod=Store}=Driver) -> takeoff(Record,Id,Driver).
+remove(Record, Id,#kvs{mod=store_mnesia}) -> store_mnesia:remove(Record,Id);
+remove(Record, Id,#kvs{}=Driver) -> takeoff(Record,Id,Driver).
 
-takeoff(Record,Id,#kvs{mod=Mod}=Driver) ->
+takeoff(Record,Id,#kvs{}=Driver) ->
     case get(Record,Id) of
          {error, not_found} -> kvs:error(?MODULE,"Can't remove ~p~n",[{Record,Id}]);
                      {ok,R} -> do_remove(R,Driver) end.
 
-do_remove(E,#kvs{mod=Mod}=Driver) ->
+do_remove(E,#kvs{}=Driver) ->
     case get(element(#iterator.container,E),element(#iterator.feed_id,E)) of
          {ok, C} -> unlink(C,E,Driver);
                _ -> skip end,
@@ -237,7 +237,7 @@ fold(Fun,Acc,Table,Start,Count,Direction,Driver) ->
          {ok, R} -> Prev = element(Direction, R),
                     Count1 = case Count of C when is_integer(C) -> C - 1; _-> Count end,
                     fold(Fun, Fun(R,Acc), Table, Prev, Count1, Direction, Driver);
-           Error -> %kvs:error(?MODULE,"Error: ~p~n",[Error]),
+           _Error -> %kvs:error(?MODULE,"Error: ~p~n",[Error]),
                     Acc end catch _:_ -> Acc end.
 
 entries({error,_},_,_,_)      -> [];
@@ -345,7 +345,7 @@ find([Range|T],RecordName,Id) ->
           [] -> find(T,RecordName,Id);
           Range -> Range end.
 
-lookup(#block{left=Left,right=Right,name=Name}=I,Id) when Id =< Right, Id >= Left -> I;
+lookup(#block{left=Left,right=Right}=I,Id) when Id =< Right, Id >= Left -> I;
 lookup(#block{},_) -> [].
 
 rotate_new() ->
@@ -369,7 +369,7 @@ rotate(Table) ->
 load_partitions()  ->
     [ case kvs:get(config,Table) of
         {ok,{config,_,List}} -> application:set_env(kvs,Table,List);
-        Else -> ok end || {table,Table} <- kvs:dir() ].
+        _Else -> ok end || {table,Table} <- kvs:dir() ].
 
 rnorm(Tag,List) -> [ setelement(1,R,Tag) || R <- List ].
 rlist(Table)   -> [ N || #block{name=N} <- kvs:config(Table) ]++[Table].
