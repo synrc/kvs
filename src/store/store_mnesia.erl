@@ -3,6 +3,7 @@
 -include("config.hrl").
 -include("kvs.hrl").
 -include("metainfo.hrl").
+-include_lib("mnesia/src/mnesia.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -compile(export_all).
 
@@ -66,3 +67,14 @@ just_one(Fun) ->
 add(Record) -> mnesia:activity(context(),fun() -> kvs:append(Record,#kvs{mod=?MODULE}) end).
 remove(Record,Id) -> mnesia:activity(context(),fun() -> kvs:takeoff(Record,Id,#kvs{mod=?MODULE}) end).
 context() -> kvs:config(kvs,mnesia_context,async_dirty).
+
+sync_indexes() ->
+    lists:map(fun sync_indexes/1, kvs:tables()).
+sync_indexes(#table{name = Table, keys = Keys}) ->
+    mnesia:wait_for_tables(Table, 10000),
+    #cstruct{attributes = Attrs} = mnesia:table_info(Table, cstruct),
+    Indexes = mnesia:table_info(Table, index),
+    IndexedKeys = [lists:nth(I-1, Attrs)|| I <- Indexes],
+    [mnesia:del_table_index(Table, Key) || Key <- IndexedKeys -- Keys],
+    [mnesia:add_table_index(Table, Key) || Key <- Keys -- IndexedKeys].
+
