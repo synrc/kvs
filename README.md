@@ -1,5 +1,6 @@
 KVS: Erlang Abstract Term Database
-=================================![Build Status](https://travis-ci.org/synrc/kvs.svg?branch=master)](https://travis-ci.org/synrc/kvs)
+=================================
+![Build Status](https://travis-ci.org/synrc/kvs.svg?branch=master)](https://travis-ci.org/synrc/kvs)
 
 Features
 --------
