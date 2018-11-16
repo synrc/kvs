@@ -1,6 +1,5 @@
 KVS: Erlang Abstract Term Database
-==================================
-
+=================================
 [![Build Status](https://travis-ci.org/synrc/kvs.svg?branch=master)](https://travis-ci.org/synrc/kvs)
 
 Features
@@ -56,8 +55,8 @@ Models
 ------
 
 We have built with KVS a number of applications and came up with schema samples.
-We grouped schemas by three category. KVS hides database access behind backend drivers
-and provides high-level rich API to stored and extend following data:
+We grouped schemas by three categories. KVS hides database access behind backend drivers
+and provides high-level rich API to stored and extend the following data:
 
 * **Core** — Acl, Users, Subscriptions, Feeds, Entries, Comments
 * **Banking** — Account, Customer, Transaction, Item, Currency, Program, Card, Cashback
@@ -69,7 +68,7 @@ Applications
 This Framework provides also a **feed** application for sequential consistency
 and **cr** application for chain replication database on top of **kvs**.
 All write requests with given object key will be handled by single processes
-so you may not worry about concurrent changes of user feed tops.
+so you may not worry about concurrent changes in user feed tops.
 
 All write operations that are made to data with secondary indexes,
 i.e. not like linked lists could be potentially handled without feed_server.
@@ -90,7 +89,7 @@ Currently **kvs** includes following store backends:
 Configuring
 -----------
 
-First of all you need to tune your backend in the kvs application:
+First of all, you need to tune your backend in the kvs application:
 
 ```erlang
 {kvs, [{dba,store_mnesia}]},
@@ -106,7 +105,7 @@ store_kai
 {version,"KVS KAI PURE XEN"}
 ```
 
-Create database for single node:
+Create a database for a single node:
 
 ```erlang
 3> kvs:join().
@@ -114,7 +113,7 @@ Create database for single node:
 ok
 ```
 
-You can also create database by joining to existing cluster:
+You can also create a database by joining to existing cluster:
 
 ```erlang
 3> kvs:join('kvs@synrc.com').
@@ -154,10 +153,9 @@ ok
 Polymorphic Records
 -------------------
 
-The data in KVS represented as plain Erlang records. The first element of the tuple
-as usual indicates the name of bucket. And the second element usually corresponds
+The data in KVS represented as plain Erlang records. The first element of the tuple, as usual, indicates the name of a bucket. And the second element usually corresponds
 to the index key field. Additional secondary indexes could be applied for stores
-that supports 2i, e.g. kai, mnesia, riak, mongodb.
+that support 2i, e.g. kai, mnesia, riak, mongodb.
 
 Iterators
 ---------
@@ -250,7 +248,7 @@ of containers:
 Extending Schema
 ----------------
 
-Usually you need only specify custom mnesia indexes and tables tuning.
+Usually, you need only specify custom mnesia indexes and tables tuning.
 Riak, KAI and Redis backends don't need it. Group you table into table packages
 represented as modules with handle_notice API.
 
@@ -286,14 +284,14 @@ Using KVS in real applications
 
 Besides using KVS in production in a number of applications we have
 built on top of KVS several products. The first product is Chain
-Replication Database wit XA protocol. And second is social Feed
+Replication Database with XA protocol. And second is social Feed
 Server for web shops and social sites.
 
 ### Chain Replication Database
 
 The **kvs** semantic is totally compatible with XA protocol.
 Adding the object with PUT means only putting to database
-while ADD operations provides linking to the chain's container.
+while ADD operations provide linking to the chain's container.
 Also linking operation LINK is provided separately.
 
 ```erlang

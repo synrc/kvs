@@ -351,7 +351,8 @@ lookup(#block{},_) -> [].
 rotate_new() ->
     N = [ kvs:rotate(kvs:table(T)) || {T,_} <- fold_tables(),
         length(proplists:get_value(attributes,info(last_disc(T)),[])) /= length((table(rname(T)))#table.fields) ],
-    io:format("Nonexistent: ~p~n",[N]), N.
+    %io:format("Nonexistent: ~p~n",[N]),
+    N.
 rotate(#table{name=N}) ->
     R = name(rname(N)),
     init(setelement(#table.name,kvs:table(kvs:last_table(N)),R)),
