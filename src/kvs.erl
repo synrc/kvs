@@ -72,7 +72,7 @@ table(Name) when is_atom(Name) -> lists:keyfind(rname(Name),#table.name,tables()
 table(_) -> false.
 dir(#kvs{mod=DBA}) -> DBA:dir().
 info(T,#kvs{mod=DBA}) -> DBA:info(T).
-modules() -> kvs:config(schema).
+modules() -> application:get_env(kvs,schema,[kvs_user, kvs_acl, kvs_feed, kvs_subscription ]).
 containers() ->
     lists:flatten([ [ {T#table.name,T#table.fields}
         || T=#table{container=true} <- (M:metainfo())#schema.tables ]
