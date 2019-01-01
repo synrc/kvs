@@ -5,7 +5,7 @@
 -license('ISC').
 -include_lib("kvs/include/kvs.hrl").
 -compile(export_all).
--include_lib("stdlib/include/assert.hrl").
+%-include_lib("stdlib/include/assert.hrl").
 
 % section: kvs_stream prelude
 
@@ -116,5 +116,5 @@ test1() ->
     Top = kvs_stream:top(kvs_stream:load_reader(R2)),
     #reader{args=F} = kvs_stream:take(Bot#reader{args=20,dir=0}),
     #reader{args=B} = kvs_stream:take(Top#reader{args=20,dir=1}),
-    ?assertMatch(X,length(F)),
-    ?assertMatch(F,lists:reverse(B)).
+    true = (X == length(F)),
+    true = (F == lists:reverse(B)).
