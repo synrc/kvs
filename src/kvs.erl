@@ -65,7 +65,7 @@ stop(#kvs{mod=DBA}) -> DBA:stop().
 change_storage(Type) -> [ change_storage(Name,Type) || #table{name=Name} <- kvs:tables() ].
 change_storage(Table,Type,#kvs{mod=DBA}) -> DBA:change_storage(Table,Type).
 destroy(#kvs{mod=DBA}) -> DBA:destroy().
-join(Node,#kvs{mod=DBA}) -> DBA:join(Node), rotate_new(), load_partitions(), load_config().
+join(Node,#kvs{mod=DBA}) -> R = DBA:join(Node), rotate_new(), load_partitions(), {R,load_config()}.
 version(#kvs{mod=DBA}) -> DBA:version().
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
 table(Name) when is_atom(Name) -> lists:keyfind(rname(Name),#table.name,tables());

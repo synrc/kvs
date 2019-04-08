@@ -48,7 +48,7 @@
 -record(block,     {left,right,name,last}).
 -record(log,       {?CONTAINER, name, acc}).
 -record(operation, {?ITERATOR(log), body=[], name=[], status=[]}).
--record(kvs,       {mod,cx}).
+-record(kvs,       {mod = store_mnesia,cx}).
 
 -compile({no_auto_import,[put/2]}).
 
