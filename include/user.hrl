@@ -16,11 +16,6 @@
         date=[],
         status=[],
         zone=[],
-        type=[] }).
--record(user2, {?ITER, % version 2
-        mail=[]::[]|binary(),
-        name=[]::[]|binary(),
-        pass=[]::[]|binary(),
-        zone=[]::[]|binary(),
-        type=[]::[]|atom() }).
+        type=[],
+        new_field }).
 -endif.
