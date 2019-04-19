@@ -9,7 +9,7 @@
 
 -record(reader,  {id    = [] :: term(), % phone_id | {p2p,_,_} | {muc,_,_}
                   pos   = 0 :: [] | integer(),
-                  cache = [] :: [] | integer(),
+                  cache = [] :: [] | integer() | {atom(),term()},
                   args  = [] :: term(),
                   feed  = [] :: term(), % {p2p,_,_} | {muc,_} -- link to writer
                   dir   =  0 :: 0 | 1}).
