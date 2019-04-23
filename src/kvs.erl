@@ -132,11 +132,7 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
                 C2 = setelement(#container.top, Container, Id),
                 C3 = setelement(#container.count, C2, element(#container.count, Container)+1),
 
-                R  = setelement(#iterator.feeds, Record,
-                    [ case F1 of
-                        {FN, Fd} -> {FN, Fd};
-                        _-> {F1, kvs:create(CName,{F1,element(#iterator.id,Record)},Driver)}
-                      end || F1 <- element(#iterator.feeds, Record)]),
+                R  = Record,
 
                 R1 = setelement(#iterator.next,    R,  Next),
                 R2 = setelement(#iterator.prev,    R1, Prev),
