@@ -273,6 +273,7 @@ all(Tab,#kvs{mod=DBA}) ->
     lists:flatten([ rnorm(rname(Tab),DBA:all(T)) || T <- rlist(Tab) ]).
 index(Tab, Key, Value,#kvs{mod=DBA}) ->
     lists:flatten([ rnorm(rname(Tab),DBA:index(T, Key, Value)) || T <- rlist(Tab) ]).
+next_id(Tab, Incr, KVX) when is_list(Tab) -> next_id(list_to_atom(Tab), Incr, KVX);
 next_id(Tab, Incr,#kvs{mod=DBA}) ->
     DBA:next_id(case table(Tab) of #table{} -> atom_to_list(Tab); _ -> Tab end, Incr).
 
