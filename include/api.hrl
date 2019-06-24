@@ -41,7 +41,6 @@
 -spec link(Record :: tuple()) -> {ok,tuple()} | {error, not_found} | {error,no_container} | {error,just_added}.
 -spec unlink(Record :: tuple()) -> {ok,tuple()} | {error,no_container}.
 -spec remove(Tab :: atom(), Key :: any()) -> ok | {error,any()}.
--spec next_id(Tab :: atom() | string(), Key :: integer()) -> integer().
 
 % raw ops
 
