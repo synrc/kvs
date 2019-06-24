@@ -53,6 +53,7 @@
 -spec get(Tab :: atom(), Key :: any()) -> {ok,any()} | {error,duplicated} | {error,not_found}.
 -spec get(Tab :: atom(), Key :: any(), Value :: any()) -> {ok,any()} | {error,duplicated} | {error,not_found}.
 -spec index(Tab :: atom(), Key :: any(), Value :: any()) -> list(tuple()).
+-spec next_id(Tab :: atom() | string(), Key :: any()) -> integer().
 
 % import/export
 

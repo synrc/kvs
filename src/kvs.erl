@@ -132,11 +132,7 @@ ensure_link(Record, #kvs{mod=_Store}=Driver) ->
                 C2 = setelement(#container.top, Container, Id),
                 C3 = setelement(#container.count, C2, element(#container.count, Container)+1),
 
-                R  = setelement(#iterator.feeds, Record,
-                    [ case F1 of
-                        {FN, Fd} -> {FN, Fd};
-                        _-> {F1, kvs:create(CName,{F1,element(#iterator.id,Record)},Driver)}
-                      end || F1 <- element(#iterator.feeds, Record)]),
+                R  = Record,
 
                 R1 = setelement(#iterator.next,    R,  Next),
                 R2 = setelement(#iterator.prev,    R1, Prev),
@@ -273,6 +269,7 @@ all(Tab,#kvs{mod=DBA}) ->
     lists:flatten([ rnorm(rname(Tab),DBA:all(T)) || T <- rlist(Tab) ]).
 index(Tab, Key, Value,#kvs{mod=DBA}) ->
     lists:flatten([ rnorm(rname(Tab),DBA:index(T, Key, Value)) || T <- rlist(Tab) ]).
+next_id(Tab, Incr, KVX) when is_list(Tab) -> next_id(list_to_atom(Tab), Incr, KVX);
 next_id(Tab, Incr,#kvs{mod=DBA}) ->
     DBA:next_id(case table(Tab) of #table{} -> atom_to_list(Tab); _ -> Tab end, Incr).
 
