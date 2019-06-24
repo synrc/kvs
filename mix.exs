@@ -13,7 +13,7 @@ defmodule KVS.Mixfile do
     [
       files: ~w(include man etc src LICENSE mix.exs README.md rebar.config sys.config),
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/synrc/kvx"}
+      links: %{"GitHub" => "https://github.com/synrc/kvs"}
     ]
   end
 
