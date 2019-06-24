@@ -11,7 +11,7 @@ defmodule KVS.Mixfile do
 
   defp package do
     [
-      files: ~w(include man etc src LICENSE mix.exs README.md rebar.config sys.config),
+      files: ~w(include man etc lib src LICENSE mix.exs README.md rebar.config sys.config),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/synrc/kvs"}
     ]
