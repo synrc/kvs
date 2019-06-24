@@ -1,6 +1,6 @@
-KVX: Abstract Chain Database
+KVS: Abstract Chain Database
 ============================
-[![Build Status](https://travis-ci.org/synrc/kvx.svg?branch=master)](https://travis-ci.org/synrc/kvx)
+[![Build Status](https://travis-ci.org/synrc/kvs.svg?branch=master)](https://travis-ci.org/synrc/kvs)
 
 Features
 --------
@@ -14,17 +14,17 @@ Usage
 -----
 
 ```
-$ git clone https://github.com/synrc/kvx && cd kvx
-$ open man/kvx.htm
+$ git clone https://github.com/synrc/kvs && cd kvs
+$ open man/kvs.htm
 $ mad com pla rep
-> kvx:join().
+> kvs:join().
 ```
 
 Release Notes
 -------------
 
-[1]. <a href="https://tonpa.guru/stream/2018/2018-11-13%20Новая%20версия%20KVX.htm">2018-11-13 Новая версия KVX 5.11</a><br>
-[2]. <a href="https://tonpa.guru/stream/2019/2019-04-13%20Новая%20версия%20KVX.htm">2019-04-13 Новая версия KVX 6.4</a>
+[1]. <a href="https://tonpa.guru/stream/2018/2018-11-13%20Новая%20версия%20KVS.htm">2018-11-13 Новая версия KVS 5.11</a><br>
+[2]. <a href="https://tonpa.guru/stream/2019/2019-04-13%20Новая%20версия%20KVS.htm">2019-04-13 Новая версия KVS 6.4</a>
 
 Credits
 -------

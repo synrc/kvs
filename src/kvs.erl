@@ -1,7 +1,7 @@
 -module(kvs).
 -behaviour(application).
 -behaviour(supervisor).
--description('KVX Abstract Chain Store').
+-description('KVS Abstract Chain Store').
 -include_lib("stdlib/include/assert.hrl").
 -include("api.hrl").
 -include("metainfo.hrl").

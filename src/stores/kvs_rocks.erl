@@ -9,7 +9,7 @@
 start()    -> ok.
 stop()     -> ok.
 destroy()  -> ok.
-version()  -> {version,"KVX ROCKSDB"}.
+version()  -> {version,"KVS ROCKSDB"}.
 dir()      -> [].
 leave() -> case ref() of [] -> skip; X -> rocksdb:close(X) end.
 join(_) -> application:start(rocksdb),

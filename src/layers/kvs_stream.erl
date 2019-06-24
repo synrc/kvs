@@ -1,5 +1,5 @@
 -module(kvs_stream).
--description('KVX STREAM LAYER').
+-description('KVS STREAM LAYER').
 -include("kvs.hrl").
 -include("stream.hrl").
 -include("metainfo.hrl").
