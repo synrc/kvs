@@ -1,5 +1,5 @@
--ifndef(KVX_HRL).
--define(KVX_HRL, true).
+-ifndef(KVS_HRL).
+-define(KVS_HRL, true).
 -record(id_seq, { thing = []::term(), id =  0 :: integer() } ).
 -record(it,     { id    = []::[] | integer() } ).
 -record(ite,    { id    = []::[] | integer(), next  = []::[] | integer() } ).

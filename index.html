@@ -14,7 +14,7 @@
     <a href='https://kvs.n2o.space' style="background:#ededed;">KVS</a>
 </nav>
 <header>
-    <a href="https://github.com/synrc/kvx"><img src="https://synrc.space/images/Synrc Neo.svg?v=1"></a>
+    <a href="https://github.com/synrc/kvs"><img src="https://synrc.space/images/Synrc Neo.svg?v=1"></a>
     <h1>KVS</h1>
 </header>
 <aside>
@@ -55,9 +55,9 @@
         <section>
         <figure>
         <code>
- $ mad get kvx && cd kvx
+ $ mad get kvs && cd kvs
  $ mad com pla rep
- > kvx:join().
+ > kvs:join().
         </code>
         </figure>
         </section>
@@ -69,13 +69,13 @@
 <h3>SESSION</h3>
 
 <figure><code>
- > kvx:join().
+ > kvs:join().
  ok
 
- > kvx:check().
+ > kvs:check().
  ok
 
- > kvx:all(reader).
+ > kvs:all(reader).
  [{reader,1555175169121817000,0,[],[],
           {list,1555175169120161000},
           0},
@@ -83,17 +83,17 @@
           {list,1555175169120161000},
           0}]
 
- > rr(kvx).
- [emails,id_seq,iter,kvx,reader,schema,table,writer]
+ > rr(kvs).
+ [emails,id_seq,iter,kvs,reader,schema,table,writer]
 
- > kvx:save(kvx:reader({list,1555175169120161000})).
+ > kvs:save(kvs:reader({list,1555175169120161000})).
  #reader{id = 1555175244188986000,pos = 0,
          cache = {emails,1555175169122304000},
          args = [],
          feed = {list,1555175169120161000},
          dir = 0}
 
- > kvx:take(kvx:bot((kvx:load_reader(1555175244188986000))#reader{args=-1})).
+ > kvs:take(kvs:bot((kvs:load_reader(1555175244188986000))#reader{args=-1})).
  #reader{id = 1555175244188986000,pos = 5,
          cache = {emails,1555175169127279000},
          args = [#emails{id = 1555175169127279000,next = [],
