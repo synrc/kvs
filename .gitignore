@@ -1,0 +1,5 @@
+ebin
+*.dets
+*.gz
+*.dump
+.applist

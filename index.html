@@ -1,0 +1,132 @@
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="" />
+    <meta name="author" content="Maxim Sokhatsky" />
+    <title>KVS</title>
+    <link rel="stylesheet" href="https://synrc.space/synrc.css?v=2" />
+</head>
+<body>
+<nav>
+    <a href='https://n2o.dev'>DEV</a>
+    <a href='https://kvs.n2o.space' style="background:#ededed;">KVX</a>
+</nav>
+<header>
+    <a href="https://github.com/synrc/kvx"><img src="https://synrc.space/images/Synrc Neo.svg?v=1"></a>
+    <h1>KVS</h1>
+</header>
+<aside>
+    <article>
+        <section>
+            <h3>SYNOPSIS</h3>
+            <div>KVS is the light version of client interface on top of BTREE database
+                 abstractions strive to support the basic features: </div>
+            <div>
+                 <ul>
+                 <li>Polymorphic tuples aka extensible records;</li>
+                 <li>Basic schema for chain storage;</li>
+                 <li>Backends: MNESIA, FS, ROCKS;</li>
+                 <li>Extremely compact and battle-tested: 500 LOC.</li>
+                 </ul>
+            </div>
+            <div>This is an essence and fruit of KVX; the abstract term interface
+                 with naive yet productive stream implementation. Useful for simple
+                 blockchains, messaging, storage, processing systems, and banking industry.
+                 KVX is used in BPE and BANK applications.</div>
+        </section>
+        <section>
+            <h3>MODULES</h3>
+            <div><ul>
+           <li><a href="man/kvs.htm">KVS</a></font></li>
+           <li><a href="man/kvs_stream.htm">STREAM</a></font></li>
+           <li><a href="man/kvs_fs.htm">FS</a></font></li>
+           <li><a href="man/kvs_mnesia.htm">MNESIA</a></font></li>
+           <li><a href="man/kvs_rocks.htm">ROCKS</a></font></li>
+           <li><a href="man/kvs_st.htm">ST</a></font></li>
+            </ul></div>
+            <br>
+            <div>
+                APR 2019 &copy; <a href="https://github.com/5HT">5HT</a> ISC<br>
+                VER 6.6 6.5 6.4
+            </div>
+        </section>
+        <section>
+        <figure>
+        <code>
+ $ mad get kvx && cd kvx
+ $ mad com pla rep
+ > kvx:join().
+        </code>
+        </figure>
+        </section>
+    </article>
+</aside>
+<main>
+    <section>
+
+<h3>SESSION</h3>
+
+<figure><code>
+ > kvx:join().
+ ok
+
+ > kvx:check().
+ ok
+
+ > kvx:all(reader).
+ [{reader,1555175169121817000,0,[],[],
+          {list,1555175169120161000},
+          0},
+  {reader,1555175169121249000,0,[],[],
+          {list,1555175169120161000},
+          0}]
+
+ > rr(kvx).
+ [emails,id_seq,iter,kvx,reader,schema,table,writer]
+
+ > kvx:save(kvx:reader({list,1555175169120161000})).
+ #reader{id = 1555175244188986000,pos = 0,
+         cache = {emails,1555175169122304000},
+         args = [],
+         feed = {list,1555175169120161000},
+         dir = 0}
+
+ > kvx:take(kvx:bot((kvx:load_reader(1555175244188986000))#reader{args=-1})).
+ #reader{id = 1555175244188986000,pos = 5,
+         cache = {emails,1555175169127279000},
+         args = [#emails{id = 1555175169127279000,next = [],
+                         prev = 1555175169126314000,email = []},
+                 #emails{id = 1555175169126314000,next = 1555175169127279000,
+                         prev = 1555175169125227000,email = []},
+                 #emails{id = 1555175169125227000,next = 1555175169126314000,
+                         prev = 1555175169123405000,email = []},
+                 #emails{id = 1555175169123405000,next = 1555175169125227000,
+                         prev = 1555175169122304000,email = []},
+                 #emails{id = 1555175169122304000,next = 1555175169123405000,
+                         prev = [],email = []}],
+         feed = {list,1555175169120161000},
+         dir = 0}
+
+</code></figure>
+    </section>
+
+    <section>
+        <a name=plugin><h3>CONTRIBUTORS</h3></a>
+        <div>
+        <ul>
+           <li><a href="https://github.com/5HT">5HT</a> &mdash; Namdak Tonpa</li>
+           <li><a href="https://github.com/proger">proger</a> &mdash; Vlad Ki</li>
+           <li><a href="https://github.com/doxtop">doxtop</a> &mdash; Andrii Zadorozhnii</li>
+           <li><a href="https://github.com/cryoflamer">cryoflamer</a> &mdash; Yuri Maslovsky</li>
+           <li><a href="https://github.com/qomputer">qomputer</a> &mdash; Igor Kharin</li>
+        </ul></div>
+        <br><br>
+    </section>
+</main>
+<footer>
+    Made with <span class="heart">❤</span> to N2O
+</footer>
+</body>
+</html>
