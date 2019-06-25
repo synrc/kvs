@@ -14,9 +14,14 @@
 -export(?STREAM).
 -export([init/1, start/2, stop/1]).
 
+-record('$msg', {id,next,prev,user,msg}).
+
 init([]) -> {ok, { {one_for_one, 5, 10}, []} }.
 start(_,_) -> supervisor:start_link({local, kvs}, kvs, []).
 stop(_) -> ok.
+test_tabs() ->
+  case application:get_env(kvs,dba,[]) of
+    kvs_mnesia -> [ #table{name='$msg', fields=record_info(fields,'$msg')} ] end.
 
 % kvs api
 
@@ -37,6 +42,7 @@ stop()             -> stop_kvs(#kvs{mod=dba()}).
 start()            -> start   (#kvs{mod=dba()}).
 ver()              -> ver(#kvs{mod=dba()}).
 dir()              -> dir     (#kvs{mod=dba()}).
+feed(Key)          -> feed    (Key, #kvs{mod=dba()}).
 seq(Table,DX)      -> seq     (Table, DX, #kvs{mod=dba()}).
 
 % stream api
@@ -59,7 +65,7 @@ ensure(#writer{id=Id}) ->
         {error,_} -> kvs:save(kvs:writer(Id)), ok;
         {ok,_}    -> ok end.
 
-metainfo() ->  #schema { name = kvs, tables = core() }.
+metainfo() ->  #schema { name = kvs, tables = core() ++ test_tabs() }.
 core()    -> [ #table { name = id_seq, fields = record_info(fields,id_seq), keys=[thing]} ].
 
 initialize(Backend, Module) ->
@@ -114,19 +120,20 @@ count(Tab,#kvs{mod=DBA}) -> DBA:count(Tab).
 index(Tab, Key, Value,#kvs{mod=DBA}) -> DBA:index(Tab, Key, Value).
 seq(Tab, Incr,#kvs{mod=DBA}) -> DBA:seq(Tab, Incr).
 dump(#kvs{mod=Mod}) -> Mod:dump().
+feed(Key,#kvs{st=Mod}) -> Mod:feed(Key).
 
 % tests
 
 check() ->
-    Id  = {list,kvs:seq(writer,1)},
+    Id1 = {list1,kvs:seq([],[])},
+    Id2 = {list2,kvs:seq([],[])},
     X   = 5,
-    _W   = kvs:save(kvs:writer(Id)),
-    #reader{id=R1} = kvs:save(kvs:reader(Id)),
-    #reader{id=R2} = kvs:save(kvs:reader(Id)),
-    [ kvs:save(kvs:add((kvs:writer(Id))#writer{args={emails,[],[],[],[]}})) || _ <- lists:seq(1,X) ],
-    Bot = kvs:bot(kvs:load_reader(R1)),
-    Top = kvs:top(kvs:load_reader(R2)),
-    #reader{args=F} = kvs:take(Bot#reader{args=20,dir=0}),
-    #reader{args=B} = kvs:take(Top#reader{args=20,dir=1}),
-    ?assertMatch(X,length(F)),
-    ?assertMatch(F,lists:reverse(B)).
+    _   = kvs:save(kvs:writer(Id1)),
+    _   = kvs:save(kvs:writer(Id2)),
+    [ kvs:save(kvs:add((kvs:writer(Id1))#writer{args={'$msg',[],[],[],[],[]}})) || _ <- lists:seq(1,X) ],
+    [ kvs:append({'$msg',[],[],[],[],[]},Id2) || _ <- lists:seq(1,X) ],
+    #reader{args=A} = kvs:take((kvs:bot(kvs:reader(Id1)))#reader{args=20}),
+    B = kvs:feed(Id1),
+    C = kvs:feed(Id2),
+    ?assertMatch(A,B),
+    ?assertMatch(X,length(C)).

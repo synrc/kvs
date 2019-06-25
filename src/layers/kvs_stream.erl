@@ -69,14 +69,17 @@ drop(A,N,#reader{cache=B,pos=P}=C,C2,_,_) ->
 % new, save, load, up, down, top, bot
 
 load_reader (Id) -> case kvs:get(reader,Id) of {ok,C} -> C; _ -> #reader{id=[]} end.
-writer (Id) -> case kvs:get(writer,Id) of {ok,W} -> W; _ -> #writer{id=Id} end.
+
+writer (Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
 reader (Id) -> case kvs:get(writer,Id) of
          {ok,#writer{first=[]}} -> #reader{id=kvs:seq(reader,1),feed=Id,cache=[]};
          {ok,#writer{first=F}}  -> #reader{id=kvs:seq(reader,1),feed=Id,cache={tab(F),id(F)}};
-         {error,_} -> kvs:save(#writer{id=Id}), reader(Id) end.
+         {error,_} -> save(#writer{id=Id}), reader(Id) end.
 save (C) -> NC = c4(C,[]), kvs:put(NC), NC.
 
 % add
+
+feed(Key) -> (take((kvs:reader(Key))#reader{args=-1}))#reader.args.
 
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq(tab(M),1)),C);
 add(#writer{args=M}=C) -> add(M,C).

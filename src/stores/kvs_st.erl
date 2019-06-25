@@ -80,6 +80,8 @@ reader (Id) ->
          {error,_} -> #reader{} end.
 save (C) -> NC = c4(C,[]), N2 = c3(NC,[]), kvs:put(N2), N2.
 
+feed(Key) -> kvs:all(Key).
+
 % add
 
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
