@@ -19,9 +19,7 @@
 init([]) -> {ok, { {one_for_one, 5, 10}, []} }.
 start(_,_) -> supervisor:start_link({local, kvs}, kvs, []).
 stop(_) -> ok.
-test_tabs() ->
-  case application:get_env(kvs,dba,[]) of
-    kvs_mnesia -> [ #table{name='$msg', fields=record_info(fields,'$msg')} ] end.
+test_tabs() -> [ #table{name='$msg', fields=record_info(fields,'$msg')} ].
 
 % kvs api
 
