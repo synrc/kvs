@@ -9,7 +9,7 @@
 -include("cursors.hrl").
 -include("kvs.hrl").
 -include("backend.hrl").
--export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7]).
+-export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1]).
 -export(?API).
 -export(?STREAM).
 -export([init/1, start/2, stop/1]).
@@ -119,6 +119,7 @@ index(Tab, Key, Value,#kvs{mod=DBA}) -> DBA:index(Tab, Key, Value).
 seq(Tab, Incr,#kvs{mod=DBA}) -> DBA:seq(Tab, Incr).
 dump(#kvs{mod=Mod}) -> Mod:dump().
 feed(Key,#kvs{st=Mod}) -> Mod:feed(Key).
+head(Key) -> case (kvs:take((kvs:reader(Key))#reader{args=1}))#reader.args of [X] -> X; [] -> [] end.
 
 % tests
 
