@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,next/8]).
+-export([ref/0,next/8,format/1]).
 
 start()    -> ok.
 stop()     -> ok.
@@ -30,11 +30,11 @@ put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, 
 put(Record) -> 
     Address = <<(list_to_binary(lists:concat(["/",format(element(1,Record)),"/"])))/binary,
                          (term_to_binary(element(2,Record)))/binary>>,
-%    io:format("KVS.PUT.Address: ~s~n",[Address]),
+    io:format("KVS.PUT.Address: ~s~n",[Address]),
     rocksdb:put(ref(), Address, term_to_binary(Record), [{sync,true}]).
 
 format(X) when is_list(X) -> X;
-format(X) when is_atom(X) -> X;
+format(X) when is_atom(X) -> atom_to_list(X);
 format(X) -> io_lib:format("~p",[X]).
 
 delete(Feed, Id) ->

@@ -131,7 +131,7 @@ check() ->
     _   = kvs:save(kvs:writer(Id2)),
     [ kvs:save(kvs:add((kvs:writer(Id1))#writer{args={'$msg',[],[],[],[],[]}})) || _ <- lists:seq(1,X) ],
     [ kvs:append({'$msg',[],[],[],[],[]},Id2) || _ <- lists:seq(1,X) ],
-    #reader{args=A} = kvs:take((kvs:bot(kvs:reader(Id1)))#reader{args=20}),
+    #reader{args=A} = (kvs:take(kvs:reader(Id1)))#reader{args=20},
     B = kvs:feed(Id1),
     C = kvs:feed(Id2),
     ?assertMatch(A,B),
