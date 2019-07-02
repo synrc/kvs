@@ -21,7 +21,7 @@ ref() -> application:get_env(kvs,rocks_ref,[]).
 index(_,_,_) -> [].
 get(Tab, Key) ->
     Address = <<(list_to_binary(lists:concat(["/",format(Tab),"/"])))/binary,(term_to_binary(Key))/binary>>,
-    io:format("KVS.GET.Address: ~s~n",[Address]),
+%    io:format("KVS.GET.Address: ~s~n",[Address]),
     case rocksdb:get(ref(), Address, []) of
          not_found -> {error,not_found};
          {ok,Bin} -> {ok,binary_to_term(Bin,[safe])} end.
@@ -30,7 +30,7 @@ put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, 
 put(Record) -> 
     Address = <<(list_to_binary(lists:concat(["/",format(element(1,Record)),"/"])))/binary,
                          (term_to_binary(element(2,Record)))/binary>>,
-    io:format("KVS.PUT.Address: ~s~n",[Address]),
+%    io:format("KVS.PUT.Address: ~s~n",[Address]),
     rocksdb:put(ref(), Address, term_to_binary(Record), [{sync,true}]).
 
 format(X) when is_list(X) -> X;
