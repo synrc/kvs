@@ -120,7 +120,7 @@ seq(Tab, Incr,#kvs{mod=DBA}) -> DBA:seq(Tab, Incr).
 dump(#kvs{mod=Mod}) -> Mod:dump().
 feed(Key,#kvs{st=Mod}) -> Mod:feed(Key).
 head(Key) -> case (kvs:take((kvs:reader(Key))#reader{args=1}))#reader.args of [X] -> X; [] -> [] end.
-head(Key,Count) -> case (kvs:take((kvs:reader(Key))#reader{args=Count}))#reader.args of [X] -> X; [] -> [] end.
+head(Key,Count) -> (kvs:take((kvs:reader(Key))#reader{args=Count,dir=1}))#reader.args.
 
 % tests
 
