@@ -113,7 +113,7 @@ prev(I,Key,S,A,_,_,N,C) when size(A) > S ->
 prev(_,_,_,_,_,_,_,C) -> C.
 
 cut(Feed,Id) ->
-    Key    = list_to_binary(lists:concat(["/",io_lib:format("~p",[Feed]),"/"])),
+    Key    = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed),"/"])),
     A      = <<Key/binary,(term_to_binary(Id))/binary>>,
     {ok,I} = rocksdb:iterator(ref(), []),
     case rocksdb:iterator_move(I, {seek,A}) of
