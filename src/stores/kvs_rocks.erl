@@ -58,7 +58,7 @@ next(I,Key,S,A,X,T,N,C) when size(A) > S ->
                   _ -> T end;
 next(_,_,_,_,_,T,_,_) -> T.
 
-seq(_,_) -> integer_to_list(os:system_time()).
+seq(_,_) -> integer_to_list(erlang:unique_integer([positive,monotonic])). %integer_to_list(os:system_time()).
 create_table(_,_) -> [].
 add_table_index(_, _) -> ok.
 dump() -> ok.
