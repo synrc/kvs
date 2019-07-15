@@ -2,3 +2,4 @@ ebin
 *.dets
 *.gz
 *.dump
+.rebar3/

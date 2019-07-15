@@ -3,13 +3,13 @@
 
 -record(writer,  {id    = [] :: term(), % {p2p,_,_} | {muc,_}
                   count =  0 :: integer(),
-                  cache = [] :: [] | tuple(),
+                  cache = [] :: tuple() | list(),
                   args  = [] :: term(),
                   first = [] :: [] | tuple()}).
 
 -record(reader,  {id    = [] :: term(), % phone_id | {p2p,_,_} | {muc,_,_}
-                  pos   = 0 :: [] | integer(),
-                  cache = [] :: [] | integer(),
+                  pos   =  0 :: [] | integer(),
+                  cache = [] :: [] | {atom(),integer() | []} | integer(),
                   args  = [] :: term(),
                   feed  = [] :: term(), % {p2p,_,_} | {muc,_} -- link to writer
                   dir   =  0 :: 0 | 1}).
@@ -30,10 +30,10 @@
 
 -record(iter, {?ITER}).
 
--define(CONTAINER, id=[] :: [] | integer(),
-                   top=[] :: [] | integer(),
-                   rear=[] :: [] | integer(),
-                   count=0 :: integer()).
+-define(CONTAINER, id       =[] :: [] | integer(),
+                   top      =[] :: [] | integer(),
+                   rear     =[] :: [] | integer(),
+                   count    =0 :: integer()).
 
 -define(ITERATOR(Container), id=[] :: [] | integer(),
                              container=Container :: atom(),
