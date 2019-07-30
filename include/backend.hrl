@@ -4,10 +4,10 @@
                   join/1,dir/0,create_table/2,add_table_index/2,seq/2,all/1,count/1,version/0]).
 -compile({no_auto_import,[get/1,put/2]}).
 -spec put(tuple() | list(tuple())) -> ok | {error,any()}.
--spec get(atom() | any(), any()) -> {ok,any()} | {error,not_found}.
--spec delete(atom(), any()) -> ok | {error,not_found}.
+-spec get(term() | any(), any()) -> {ok,any()} | {error,not_found}.
+-spec delete(term(), any()) -> ok | {error,not_found}.
 -spec dump() -> ok.
 -spec start() -> ok.
 -spec stop() -> ok.
--spec index(atom(), any(), any()) -> list(tuple()).
+-spec index(term(), any(), any()) -> list(tuple()).
 -endif.
