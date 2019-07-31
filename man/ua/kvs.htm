@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="" />
+    <meta name="author" content="Maxim Sokhatsky" />
+    <title>KVS</title>
+    <link rel="stylesheet" href="https://synrc.space/synrc.css" />
+</head>
+
+<body>
+
+<nav>
+    <a href='https://n2o.dev'>DEV</a>
+    <a href='https://kvx.n2o.space'>KVS</a>
+    <a href='#' style="background:#ededed;">KVS</a>
+</nav>
+
+<header>
+    <a href="../../index.html"><img src="https://n2o.space/img/Synrc Neo.svg"></a>
+    <h1>KVS</h1>
+</header>
+
+<main>
+    <section>
+
+<h3>ВСТУП</h3>
+
+   <p>Модуль KVS надає інтерфейс користувача для команд консолі.
+      Він має функції відкриття, маніпулювання даними та відновлення даних.
+      Під капотом він обробляє налаштовувані під час виконання бекенди для кожної підтримуваної бази даних.</p>
+
+        <p><blockquote><p><ul>
+            <li><b><a href="#dir">dir/0</a></b> &mdash; повертає перелік таблиць.</li>
+            <li><b><a href="#ver">ver/0</a></b> &mdash; повертає версію KVS.</li>
+            <li><b><a href="#seq">seq/2</a></b> &mdash; генерує новий ідентифікатор послідовностей таблиці.</li>
+            <li><b><a href="#count">count/1</a></b> &mdash; повертає кількість записів в таблиці.</li>
+            <li><b><a href="#put">put/1</a></b> &mdash; зберігає запис, використовуючи id як ключ.</li>
+            <li><b><a href="#get">get/2</a></b> &mdash; повертає запис по його ключу.</li>
+            <li><b><a href="#delete">delete/1</a></b> &mdash; видаляє запис з таблиці.</li>
+            <li><b><a href="#index">index/3</a></b> &mdash; виконує пошук записів по назві поля та його значенню.</li>
+        </ul></p></blockquote></p>
+
+ <p>Ви можете поміняти бекенд, використовуючи змінні оточення env в налаштуваннях додатку.
+    Це добре працює навіть під великим навантаженням.</p>
+
+    </section>
+    <section>
+
+<h3>ВСТАНОВЛЕННЯ</h3>
+
+<p>В sys.config ви вказуєте kvx бекенд та список модулів, які містять експорт
+   функції <b>metainfo/0</b>.</p>
+
+<figure><code>
+  [{kvx, [{dba,store_mnesia},
+          {schema,[kvx,kvx_stream]}]}].
+
+</code></figure>
+
+<h4>dir() -> list({'table',atom()}).</h4>
+
+<p>Повертає актуальні таблиці.</p>
+
+<h4>ver() -> {'version',string()}.</h4>
+
+<p>Повертає версію бекенда.</p>
+
+<h4>dump() -> ok.</h4>
+
+<p>Повертає інформацію про базу даних.</p>
+
+<figure><code>
+ > kvx:dump().
+                NAME                     STORAGE TYPE    MEMORY (MB)   ELEMENTS
+
+              id_seq                      disc_copies           0.00          0
+              writer                      disc_copies           0.00          0
+              emails                      disc_copies           0.00          0
+              reader                      disc_copies           0.00          0
+
+ Snapshot taken: {{2018,11,10},{5,2,38}}
+ ok
+
+</code></figure>
+
+
+    </section>
+    <section>
+
+<h3>SEQ</h3>
+
+<p>Таблиця послідовностей id_seq зберігає лічильники для записів.
+   Лічильники є глобальними та атомарними для кожної підтримуваної бази даних.
+   Послідовності використовуються для генерації унікальних імен записам в розподіленій таблиці.
+   Якщо імена в таблиці не є унікальними,
+   то функція count може повернути значення, що відрізняється від поточної послідовності.
+   </p>
+
+<figure><code>
+  -record(id_seq, { thing = atom(),
+                    id    = 0 :: integer() } ).
+
+</code></figure>
+
+<h4>seq(atom(), integer()) -> integer().</h4>
+
+<p>Збільшує на 1 та повертає id лічильника для конкретної таблиці.</p>
+
+<h4>count(atom()) -> integer().</h4>
+
+<p>Повертає кількість записів в таблиці.</p>
+
+    </section>
+    <section>
+
+<h3>BACKEND</h3>
+
+<p>Функції операцій з даними.
+   </p>
+
+<h4>put(tuple()) -> ok | {error,any()}.</h4>
+
+<p>Зберігає запис.</p>
+
+<h4>get(atom(),any()) -> {ok,any()} | {error, not_found | duplicated }.</h4>
+
+<p>Виконує пошук запису.</p>
+
+<h4>delete(atom(),any()) -> ok | {error,any()}.</h4>
+
+<p>Видаляє запис.</p>
+
+<h4>index(atom(),any(),any()) -> list(tuple()).</h4>
+
+<p>Виконує пошук запису за індексованим полем та заданим значенням.</p>
+
+    </section>
+    <section>
+
+<p>Цей модуль може бути пов'язаним з:
+<a href="kvx_fs.htm"><b>kvx_fs</b></a>,
+<a href="kvx_mnesia.htm"><b>kvx_mnesia</b></a>,
+<a href="kvx_rocks.htm"><b>kvx_rocks</b></a>,
+<a href="kvx_st.htm"><b>kvx_st</b></a>,
+<a href="kvx_stream.htm"><b>kvx_stream</b></a>.
+</p>
+    </section>
+</main>
+
+<footer>
+    2005&mdash;2019 &copy; Synrc Research Center
+</footer>
+
+</body>
+</html>
