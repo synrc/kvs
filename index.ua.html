@@ -21,31 +21,32 @@
 <aside>
     <article>
         <section>
-            <h3>SYNOPSIS</h3>
-            <div>KVS is the light version of client interface on top of BTREE database
-                 abstractions strive to support the basic features: </div>
+            <h3>СИНОПИС</h3>
+            <div>KVS — це легкий клієнтський інтерфейс над
+                 абстракціями BTREE бази даних, який підтримує основні можливості: </div>
             <div>
                  <ul>
-                 <li>Polymorphic tuples aka extensible records;</li>
-                 <li>Basic schema for chain storage;</li>
-                 <li>Backends: MNESIA, FS, ROCKS;</li>
-                 <li>Extremely compact and battle-tested: 500 LOC.</li>
+                 <li>Поліморфні кортежі, як розширювані записи;</li>
+                 <li>Основна схема для сховища ланцюжків;</li>
+                 <li>Бекенди: MNESIA, FS, ROCKS;</li>
+                 <li>Надзвичайно компактний та перевірений код: 500 LOC.</li>
                  </ul>
             </div>
-            <div>This is an essence and fruit of KVS; the abstract term interface
-                 with naive yet productive stream implementation. Useful for simple
-                 blockchains, messaging, storage, processing systems, and banking industry.
-                 KVS is used in BPE and BANK applications.</div>
+            <div>Це суть і серце KVS — інтерфейс абстрактних виразів
+                 з наївною, та продуктивною реалізацією потоків.
+                 Підходить для систем повідомлень, простих блокчейнів,
+                 систем обробки, зберігання даних, та банківської галузі.
+                 KVS використовується в BPE та BANK додатках.</div>
         </section>
         <section>
-            <h3>MODULES</h3>
+            <h3>МОДУЛІ</h3>
             <div><ul>
-           <li><a href="man/kvs.htm">KVS</a></font></li>
-           <li><a href="man/kvs_stream.htm">STREAM</a></font></li>
-           <li><a href="man/kvs_fs.htm">FS</a></font></li>
-           <li><a href="man/kvs_mnesia.htm">MNESIA</a></font></li>
-           <li><a href="man/kvs_rocks.htm">ROCKS</a></font></li>
-           <li><a href="man/kvs_st.htm">ST</a></font></li>
+           <li><a href="man/ua/kvs.htm">KVS</a></font></li>
+           <li><a href="man/ua/kvs_stream.htm">STREAM</a></font></li>
+           <li><a href="man/ua/kvs_fs.htm">FS</a></font></li>
+           <li><a href="man/ua/kvs_mnesia.htm">MNESIA</a></font></li>
+           <li><a href="man/ua/kvs_rocks.htm">ROCKS</a></font></li>
+           <li><a href="man/ua/kvs_st.htm">ST</a></font></li>
             </ul></div>
             <br>
             <div>
@@ -67,7 +68,7 @@
 <main>
     <section>
 
-<h3>SESSION</h3>
+<h3>ПРИКЛАД ВИКОРИСТАННЯ</h3>
 
 <figure><code>
  > kvs:join().
