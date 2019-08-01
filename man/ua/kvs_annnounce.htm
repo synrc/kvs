@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="" />
     <meta name="author" content="Maxim Sokhatsky" />
-    <title>Нова версія KVX</title>
+    <title>Нова версія KVS</title>
     <link rel="stylesheet" href="https://forms.n2o.space/priv/static/css/forms.css?v=1" />
     <link rel="stylesheet" href="https://tonpa.guru/blank.css?v=2" />
 </head>
@@ -19,17 +19,17 @@
 </nav>
 <main>
     <section>
-        <h3>Нова версія KVX 6.4</h3>
-        <p>KVX — слой абстракції, який складається з двох частин: базового API та API керування стрімами,
-           тейк, дроп, фолд, катаморфізм, як ви любите. Головний API в модулі kvx,
-           а стрімовий — в kvx_stream. Користуючись нагодою, хочу пропіарити схожі рішення
+        <h3>Нова версія KVS 6.4</h3>
+        <p>KVS — слой абстракції, який складається з двох частин: базового API та API керування стрімами,
+           тейк, дроп, фолд, катаморфізм, як ви любите. Головний API в модулі kvs,
+           а стрімовий — в kvs_stream. Користуючись нагодою, хочу пропіарити схожі рішення
            в області зберігання даних на erlang: <a href="https://github.com/fogfish/datum">datum</a> та серія бібліотек
            від Дмитра Колесникова, <a href="https://github.com/emqx/replayq">replayq</a> від Фенга Лі,
            а також небагатьох інших, хто намагався абстрактно вирішити проблему.</p>
 
-         <h3>Чому KVX?</h3>
+         <h3>Чому KVS?</h3>
 
-         <p>Призначення KVX:</p>
+         <p>Призначення KVS:</p>
          <p>— надання інтерфейсу абстрагування широкого спектра сховищ;<br>
             — надання зручного Erlang REPL інтерфейсу для роботи з записами (records);<br>
             — розділення на базовий (get put) інтерфейс, та стрім інтерфейс ітераторів (next prev);<br>
@@ -38,15 +38,15 @@
               підписів, трейси бізнес-процесів, блокчейни, системи черг,
               тайм серіес, ось це все.<br>
         </p>
-         <p>Розпочинаючи з незначної модифікації KVX поміняла назву, тепер це "Абстрактна База Ланцюжків",
+         <p>Розпочинаючи з незначної модифікації KVS поміняла назву, тепер це "Абстрактна База Ланцюжків",
             а не "Абстрактна База Термів", оскільки відділився окремий стрім API.</p>
 
-         <p>— <a href="https://github.com/synrc/kvx">synrc/kvx</a> — 6.4<br></p>
+         <p>— <a href="https://github.com/synrc/kvs">synrc/kvs</a> — 6.4<br></p>
 
-        <p> Розповімо трохи про теоретичні основи KVX. Ця бібліотека дозволяє або повинна
+        <p> Розповімо трохи про теоретичні основи KVS. Ця бібліотека дозволяє або повинна
             дозволяти зберігати та діставати структури будь-якого виду, надаючи семантику управління
             курсорами next prev, якою володіють дерева. Тому можна сказати, що це інтерфейс
-            оператора до деревоподібних сховищ та сховищ ланцюжків. У своїй основі KVX підтримує три
+            оператора до деревоподібних сховищ та сховищ ланцюжків. У своїй основі KVS підтримує три
             механізми зберігання ланцюжків:</p>
          <p>1) перший, очевидний — двонаправлені списки, де вказівники next та prev
                безпосереднім чином присутні в даних. Спосіб підходить
@@ -57,8 +57,8 @@
          <p>3) третій, неочевидний спосіб — пряме вбудовувавання записів в BTree index,
                zero-overhead.</p>
 
-         <p>В якомусь сенсі перший та другий способи реалізують певний шар поверх KVX,
-            оскільки kvx_stream працює з будь-якими стораджами поліморфно, а ось kvx_st драйвер
+         <p>В якомусь сенсі перший та другий способи реалізують певний шар поверх KVS,
+            оскільки kvs_stream працює з будь-якими стораджами поліморфно, а ось kvs_st драйвер
             стрімів зроблений спеціально для rocksdb.</p>
 
         <h3>Дерева</h3>
@@ -81,15 +81,15 @@
            для лінковки даних в ланцюжки.
            Базова частина разом називається #iter.</p>
 
-        <h4>kvx_stream — <b>#iter{}</b></h4>
+        <h4>kvs_stream — <b>#iter{}</b></h4>
 
         <p> За поліморфое явне управління application level полями next prev рекорда #iter
-            відповідає модуль kvx_stream. Наприклад, файловая система не надає управління
+            відповідає модуль kvs_stream. Наприклад, файловая система не надає управління
             своїми курсорами, тому імплементація fs вимагає наявності полів лінковки.</p>
 
         <h3>Списки</h3>
         <p>Однонаправлені списки, чи просто списки, це друга модель. Все таке ж, тільки без повернення назад.
-           Не підтримується пока жодною версією KVX.</p>
+           Не підтримується пока жодною версією KVS.</p>
         <figure>
         <code>
   -record(ite, { id    = [] :: [] | integer(),
@@ -97,7 +97,7 @@
         </code>
         </figure>
 
-        <h4>kvx_stre — <b>#ite{}</b></h4>
+        <h4>kvs_stre — <b>#ite{}</b></h4>
 
         <p>Цей модуль не реалізовано, і запис не специфікований.</p>
 
@@ -119,12 +119,12 @@
            додаючи їх як префікси до ключа (little endian), який буде автоматично
            відображатись в головному BTree дереві, також в цьому просторі ви можете
            зберігати і фіди (стріми), наприклад, топіки: <b>/p2p/maxim/doxtop</b>.
-           Це вимагає спеціальної модифікації kvx_st для работи з записом #it,
-           на відміну від двонаправленого #iter, який працює з драйвером kvx_stream.</p>
+           Це вимагає спеціальної модифікації kvs_st для работи з записом #it,
+           на відміну від двонаправленого #iter, який працює з драйвером kvs_stream.</p>
 
-        <h4>kvx_st — <b>#it{}</b></h4>
+        <h4>kvs_st — <b>#it{}</b></h4>
 
-        <p>За керування курсорами по ітератору бази даних відповідає модуль kvx_st.</p>
+        <p>За керування курсорами по ітератору бази даних відповідає модуль kvs_st.</p>
 
         <h3>На прикладі</h3>
 
@@ -151,32 +151,32 @@
         </code>
         </figure>
 
-      <h3>KVX REPL</h3>
-        <p>Тепер, щоб зробити те ж саме на KVX, ви можете зробити просто:</p>
+      <h3>KVS REPL</h3>
+        <p>Тепер, щоб зробити те ж саме на KVS, ви можете зробити просто:</p>
 
         <figure>
         <code>
-1> kvx:ver().
-{version,"KVX ROCKSDB"}
-2> rr(kvx).
-[emails,id_seq,it,iter,kvx,reader,schema,table,writer]
-3> kvx:join().
+1> kvs:ver().
+{version,"KVS ROCKSDB"}
+2> rr(kvs).
+[emails,id_seq,it,iter,kvs,reader,schema,table,writer]
+3> kvs:join().
 ok
-4> kvx:put(#emails{id=1,email="maxim"}).
-5> kvx:put(#emails{id=2,email="doxtop"}).
-6> kvx:put(#writer{id=2}).
-7> kvx:put(#writer{id=1}).
-8> kvx:all(writer).
+4> kvs:put(#emails{id=1,email="maxim"}).
+5> kvs:put(#emails{id=2,email="doxtop"}).
+6> kvs:put(#writer{id=2}).
+7> kvs:put(#writer{id=1}).
+8> kvs:all(writer).
 [#writer{id = 1,count = 0,cache = [],args = [],first = []},
  #writer{id = 2,count = 0,cache = [],args = [],first = []}]
-9> kvx:all(emails).
+9> kvs:all(emails).
 [#emails{id = 1,next = [],prev = [],email = "maxim"},
  #emails{id = 2,next = [],prev = [],email = "doxtop"}]
 
-10> kvx:add(#writer{id=chain,args=#emails{email="maxim@synrc.com"}}).
-11> kvx:add(#writer{id=chain,args=#emails{email="vlad@synrc.com"}}).
-12> kvx:add(#writer{id=chain,args=#emails{email="doxtop@synrc.com"}}).
-13> kvx:all(chain).
+10> kvs:add(#writer{id=chain,args=#emails{email="maxim@synrc.com"}}).
+11> kvs:add(#writer{id=chain,args=#emails{email="vlad@synrc.com"}}).
+12> kvs:add(#writer{id=chain,args=#emails{email="doxtop@synrc.com"}}).
+13> kvs:all(chain).
 [#emails{id = 1555244691729330000,next = [],prev = [],
          email = "maxim@synrc.com"},
  #emails{id = 1555244699905648000,next = [],prev = [],
@@ -190,7 +190,7 @@ ok
 
         <figure>
         <code>
-> kvx:check().
+> kvs:check().
 ok
         </code>
         </figure>
@@ -199,7 +199,7 @@ ok
 
        <p>Надіюсь зробити цю рубрику в release notes офіційною та регулярною,
           на жаль, якщо не брать до уваги man сторінки для модулій драйверів,
-          то залишається лише два модулі, для яких потрібна документація — це <a href="https://kvx.n2o.space/man/kvx.htm">kvx</a> та <a href="https://kvx.n2o.space/man/kvx_stream.htm">kvx_stream</a>.
+          то залишається лише два модулі, для яких потрібна документація — це <a href="https://kvs.n2o.space/man/kvs.htm">kvs</a> та <a href="https://kvs.n2o.space/man/kvs_stream.htm">kvs_stream</a>.
           Я, звичайно, формально додав сторінки для всіх модулів, і в майбутньому хочеться,
           щоб штучний інтелект генерував документацію. Також я зрозумів, що
           ченджлог та реліз замітки у власному блозі є чудовим способом авторського анонсування!

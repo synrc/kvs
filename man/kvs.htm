@@ -53,12 +53,12 @@
 
 <h3>SETUP</h3>
 
-<p>In sys.config you should specify kvx backend and list of modules
+<p>In sys.config you should specify kvs backend and list of modules
    containing <b>metainfo/0</b> exported function.</p>
 
 <figure><code>
-  [{kvx, [{dba,store_mnesia},
-          {schema,[kvx,kvx_stream]}]}].
+  [{kvs, [{dba,store_mnesia},
+          {schema,[kvs,kvs_stream]}]}].
 
 </code></figure>
 
@@ -75,7 +75,7 @@
 <p>Display database information.</p>
 
 <figure><code>
- > kvx:dump().
+ > kvs:dump().
                 NAME                     STORAGE TYPE    MEMORY (MB)   ELEMENTS
 
               id_seq                      disc_copies           0.00          0
@@ -143,11 +143,11 @@
     <section>
 
 <p>This module may refer to:
-<a href="kvx_fs.htm"><b>kvx_fs</b></a>,
-<a href="kvx_mnesia.htm"><b>kvx_mnesia</b></a>,
-<a href="kvx_rocks.htm"><b>kvx_rocks</b></a>,
-<a href="kvx_st.htm"><b>kvx_st</b></a>,
-<a href="kvx_stream.htm"><b>kvx_stream</b></a>.
+<a href="kvs_fs.htm"><b>kvs_fs</b></a>,
+<a href="kvs_mnesia.htm"><b>kvs_mnesia</b></a>,
+<a href="kvs_rocks.htm"><b>kvs_rocks</b></a>,
+<a href="kvs_st.htm"><b>kvs_st</b></a>,
+<a href="kvs_stream.htm"><b>kvs_stream</b></a>.
 </p>
     </section>
 </main>
