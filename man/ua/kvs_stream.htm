@@ -1,27 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="" />
-    <meta name="author" content="Maxim Sokhatsky" />
-    <title>STREAM</title>
-    <link rel="stylesheet" href="https://tonpa.guru/blank.css?v=2" />
-</head>
-<body>
-<nav>
-    <a href='https://n2o.dev'>DEV</a>
-    <a href='https://kvs.n2o.space/index.ua.html'>KVS</a>
-    <a href='#' style="background:#ededed;">STREAM</a>
-    <a href='#' style="background:#ededed;">UA</a>
-    <a href='../kvs_stream.htm'>EN</a>
-</nav>
-<header>
-    <a href="../../index.html"><img src="https://n2o.space/img/Synrc Neo.svg"></a>
+<!DOCTYPE html><html><head><meta charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="" /><meta name="author" content="Maxim Sokhatsky" /><title>STREAM</title><link rel="stylesheet" href="https://tonpa.guru/blank.css?v=2" /></head><body><nav>
+    <a href="https://n2o.dev">DEV</a>
+    <a href="https://kvs.n2o.space/index.ua.html">KVS</a>
+    <a href="#" style="background:#ededed;">STREAM</a>
+    <a href="#" style="background:#ededed;">UA</a>
+    <a href="../kvs_stream.htm">EN</a>
+</nav><header>
+    <a href="../../index.html"><img src="https://n2o.space/img/Synrc Neo.svg" /></a>
     <h1>STREAM</h1>
-</header>
-<main>
+</header><main>
     <section>
 
 <h3>ВСТУП</h3>
@@ -29,31 +15,15 @@
 <p>Модуль STREAM пропонує інтерфейс фолдів, акумуляторів за персистентного зберігання ланцюжків даних.
    </p>
 
-        <p><blockquote><p><ul>
-            <li><b><a href="#writer">writer/1</a></b> &mdash; створює та повертає курсор запису до бази даних.</li>
-            <li><b><a href="#reader">reader/1</a></b> &mdash; створює та повертає курсор зчитування до бази даних.</li>
-            <li><b><a href="#save">save/1</a></b> &mdash; зберігає курсор до бази даних.</li>
-            <li><b><a href="#load">load_reader/1</a></b> &mdash; підзавантажує збережений курсор зчитування.</li>
-            <li><b><a href="#load">load_writer/1</a></b> &mdash; підзавантажує збережений курсор запису.</li>
-            <li><b><a href="#top">top/1</a></b> &mdash; повертає початок (вершину) ланцюжка.</li>
-            <li><b><a href="#bot">bot/1</a></b> &mdash; повертає закінчення (основу) ланцюжка.</li>
-            <li><b><a href="#next">next/1</a></b> &mdash; переміщає курсор зчитування на наступний елемент.</li>
-            <li><b><a href="#prev">prev/1</a></b> &mdash; переміщає курсор зчитування на попередній елемент.</li>
-            <li><b><a href="#take">take/1</a></b> &mdash; повертає N елементів з курсору зчитування.</li>
-            <li><b><a href="#drop">drop/1</a></b> &mdash; пропускає N елементів з курсору зчитування.</li>
-            <li><b><a href="#add">add/1</a></b> &mdash; додає елемент до списку.</li>
-            <li><b><a href="#append">append/2</a></b> &mdash; додає елемент в канал.</li>
-            <li><b><a href="#append">cut/2</a></b> &mdash; очищає канал до заданої мітки timestamp.</li>
-        </ul></p></blockquote></p>
+        <p></p><blockquote><p></p><ul><li><b><a href="#writer">writer/1</a></b> — створює та повертає курсор запису до бази даних.</li><li><b><a href="#reader">reader/1</a></b> — створює та повертає курсор зчитування до бази даних.</li><li><b><a href="#save">save/1</a></b> — зберігає курсор до бази даних.</li><li><b><a href="#load">load_reader/1</a></b> — підзавантажує збережений курсор зчитування.</li><li><b><a href="#load">load_writer/1</a></b> — підзавантажує збережений курсор запису.</li><li><b><a href="#top">top/1</a></b> — повертає початок (вершину) ланцюжка.</li><li><b><a href="#bot">bot/1</a></b> — повертає закінчення (основу) ланцюжка.</li><li><b><a href="#next">next/1</a></b> — переміщає курсор зчитування на наступний елемент.</li><li><b><a href="#prev">prev/1</a></b> — переміщає курсор зчитування на попередній елемент.</li><li><b><a href="#take">take/1</a></b> — повертає N елементів з курсору зчитування.</li><li><b><a href="#drop">drop/1</a></b> — пропускає N елементів з курсору зчитування.</li><li><b><a href="#add">add/1</a></b> — додає елемент до списку.</li><li><b><a href="#append">append/2</a></b> — додає елемент в канал.</li><li><b><a href="#append">cut/2</a></b> — очищає канал до заданої мітки timestamp.</li></ul></blockquote>
 
     <p>
-      Ви може взяти <a style="margin-bottom:30px;"
-       href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a>
+      Ви може взяти <a style="margin-bottom:30px;" href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a>
       і використовувати у своїх додатках без імпортування залежності <b>synrc/kvs</b>,
       оскільки даний модуль є самодостатнім.
       Додатками можуть бути: публічні та приватні канали/стрічки новин, FIFO черги,
-   непрочитані повідомлення, чат, блокчейн etc.<br><br>
-    </section>
+   непрочитані повідомлення, чат, блокчейн etc.<br /><br />
+    </p></section>
     <section>
 
 <h3>WRITER</h3>
@@ -165,11 +135,6 @@
 </p>
 
     </section>
-</main>
-
-<footer>
-    2005&mdash;2019 &copy; Synrc Research Center
-</footer>
-
-</body>
-</html>
+</main><footer>
+    2005—2019 © Synrc Research Center
+</footer></body></html>

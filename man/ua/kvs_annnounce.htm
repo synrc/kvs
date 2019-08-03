@@ -1,23 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="" />
-    <meta name="author" content="Maxim Sokhatsky" />
-    <title>Нова версія KVS</title>
-    <link rel="stylesheet" href="https://forms.n2o.space/priv/static/css/forms.css?v=1" />
-    <link rel="stylesheet" href="https://tonpa.guru/blank.css?v=2" />
-</head>
-<body>
-<nav>
-    <a href='https://n2o.dev'>DEV</a>
-    <a href='https://kvs.n2o.space'>KVS</a>
-    <a href='#' style="background:#ededed;">АНОНС</a>
+<!DOCTYPE html><html><head><meta charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="" /><meta name="author" content="Maxim Sokhatsky" /><title>Нова версія KVS</title><link rel="stylesheet" href="https://forms.n2o.space/priv/static/css/forms.css?v=1" /><link rel="stylesheet" href="https://tonpa.guru/blank.css?v=2" /></head><body><nav>
+    <a href="https://n2o.dev">DEV</a>
+    <a href="https://kvs.n2o.space">KVS</a>
+    <a href="#" style="background:#ededed;">АНОНС</a>
     
-</nav>
-<main>
+</nav><main>
     <section>
         <h3>Нова версія KVS 6.4</h3>
         <p>KVS — слой абстракції, який складається з двох частин: базового API та API керування стрімами,
@@ -30,18 +16,18 @@
          <h3>Чому KVS?</h3>
 
          <p>Призначення KVS:</p>
-         <p>— надання інтерфейсу абстрагування широкого спектра сховищ;<br>
-            — надання зручного Erlang REPL інтерфейсу для роботи з записами (records);<br>
-            — розділення на базовий (get put) інтерфейс, та стрім інтерфейс ітераторів (next prev);<br>
-            — набір драйверів (внутрішня база, зовнішня база і файлова система);<br>
+         <p>— надання інтерфейсу абстрагування широкого спектра сховищ;<br />
+            — надання зручного Erlang REPL інтерфейсу для роботи з записами (records);<br />
+            — розділення на базовий (get put) інтерфейс, та стрім інтерфейс ітераторів (next prev);<br />
+            — набір драйверів (внутрішня база, зовнішня база і файлова система);<br />
             — шари даних: файлова система, ланцюжки повідомлень, банківські транзакції, дерева
               підписів, трейси бізнес-процесів, блокчейни, системи черг,
-              тайм серіес, ось це все.<br>
+              тайм серіес, ось це все.<br />
         </p>
          <p>Розпочинаючи з незначної модифікації KVS поміняла назву, тепер це "Абстрактна База Ланцюжків",
             а не "Абстрактна База Термів", оскільки відділився окремий стрім API.</p>
 
-         <p>— <a href="https://github.com/synrc/kvs">synrc/kvs</a> — 6.4<br></p>
+         <p>— <a href="https://github.com/synrc/kvs">synrc/kvs</a> — 6.4<br /></p>
 
         <p> Розповімо трохи про теоретичні основи KVS. Ця бібліотека дозволяє або повинна
             дозволяти зберігати та діставати структури будь-якого виду, надаючи семантику управління
@@ -133,18 +119,18 @@
         <figure>
         <code>
 1> {ok,Ref} = rocksdb:open("hey",[{create_if_missing,true}]).
-2> rocksdb:put(Ref, <<"/users/1">>,<<"maxim">>,[{sync,true}]).
-3> rocksdb:put(Ref, <<"/users/2">>,<<"doxtop">>,[{sync,true}]).
-4> rocksdb:put(Ref, <<"/users/3">>,<<"vlad">>,[{sync,true}]).
-5> rocksdb:put(Ref, <<"/staff/1">>,<<"vlad">>,[{sync,true}]).
-6> rocksdb:put(Ref, <<"/staff/2">>,<<"maxim">>,[{sync,true}]).
-7> rocksdb:put(Ref, <<"/staff/3">>,<<"doxtop">>,[{sync,true}]).
+2> rocksdb:put(Ref, &lt;&lt;"/users/1">>,&lt;&lt;"maxim">>,[{sync,true}]).
+3> rocksdb:put(Ref, &lt;&lt;"/users/2">>,&lt;&lt;"doxtop">>,[{sync,true}]).
+4> rocksdb:put(Ref, &lt;&lt;"/users/3">>,&lt;&lt;"vlad">>,[{sync,true}]).
+5> rocksdb:put(Ref, &lt;&lt;"/staff/1">>,&lt;&lt;"vlad">>,[{sync,true}]).
+6> rocksdb:put(Ref, &lt;&lt;"/staff/2">>,&lt;&lt;"maxim">>,[{sync,true}]).
+7> rocksdb:put(Ref, &lt;&lt;"/staff/3">>,&lt;&lt;"doxtop">>,[{sync,true}]).
 8> {ok,I} = rocksdb:iterator(Ref,[]).
-9> rocksdb:iterator_move(I,{seek,<<"/staff/">>}).
+9> rocksdb:iterator_move(I,{seek,&lt;&lt;"/staff/">>}).
 10> rocksdb:iterator_move(I,next).
 11> rocksdb:iterator_move(I,next).
 12> rocksdb:iterator_move(I,next).
-13> rocksdb:iterator_move(I,{seek,<<"/users/">>}).
+13> rocksdb:iterator_move(I,{seek,&lt;&lt;"/users/">>}).
 14> rocksdb:iterator_move(I,next).
 15> rocksdb:iterator_move(I,next).
 16> rocksdb:iterator_move(I,next).
@@ -222,9 +208,4 @@ ok
          <a href="https://github.com/aeternity/mnesia_rocksdb">mnesia_rocksdb</a>.</p>
 
     </section>
-</main>
-<footer>Namdak Tonpa <span class="heart">&nbsp;❤&nbsp;</span> 2009—2019</footer>
-
-
-</body>
-</html>
+</main><footer>Namdak Tonpa <span class="heart">&#160;❤&#160;</span> 2009—2019</footer></body></html>
