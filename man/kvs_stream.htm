@@ -1,25 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="" />
-    <meta name="author" content="Maxim Sokhatsky" />
-    <title>STREAM</title>
-    <link rel="stylesheet" href="https://synrc.space/synrc.css" />
-</head>
-<body>
-<nav>
-    <a href='https://n2o.dev'>DEV</a>
-    <a href='https://kvs.n2o.space'>KVS</a>
-    <a href='#' style="background:#ededed;">STREAM</a>
-</nav>
-<header>
-    <a href="../index.html"><img src="https://n2o.space/img/Synrc Neo.svg"></a>
+<!DOCTYPE html><html><head><meta charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="" /><meta name="author" content="Maxim Sokhatsky" />
+<title>STREAM</title>
+<link rel="stylesheet" href="https://n2o.dev/blank.css" />
+<link rel="stylesheet" href="https://n2o.dev/zima.css" />
+</head><body><nav>
+    <a href="https://n2o.dev">DEV</a>
+    <a href="https://kvs.n2o.space">KVS</a>
+    <a href="#" style="background:#ededed;">STREAM</a>
+    <a href="https://n2o.dev/deps/kvs/man/ua/kvs_stream.htm">UA</a>
+    <a href="#" style="background:#ededed;">EN</a>
+</nav><header>
+    <a href="../index.html"><img src="https://n2o.space/img/Synrc Neo.svg" /></a>
     <h1>STREAM</h1>
-</header>
-<main>
+</header><main>
     <section>
 
 <h3>INTRO</h3>
@@ -27,31 +21,15 @@
 <p>The STREAM module provides chain accumulation, traversal and persistence.
    </p>
 
-        <p><blockquote><p><ul>
-            <li><b><a href="#writer">writer/1</a></b> &mdash; creates writer cursor to db.</li>
-            <li><b><a href="#reader">reader/1</a></b> &mdash; creates reader cursor to db.</li>
-            <li><b><a href="#save">save/1</a></b> &mdash; stores cursor to db.</li>
-            <li><b><a href="#load">load_reader/1</a></b> &mdash; loads reader cursor.</li>
-            <li><b><a href="#load">load_writer/1</a></b> &mdash; loads writer cursor.</li>
-            <li><b><a href="#top">top/1</a></b> &mdash; returns top of the chain.</li>
-            <li><b><a href="#bot">bot/1</a></b> &mdash; returns bottom of the chain.</li>
-            <li><b><a href="#next">next/1</a></b> &mdash; moves reader next.</li>
-            <li><b><a href="#prev">prev/1</a></b> &mdash; moves reader prev.</li>
-            <li><b><a href="#take">take/1</a></b> &mdash; takes N elements from reader.</li>
-            <li><b><a href="#drop">drop/1</a></b> &mdash; skips N elements from reader.</li>
-            <li><b><a href="#add">add/1</a></b> &mdash; adds element to list.</li>
-            <li><b><a href="#append">append/2</a></b> &mdash; adds element to feed.</li>
-            <li><b><a href="#append">cut/2</a></b> &mdash; cleanup feed by a given timestamp.</li>
-        </ul></p></blockquote></p>
+        <p></p><blockquote><p></p><ul><li><b><a href="#writer">writer/1</a></b> — creates writer cursor to db.</li><li><b><a href="#reader">reader/1</a></b> — creates reader cursor to db.</li><li><b><a href="#save">save/1</a></b> — stores cursor to db.</li><li><b><a href="#load">load_reader/1</a></b> — loads reader cursor.</li><li><b><a href="#load">load_writer/1</a></b> — loads writer cursor.</li><li><b><a href="#top">top/1</a></b> — returns top of the chain.</li><li><b><a href="#bot">bot/1</a></b> — returns bottom of the chain.</li><li><b><a href="#next">next/1</a></b> — moves reader next.</li><li><b><a href="#prev">prev/1</a></b> — moves reader prev.</li><li><b><a href="#take">take/1</a></b> — takes N elements from reader.</li><li><b><a href="#drop">drop/1</a></b> — skips N elements from reader.</li><li><b><a href="#add">add/1</a></b> — adds element to list.</li><li><b><a href="#append">append/2</a></b> — adds element to feed.</li><li><b><a href="#append">cut/2</a></b> — cleanup feed by a given timestamp.</li></ul></blockquote>
 
     <p>
-      You can grab <a style="margin-bottom:30px;"
-       href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a>
+      You can grab <a style="margin-bottom:30px;" href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a>
       and use it in your applications without importing <b>synrc/kvs</b> dependency,
       as this module is self-containing.
       The possible applications are: public and private feeds, FIFO queues,
-   unread messages, chat applications, blockchain etc.<br><br>
-    </section>
+   unread messages, chat applications, blockchain etc.<br /><br />
+    </p></section>
     <section>
 
 <h3>WRITER</h3>
@@ -163,11 +141,6 @@
 </p>
 
     </section>
-</main>
-
-<footer>
-    2005&mdash;2019 &copy; Synrc Research Center
-</footer>
-
-</body>
-</html>
+</main><footer>
+    2005—2019 © Synrc Research Center
+</footer></body></html>

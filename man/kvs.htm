@@ -1,29 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="" />
-    <meta name="author" content="Maxim Sokhatsky" />
-    <title>KVS</title>
-    <link rel="stylesheet" href="https://synrc.space/synrc.css" />
-</head>
-
-<body>
-
-<nav>
-    <a href='https://n2o.dev'>DEV</a>
-    <a href='https://kvx.n2o.space'>KVS</a>
-    <a href='#' style="background:#ededed;">KVS</a>
-</nav>
-
-<header>
-    <a href="../index.html"><img src="https://n2o.space/img/Synrc Neo.svg"></a>
+<!DOCTYPE html><html><head><meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="" /><meta name="author" content="Maxim Sokhatsky" />
+<title>KVS</title>
+<link rel="stylesheet" href="https://n2o.dev/blank.css" />
+<link rel="stylesheet" href="https://n2o.dev/zima.css" />
+</head><body><nav>
+    <a href="https://n2o.dev">DEV</a>
+    <a href="https://kvs.n2o.space">KVS</a>
+    <a href="#" style="background:#ededed;">KVS</a>
+    <a href="https://n2o.dev/deps/kvs/man/ua/kvs.htm">UA</a>
+    <a href="#" style="background:#ededed;">EN</a>
+</nav><header>
+    <a href="../index.html"><img src="https://n2o.space/img/Synrc Neo.svg" /></a>
     <h1>KVS</h1>
-</header>
-
-<main>
+</header><main>
     <section>
 
 <h3>INTRO</h3>
@@ -32,16 +23,7 @@
       It has discovery, data manipulation and retrival features. Under the hood
       it handles configurable run-time backends for each supported database.</p>
 
-        <p><blockquote><p><ul>
-            <li><b><a href="#dir">dir/0</a></b> &mdash; table list.</li>
-            <li><b><a href="#ver">ver/0</a></b> &mdash; KVS version.</li>
-            <li><b><a href="#seq">seq/2</a></b> &mdash; generate new sequence table id.</li>
-            <li><b><a href="#count">count/1</a></b> &mdash; counts records in table.</li>
-            <li><b><a href="#put">put/1</a></b> &mdash; put record using id as a key.</li>
-            <li><b><a href="#get">get/2</a></b> &mdash; get record by key from table.</li>
-            <li><b><a href="#delete">delete/1</a></b> &mdash; delete record from table.</li>
-            <li><b><a href="#index">index/3</a></b> &mdash; search records by field and its value.</li>
-        </ul></p></blockquote></p>
+        <p></p><blockquote><p></p><ul><li><b><a href="#dir">dir/0</a></b> — table list.</li><li><b><a href="#ver">ver/0</a></b> — KVS version.</li><li><b><a href="#seq">seq/2</a></b> — generate new sequence table id.</li><li><b><a href="#count">count/1</a></b> — counts records in table.</li><li><b><a href="#put">put/1</a></b> — put record using id as a key.</li><li><b><a href="#get">get/2</a></b> — get record by key from table.</li><li><b><a href="#delete">delete/1</a></b> — delete record from table.</li><li><b><a href="#index">index/3</a></b> — search records by field and its value.</li></ul></blockquote>
 
  <p>You can change backend by setting application env.
     This behaves well even under the heavy load.</p>
@@ -51,12 +33,12 @@
 
 <h3>SETUP</h3>
 
-<p>In sys.config you should specify kvx backend and list of modules
+<p>In sys.config you should specify kvs backend and list of modules
    containing <b>metainfo/0</b> exported function.</p>
 
 <figure><code>
-  [{kvx, [{dba,store_mnesia},
-          {schema,[kvx,kvx_stream]}]}].
+  [{kvs, [{dba,store_mnesia},
+          {schema,[kvs,kvs_stream]}]}].
 
 </code></figure>
 
@@ -73,7 +55,7 @@
 <p>Display database information.</p>
 
 <figure><code>
- > kvx:dump().
+ > kvs:dump().
                 NAME                     STORAGE TYPE    MEMORY (MB)   ELEMENTS
 
               id_seq                      disc_copies           0.00          0
@@ -141,18 +123,13 @@
     <section>
 
 <p>This module may refer to:
-<a href="kvx_fs.htm"><b>kvx_fs</b></a>,
-<a href="kvx_mnesia.htm"><b>kvx_mnesia</b></a>,
-<a href="kvx_rocks.htm"><b>kvx_rocks</b></a>,
-<a href="kvx_st.htm"><b>kvx_st</b></a>,
-<a href="kvx_stream.htm"><b>kvx_stream</b></a>.
+<a href="kvs_fs.htm"><b>kvs_fs</b></a>,
+<a href="kvs_mnesia.htm"><b>kvs_mnesia</b></a>,
+<a href="kvs_rocks.htm"><b>kvs_rocks</b></a>,
+<a href="kvs_st.htm"><b>kvs_st</b></a>,
+<a href="kvs_stream.htm"><b>kvs_stream</b></a>.
 </p>
     </section>
-</main>
-
-<footer>
-    2005&mdash;2019 &copy; Synrc Research Center
-</footer>
-
-</body>
-</html>
+</main><footer>
+    2005—2019 © Synrc Research Center
+</footer></body></html>
