@@ -9,8 +9,13 @@
     <a href="https://n2o.dev">DEV</a>
     <a href="https://kvs.n2o.space">KVS</a>
     <a href="#" style="background:#ededed;">FS</a>
-    <a href="https://n2o.dev/deps/kvs/man/ua/kvs_fs.htm">UA</a>
-    <a href="#" style="background:#ededed;">EN</a>
+  <div class="dropdown">
+    <a onclick="drop()" class="dropbtn">EN</a>
+    <div id="dropdown" class="dropdown-content">
+      <a href="https://n2o.dev/deps/kvs/man/ua/kvs_fs.htm">UA</a>
+      <a href="#">EN</a>
+    </div>
+  </div>
 </nav><header>
     <a href="../index.html"><img src="https://n2o.space/img/Synrc Neo.svg" /></a>
     <h1>FS</h1>
@@ -29,4 +34,6 @@
     </section>
 </main><footer>
     2005—2019 © Synrc Research Center
-</footer></body></html>
+</footer>
+<script>function drop(){document.getElementById("dropdown").classList.toggle("show");}</script>
+</body></html>
