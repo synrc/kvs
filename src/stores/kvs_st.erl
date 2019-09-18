@@ -89,16 +89,19 @@ add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
 add(#writer{args=M}=C) -> add(M,C).
 
 add(M,#writer{id=Feed,count=S}=C) -> NS=S+1,
+    raw_append(M,Feed),
+    C#writer{cache=M,count=NS}.
+
+raw_append(M,Feed) ->
     rocksdb:put(ref(),
        <<(list_to_binary(lists:concat(["/",kvs_rocks:format(Feed),"/"])))/binary,
-         (term_to_binary(id(M)))/binary>>, term_to_binary(M), [{sync,true}]),
-    C#writer{cache=M,count=NS}.
+         (term_to_binary(id(M)))/binary>>, term_to_binary(M), [{sync,true}]).
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
    Id = element(2,Rec),
    case kvs:get(Feed,Id) of
-        {ok,_}    -> Id;
+        {ok,_}    -> raw_append(Rec,Feed), Id;
         {error,_} -> kvs:save(kvs:add((kvs:writer(Feed))#writer{args=Rec})), Id end.
 
 prev(_,_,_,_,_,_,N,C) when C == N -> C;
