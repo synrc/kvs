@@ -58,7 +58,7 @@ next(I,Key,S,A,X,T,N,C) when size(A) > S ->
                   _ -> T end;
 next(_,_,_,_,_,T,_,_) -> T.
 
-seq(_,_) -> integer_to_list(erlang:system_time(nano_seconds)).
+seq(_,_) -> erlang:integer_to_list(element(2,hd(lists:reverse(erlang:system_info(os_monotonic_time_source))))).
 create_table(_,_) -> [].
 add_table_index(_, _) -> ok.
 dump() -> ok.
