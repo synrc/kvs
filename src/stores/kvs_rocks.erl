@@ -58,7 +58,12 @@ next(I,Key,S,A,X,T,N,C) when size(A) > S ->
                   _ -> T end;
 next(_,_,_,_,_,T,_,_) -> T.
 
-seq(_,_) -> erlang:integer_to_list(element(2,hd(lists:reverse(erlang:system_info(os_monotonic_time_source))))).
+seq(_,_) ->
+  case os:type() of
+       {win32,nt} -> {Mega,Sec,Micro} = erlang:now(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);
+                _ -> erlang:integer_to_list(element(2,hd(lists:reverse(erlang:system_info(os_monotonic_time_source)))))
+  end.
+
 create_table(_,_) -> [].
 add_table_index(_, _) -> ok.
 dump() -> ok.
