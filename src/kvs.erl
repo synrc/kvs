@@ -12,6 +12,7 @@
 -export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2]).
 -export(?API).
 -export(?STREAM).
+-compile(export_all).
 -export([init/1, start/2, stop/1]).
 
 -record('$msg', {id,next,prev,user,msg}).
