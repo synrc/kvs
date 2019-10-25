@@ -28,111 +28,66 @@
       It has discovery, data manipulation and retrival features. Under the hood
       it handles configurable run-time backends for each supported database.</p>
 
-        <p></p><blockquote><p></p><ul><li><b><a href="#dir">dir/0</a></b> — table list.</li><li><b><a href="#ver">ver/0</a></b> — KVS version.</li><li><b><a href="#seq">seq/2</a></b> — generate new sequence table id.</li><li><b><a href="#count">count/1</a></b> — counts records in table.</li><li><b><a href="#put">put/1</a></b> — put record using id as a key.</li><li><b><a href="#get">get/2</a></b> — get record by key from table.</li><li><b><a href="#delete">delete/1</a></b> — delete record from table.</li><li><b><a href="#index">index/3</a></b> — search records by field and its value.</li></ul></blockquote>
+   <blockquote>
+     <ul><li><b><a href="#put">put/1</a></b> — put record using id as a key.</li>
+         <li><b><a href="#get">get/2</a></b> — get record by key from table.</li>
+         <li><b><a href="#delete">delete/1</a></b> — delete record from table.</li>
+         <li><b><a href="#index">index/3</a></b> — search records by field and its value.</li>
+         <li><b><a href="#seq">seq/2</a></b> — generate new sequence table id.</li>
+         <li><b><a href="#count">count/1</a></b> — counts records in table.</li>
+         <li><b><a href="#dir">dir/0</a></b> — table list.</li>
+    </ul></blockquote>
 
  <p>You can change backend by setting application env.
     This behaves well even under the heavy load.</p>
 
     </section>
     <section>
-
-<h3>SETUP</h3>
-
-<p>In sys.config you should specify kvs backend and list of modules
-   containing <b>metainfo/0</b> exported function.</p>
-
-<figure><code>
-  [{kvs, [{dba,store_mnesia},
-          {schema,[kvs,kvs_stream]}]}].
-
-</code></figure>
-
-<h4>dir() -> list({'table',atom()}).</h4>
-
-<p>Returns actual tables.</p>
-
-<h4>ver() -> {'version',string()}.</h4>
-
-<p>Returns backend version.</p>
-
-<h4>dump() -> ok.</h4>
-
-<p>Display database information.</p>
-
-<figure><code>
- > kvs:dump().
-                NAME                     STORAGE TYPE    MEMORY (MB)   ELEMENTS
-
-              id_seq                      disc_copies           0.00          0
-              writer                      disc_copies           0.00          0
-              emails                      disc_copies           0.00          0
-              reader                      disc_copies           0.00          0
-
- Snapshot taken: {{2018,11,10},{5,2,38}}
- ok
-
-</code></figure>
-
-
+        <h3>API</h3>
+        <p>Data operations.</p>
+        <a name="put"></a><h4>put(tuple()) -> ok | {error,any()}.</h4>
+        <p>Stores the record.</p>
+        <a name="get"></a><h4>get(atom(),any()) -> {ok,any()} | {error, not_found | duplicated }.</h4>
+        <p>Retrieves the record.</p>
+        <a name="delete"></a><h4>delete(atom(),any()) -> ok | {error,any()}.</h4>
+        <p>Deletes the data record.</p>
+        <h4><a name="index"></a>index(atom(),any(),any()) -> list(tuple()).</h4>
+        <p>Searches the record by an indexed field and a given value.</p>
     </section>
     <section>
+        <h3>SEQ</h3>
+        <p>Sequence table id_seq stores the counter per thing.
+           The couners are global and atomic in each supported database.
+           Sequences are used to generate unique names for records per distributed table.
+           If names in the table are not unique, e.g.
+           then count function may return a different value than the current sequence.</p>
+        <figure><code> -record(id_seq, { thing = atom(),
+                    id    = 0 :: integer() } ).</code></figure>
 
-<h3>SEQ</h3>
-
-<p>Sequence table id_seq stores the counter per thing.
-   The couners are global and atomic in each supported database.
-   Sequences are used to generate unique names for records per distributed table.
-   If names in the table are not unique, e.g.
-   then count function may return a different value than the current sequence.
-   </p>
-
-<figure><code>
-  -record(id_seq, { thing = atom(),
-                    id    = 0 :: integer() } ).
-
-</code></figure>
-
-<h4>seq(atom(), integer()) -> integer().</h4>
-
-<p>Increments and returns id counter for the particular table.</p>
-
-<h4>count(atom()) -> integer().</h4>
-
-<p>Returns number of records in table.</p>
-
+        <h4><a name="seq"></a>seq(atom(), integer()) -> integer().</h4>
+        <p>Increments and returns id counter for the particular table.</p>
+        <h4><a name="count"></a>count(atom()) -> integer().</h4>
+        <p>Returns number of records in table.</p>
     </section>
     <section>
-
-<h3>BACKEND</h3>
-
-<p>Data operations.
-   </p>
-
-<h4>put(tuple()) -> ok | {error,any()}.</h4>
-
-<p>Storing of data record.</p>
-
-<h4>get(atom(),any()) -> {ok,any()} | {error, not_found | duplicated }.</h4>
-
-<p>Retrieval of data record.</p>
-
-<h4>delete(atom(),any()) -> ok | {error,any()}.</h4>
-
-<p>Deletion of data record.</p>
-
-<h4>index(atom(),any(),any()) -> list(tuple()).</h4>
-
-<p>Search of data record by an indexed field and a given value.</p>
-
+        <h3>SETUP</h3>
+        <p>In <b>sys.config</b> you can specify main kvs backend module as <b>dba</b> parameter
+           and list of modules containing <b>metainfo/0</b> exported function. For the
+           stream operations you can specify the stream kvs backend module <b>dba_st</b> parameter.</p>
+        <figure><code> [{kvs, [{dba,store_mnesia},
+          {dba_st,store_stream},
+          {schema,[kvs,kvs_stream]}]}].</code></figure>
+        <h4>dir() -> list({'table',atom()}).</h4>
+        <p>Returns actual tables.</p>
     </section>
     <section>
 
 <p>This module may refer to:
-<a href="kvs_fs.htm"><b>kvs_fs</b></a>,
-<a href="kvs_mnesia.htm"><b>kvs_mnesia</b></a>,
-<a href="kvs_rocks.htm"><b>kvs_rocks</b></a>,
-<a href="kvs_st.htm"><b>kvs_st</b></a>,
-<a href="kvs_stream.htm"><b>kvs_stream</b></a>.
+<a href="kvs_fs.htm">kvs_fs</a>,
+<a href="kvs_mnesia.htm">kvs_mnesia</a>,
+<a href="kvs_rocks.htm">kvs_rocks</a>,
+<a href="kvs_st.htm">kvs_st</a>,
+<a href="kvs_stream.htm">kvs_stream</a>.
 </p>
     </section>
 </main><footer>
