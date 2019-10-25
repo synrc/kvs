@@ -44,14 +44,14 @@
     </section>
     <section>
         <h3>API</h3>
-        <p>Data operations.</p>
-        <a name="put"></a><h4>put(tuple()) -> ok | {error,any()}.</h4>
-        <p>Stores the record.</p>
-        <a name="get"></a><h4>get(atom(),any()) -> {ok,any()} | {error, not_found | duplicated }.</h4>
-        <p>Retrieves the record.</p>
-        <a name="delete"></a><h4>delete(atom(),any()) -> ok | {error,any()}.</h4>
-        <p>Deletes the data record.</p>
-        <h4><a name="index"></a>index(atom(),any(),any()) -> list(tuple()).</h4>
+        <a name="put"></a><p>Data operations.</p>
+        <h4>put(tuple()) -> ok | {error,any()}.</h4>
+        <a name="get"></a><p>Stores the record.</p>
+        <h4>get(atom(),any()) -> {ok,any()} | {error, not_found | duplicated }.</h4>
+        <a name="delete"></a><p>Retrieves the record.</p>
+        <h4>delete(atom(),any()) -> ok | {error,any()}.</h4>
+        <a name="index"></a><p>Deletes the data record.</p>
+        <h4>index(atom(),any(),any()) -> list(tuple()).</h4>
         <p>Searches the record by an indexed field and a given value.</p>
     </section>
     <section>
@@ -61,12 +61,12 @@
            Sequences are used to generate unique names for records per distributed table.
            If names in the table are not unique, e.g.
            then count function may return a different value than the current sequence.</p>
-        <figure><code> -record(id_seq, { thing = atom(),
+        <a name="seq"></a><figure><code> -record(id_seq, { thing = atom(),
                     id    = 0 :: integer() } ).</code></figure>
 
-        <h4><a name="seq"></a>seq(atom(), integer()) -> integer().</h4>
-        <p>Increments and returns id counter for the particular table.</p>
-        <h4><a name="count"></a>count(atom()) -> integer().</h4>
+        <h4>seq(atom(), integer()) -> integer().</h4>
+        <a name="count"></a><p>Increments and returns id counter for the particular table.</p>
+        <h4>count(atom()) -> integer().</h4>
         <p>Returns number of records in table.</p>
     </section>
     <section>
