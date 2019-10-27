@@ -74,7 +74,7 @@
         <p>In <b>sys.config</b> you can specify main kvs backend module as <b>dba</b> parameter
            and list of modules containing <b>metainfo/0</b> exported function. For the
            stream operations you can specify the stream kvs backend module <b>dba_st</b> parameter.</p>
-        <figure><code> [{kvs, [{dba,store_mnesia},
+        <a name="dir"></a><figure><code> [{kvs, [{dba,store_mnesia},
           {dba_st,store_stream},
           {schema,[kvs,kvs_stream]}]}].</code></figure>
         <h4>dir() -> list({'table',atom()}).</h4>
