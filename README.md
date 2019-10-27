@@ -1,5 +1,7 @@
 KVS: Abstract Chain Database
 ============================
+
+[![Actions Status](https://github.com/synrc/kvs/workflows/mix/badge.svg)](https://github.com/synrc/kvs/actions)
 [![Build Status](https://travis-ci.org/synrc/kvs.svg?branch=master)](https://travis-ci.org/synrc/kvs)
 [![Hex pm](http://img.shields.io/hexpm/v/kvs.svg?style=flat)](https://hex.pm/packages/kvs)
 
