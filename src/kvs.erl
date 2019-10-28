@@ -9,7 +9,7 @@
 -include("cursors.hrl").
 -include("kvs.hrl").
 -include("backend.hrl").
--export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2]).
+-export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,fetch/2,fetch/3]).
 -export(?API).
 -export(?STREAM).
 -compile(export_all).
@@ -138,3 +138,9 @@ check() ->
     C = kvs:feed(Id2),
     ?assertMatch(A,B),
     ?assertMatch(X,length(C)).
+
+fetch(Table, Key) -> fetch(Table, Key, []).
+fetch(Table, Key, Default) -> case get(Table, Key) of
+                                        {ok, Value} -> Value;
+                                        _ -> Default
+                                  end.
