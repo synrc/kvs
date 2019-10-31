@@ -136,8 +136,8 @@ check() ->
     #reader{args=A} = (kvs:take(kvs:reader(Id1)))#reader{args=20},
     B = kvs:feed(Id1),
     C = kvs:feed(Id2),
-    ?assertMatch(A,B),
-    ?assertMatch(X,length(C)).
+    ?assertMatch(A,20),
+    ?assertMatch(X,length(B)).
 
 fetch(Table, Key) -> fetch(Table, Key, []).
 fetch(Table, Key, Default) -> case get(Table, Key) of

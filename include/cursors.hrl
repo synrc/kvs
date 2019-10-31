@@ -9,7 +9,7 @@
 -record(reader, { id    = [] :: [] | integer(),
                   pos   =  0 :: integer(),
                   cache = [] :: [] | integer() | {term(),term()},
-                  args  = [] :: term(),
+                  args  = 0 :: term(),
                   feed  = [] :: term(),
                   dir   =  0 :: 0 | 1 } ).
 -endif.
