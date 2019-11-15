@@ -68,12 +68,6 @@
 	<h4 id="add">add(#writer{}) -> #writer{}.</h4>
 	<p>Adds element to list declared by writer cursor.</p>
 
-	<h4 id="append">append(tuple(), list()) -> term().</h4>
-	<p>Adds record to feed.</p>
-
-	<h4 id="cut">cut(list(), term()) -> #ok{} | #error{}.</h4>
-	<p>Adds record to feed.</p>
-
 	<h4 id="load_writer">load_writer(#writer{}) -> #writer{}.</h4>
 	<p>Loads writer cursor.</p>
 
@@ -128,6 +122,12 @@
 	<h4 id="take">take(#reader{}) -> #reader{}.</h4>
 	<p>Trying to consume N records from stream using its current value and direction.
 	   Returns consumed data. Usually you seek to some position and then consume some data.</p>
+
+	<h4 id="append">append(tuple(), list()) -> term().</h4>
+	<p>Adds record to feed.</p>
+
+	<h4 id="cut">cut(list(), term()) -> #ok{} | #error{}.</h4>
+	<p>Adds record to feed.</p>
 
     </section>
     <section>
