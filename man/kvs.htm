@@ -17,9 +17,11 @@
     </div>
   </div>
 </nav><header>
-    <a href="../index.html"><img src="https://n2o.dev/img/Synrc Neo.svg" /></a>
+    <a href="../index.html"><img src="https://n2o.dev/img/synrc.svg" /></a>
     <h1>KVS</h1>
-</header><main>
+</header>
+<main>
+  <article>
     <section>
 
 <h3>INTRO</h3>
@@ -44,14 +46,14 @@
     </section>
     <section>
         <h3>API</h3>
-        <a name="put"></a><p>Data operations.</p>
-        <h4>put(tuple()) -> ok | {error,any()}.</h4>
-        <a name="get"></a><p>Stores the record.</p>
-        <h4>get(atom(),any()) -> {ok,any()} | {error, not_found | duplicated }.</h4>
-        <a name="delete"></a><p>Retrieves the record.</p>
-        <h4>delete(atom(),any()) -> ok | {error,any()}.</h4>
-        <a name="index"></a><p>Deletes the data record.</p>
-        <h4>index(atom(),any(),any()) -> list(tuple()).</h4>
+        <p>Data operations.</p>
+        <h4 id="put">put(tuple()) -> ok | {error,any()}.</h4>
+        <p>Stores the record.</p>
+        <h4 id="get">get(atom(),any()) -> {ok,any()} | {error, not_found | duplicated }.</h4>
+        <p>Retrieves the record.</p>
+        <h4 id="delete">delete(atom(),any()) -> ok | {error,any()}.</h4>
+        <p>Deletes the data record.</p>
+        <h4 id="index">index(atom(),any(),any()) -> list(tuple()).</h4>
         <p>Searches the record by an indexed field and a given value.</p>
     </section>
     <section>
@@ -61,12 +63,12 @@
            Sequences are used to generate unique names for records per distributed table.
            If names in the table are not unique, e.g.
            then count function may return a different value than the current sequence.</p>
-        <a name="seq"></a><figure><code> -record(id_seq, { thing = atom(),
+        <figure><code> -record(id_seq, { thing = atom(),
                     id    = 0 :: integer() } ).</code></figure>
 
-        <h4>seq(atom(), integer()) -> integer().</h4>
-        <a name="count"></a><p>Increments and returns id counter for the particular table.</p>
-        <h4>count(atom()) -> integer().</h4>
+        <h4 id="seq">seq(atom(), integer()) -> integer().</h4>
+        <p>Increments and returns id counter for the particular table.</p>
+        <h4 id="count">count(atom()) -> integer().</h4>
         <p>Returns number of records in table.</p>
     </section>
     <section>
@@ -74,24 +76,25 @@
         <p>In <b>sys.config</b> you can specify main kvs backend module as <b>dba</b> parameter
            and list of modules containing <b>metainfo/0</b> exported function. For the
            stream operations you can specify the stream kvs backend module <b>dba_st</b> parameter.</p>
-        <a name="dir"></a><figure><code> [{kvs, [{dba,store_mnesia},
+        <figure><code> [{kvs, [{dba,store_mnesia},
           {dba_st,store_stream},
           {schema,[kvs,kvs_stream]}]}].</code></figure>
-        <h4>dir() -> list({'table',atom()}).</h4>
+        <h4 id="dir">dir() -> list({'table',atom()}).</h4>
         <p>Returns actual tables.</p>
     </section>
     <section>
 
-<p>This module may refer to:
-<a href="kvs_fs.htm">kvs_fs</a>,
-<a href="kvs_mnesia.htm">kvs_mnesia</a>,
-<a href="kvs_rocks.htm">kvs_rocks</a>,
-<a href="kvs_st.htm">kvs_st</a>,
-<a href="kvs_stream.htm">kvs_stream</a>.
-</p>
+	<p>This module may refer to:
+	<a href="kvs_fs.htm">kvs_fs</a>,
+	<a href="kvs_mnesia.htm">kvs_mnesia</a>,
+	<a href="kvs_rocks.htm">kvs_rocks</a>,
+	<a href="kvs_st.htm">kvs_st</a>,
+	<a href="kvs_stream.htm">kvs_stream</a>.
+	</p>
     </section>
-</main><footer>
-    2005—2019 © Synrc Research Center
-</footer>
+  </article>
+</main>
+<footer>2005—2019 © Synrc Research Center</footer>
 <script>function drop(){document.getElementById("dropdown").classList.toggle("show");}</script>
-</body></html>
+</body>
+</html>
