@@ -79,8 +79,6 @@ save (C) -> NC = c4(C,[]), kvs:put(NC), NC.
 
 % add
 
-feed(Key) -> (kvs:take((kvs:reader(Key))#reader{args=-1}))#reader.args.
-
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq(tab(M),1)),C);
 add(#writer{args=M}=C) -> add(M,C).
 
@@ -96,6 +94,8 @@ add(M,#writer{cache=V1,count=S}=C) ->
     {ok,V} = kvs:get(tab(V1),id(V1)),
     N=sp(sn(M,[]),id(V)), P=sn(V,id(M)), kvs:put([N,P]),
     C#writer{cache=N,count=S+1}.
+
+remove(Rec,Feed) -> -1.
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),

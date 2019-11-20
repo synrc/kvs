@@ -3,7 +3,7 @@
 -include("kvs.hrl").
 -include("cursors.hrl").
 -define(STREAM, [top/1, bot/1, next/1, prev/1, drop/1, take/1, append/2, cut/2,
-                 load_reader/1, writer/1, reader/1, save/1, add/1, feed/1]).
+                 load_reader/1, writer/1, reader/1, save/1, add/1, remove/2]).
 -spec top(#reader{}) -> #reader{}.
 -spec bot(#reader{}) -> #reader{}.
 -spec next(#reader{}) -> #reader{} | {error,not_found | empty}.
@@ -16,5 +16,6 @@
 -spec save (#reader{} | #writer{}) -> #reader{} | #writer{}.
 -spec add(#writer{}) -> #writer{}.
 -spec append(tuple(),term()) -> any().
+-spec remove(tuple(),term()) -> integer().
 -spec cut(term(),term()) -> {ok,non_neg_integer()} | {error, not_found}.
 -endif.

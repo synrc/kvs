@@ -9,7 +9,7 @@
 -include("cursors.hrl").
 -include("kvs.hrl").
 -include("backend.hrl").
--export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,fetch/2,fetch/3]).
+-export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,fetch/2,fetch/3,feed/2]).
 -export(?API).
 -export(?STREAM).
 -compile(export_all).
@@ -41,7 +41,7 @@ stop()             -> stop_kvs(#kvs{mod=dba()}).
 start()            -> start   (#kvs{mod=dba()}).
 ver()              -> ver(#kvs{mod=dba()}).
 dir()              -> dir     (#kvs{mod=dba()}).
-feed(Key)          -> feed    (Key, #kvs{mod=dba()}).
+feed(Key)          -> feed    (Key, #kvs{mod=dba(),st=kvs_stream()}).
 seq(Table,DX)      -> seq     (Table, DX, #kvs{mod=dba()}).
 
 % stream api
@@ -119,7 +119,12 @@ count(Tab,#kvs{mod=DBA}) -> DBA:count(Tab).
 index(Tab, Key, Value,#kvs{mod=DBA}) -> DBA:index(Tab, Key, Value).
 seq(Tab, Incr,#kvs{mod=DBA}) -> DBA:seq(Tab, Incr).
 dump(#kvs{mod=Mod}) -> Mod:dump().
-feed(Key,#kvs{st=Mod}) -> Mod:feed(Key).
+feed(Key,#kvs{st=Mod}=KVS) -> (Mod:take((kvs:reader(Key))#reader{args=-1}))#reader.args.
+
+remove(Rec,Feed) -> remove(Rec,Feed,#kvs{mod=dba(),st=kvs_stream()}).
+
+remove(Rec,Feed, #kvs{st=Mod}=KVS) -> Mod:remove(Rec,Feed).
+
 head(Key) -> case (kvs:take((kvs:reader(Key))#reader{args=1}))#reader.args of [X] -> X; [] -> [] end.
 head(Key,Count) -> (kvs:take((kvs:reader(Key))#reader{args=Count,dir=1}))#reader.args.
 
@@ -129,15 +134,18 @@ check() ->
     Id1 = {list1,kvs:seq([],[])},
     Id2 = {list2,kvs:seq([],[])},
     X   = 5,
-    _   = kvs:save(kvs:writer(Id1)),
-    _   = kvs:save(kvs:writer(Id2)),
+    W1   = kvs:save(kvs:writer(Id1)),
+    W2   = kvs:save(kvs:writer(Id2)),
     [ kvs:save(kvs:add((kvs:writer(Id1))#writer{args={'$msg',[],[],[],[],[]}})) || _ <- lists:seq(1,X) ],
     [ kvs:append({'$msg',[],[],[],[],[]},Id2) || _ <- lists:seq(1,X) ],
-    #reader{args=A} = (kvs:take(kvs:reader(Id1)))#reader{args=20},
+    R1  = kvs:save(kvs:reader(Id1)),
+    R2  = kvs:save(kvs:reader(Id2)),
+    R = kvs:take((kvs:load_reader(R2#reader.id))#reader{args=20}),
     B = kvs:feed(Id1),
     C = kvs:feed(Id2),
-    ?assertMatch(A,20),
-    ?assertMatch(X,length(B)).
+    ?assertMatch(5,length(R#reader.args)),
+ %   ?assertMatch(X,length(B)),
+ ok.
 
 fetch(Table, Key) -> fetch(Table, Key, []).
 fetch(Table, Key, Default) -> case get(Table, Key) of

@@ -4,7 +4,7 @@
 -include("stream.hrl").
 -include("metainfo.hrl").
 -export(?STREAM).
--export([prev/8]).
+-export([prev/8,ref/0,feed_key/2]).
 
 ref() -> kvs_rocks:ref().
 
@@ -23,13 +23,25 @@ top  (#reader{}=C) -> C.
 bot  (#reader{}=C) -> C.
 
 next (#reader{cache=[]}) -> {error,empty};
-next (#reader{cache=I}=C) ->
+next (#reader{feed=Feed,cache=I}=C) when is_tuple(I) ->
+   Key = feed_key(I,Feed),
+   rocksdb:iterator_move(I, {seek,Key}),
+   case rocksdb:iterator_move(I, next) of
+        {ok,_,Bin} -> C#reader{cache=binary_to_term(Bin,[safe])};
+            {error,Reason} -> {error,Reason} end;
+next (#reader{cache=I}=C) when is_reference(I) ->
    case rocksdb:iterator_move(I, next) of
         {ok,_,Bin} -> C#reader{cache=binary_to_term(Bin,[safe])};
             {error,Reason} -> {error,Reason} end.
 
 prev (#reader{cache=[]}) -> {error,empty};
-prev (#reader{cache=I}=C) ->
+prev (#reader{cache=I,id=Feed}=C) when is_tuple(I) ->
+   Key = feed_key(I,Feed),
+   rocksdb:iterator_move(I, {seek,Key}),
+   case rocksdb:iterator_move(I, prev) of
+        {ok,_,Bin} -> C#reader{cache=binary_to_term(Bin,[safe])};
+            {error,Reason} -> {error,Reason} end;
+prev (#reader{cache=I}=C) when is_reference(I) ->
    case rocksdb:iterator_move(I, prev) of
         {ok,_,Bin} -> C#reader{cache=binary_to_term(Bin,[safe])};
             {error,Reason} -> {error,Reason} end.
@@ -59,11 +71,30 @@ drop(#reader{args=N,feed=Feed,cache=I}=C) when N > 0 ->
            lists:seq(0,N)),
    C#reader{cache=binary_to_term(element(1,element(2,Term)))}.
 
-take(#reader{args=N,feed=Feed,cache=I}=C) ->
+take(#reader{args=N,feed=Feed,cache={T,O}}=C) ->
    Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
-   Fir = rocksdb:iterator_move(I, {seek,Key}),
-   Res = kvs_rocks:next(I,Key,size(Key),Fir,[],[],N,0),
-   C#reader{args=Res}.
+   {ok,I} = rocksdb:iterator(ref(), []),
+   {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
+   Fir = binary_to_term(BERT),
+   Res = kvs_rocks:next(I,Key,size(Key),K,BERT,[],N+1,0),
+   io:format("Fir: ~p~n",[Fir]),
+   io:format("Res: ~p~n",[Res]),
+   case {Res,length(Res) < N + 1} of
+        {[],_}    -> C#reader{args=[],cache=I};
+        {[H|X],false} -> C#reader{args=X,cache={e(1,H),e(2,H)}};
+        {[H|X],true} -> C#reader{args=Res,cache=[]} end;
+
+take(#reader{args=N,feed=Feed,cache=I}=C) when is_reference(I) ->
+   Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
+   {ok,K,BERT} = rocksdb:iterator_move(I, {seek,Key}),
+   Fir = binary_to_term(BERT),
+   Res = kvs_rocks:next(I,Key,size(Key),K,BERT,[],N+1,0),
+   io:format("Fir: ~p~n",[Fir]),
+   io:format("Res: ~p~n",[Res]),
+   case {Res,length(Res) < N + 1} of
+        {[],_}    -> C#reader{args=[],cache=I};
+        {[H|X],false} -> C#reader{args=X,cache={e(1,H),e(2,H)}};
+        {[H|X],true} -> C#reader{args=Res,cache=[]} end.
 
 % new, save, load, up, down, top, bot
 
@@ -75,13 +106,14 @@ load_reader (Id) ->
 writer (Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
 reader (Id) ->
     case kvs:get(writer,Id) of
-         {ok,#writer{}} ->
+         {ok,#writer{id=Feed}} ->
+             Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
              {ok,I} = rocksdb:iterator(ref(), []),
-             #reader{id=kvs:seq([],[]),feed=Id,cache=I};
+             {ok,K,BERT} = rocksdb:iterator_move(I, {seek,Key}),
+             F = binary_to_term(BERT),
+             #reader{id=kvs:seq([],[]),feed=Id,cache={e(1,F),e(2,F)}};
          {error,_} -> #reader{} end.
-save (C) -> NC = c4(C,[]), N2 = c3(NC,[]), kvs:put(N2), N2.
-
-feed(Key) -> kvs:all(Key).
+save (C) -> NC = c4(C,[]), kvs:put(NC), NC.
 
 % add
 
@@ -92,17 +124,26 @@ add(M,#writer{id=Feed,count=S}=C) -> NS=S+1,
     raw_append(M,Feed),
     C#writer{cache=M,count=NS}.
 
-raw_append(M,Feed) ->
-    rocksdb:put(ref(),
-       <<(list_to_binary(lists:concat(["/",kvs_rocks:format(Feed),"/"])))/binary,
-         (term_to_binary(id(M)))/binary>>, term_to_binary(M), [{sync,true}]).
+feed_key(M,Feed) -> <<(list_to_binary(lists:concat(["/",kvs_rocks:format(Feed),"/"])))/binary,(term_to_binary(id(M)))/binary>>.
+raw_append(M,Feed) -> rocksdb:put(ref(), feed_key(M,Feed), term_to_binary(M), [{sync,true}]).
+
+remove(Rec,Feed) ->
+   kvs:ensure(#writer{id=Feed}),
+   W = #writer{count=C} = kvs:writer(Feed),
+   {ok,I} = rocksdb:iterator(ref(), []),
+   case kvs:delete(Feed,id(Rec)) of
+        ok -> Count = C - 1,
+              kvs:save(W#writer{count = Count, cache = I}),
+              Count;
+         _ -> C end.
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
    Id = element(2,Rec),
+   W = kvs:writer(Feed),
    case kvs:get(Feed,Id) of
-        {ok,_}    -> raw_append(Rec,Feed), Id;
-        {error,_} -> kvs:save(kvs:add((kvs:writer(Feed))#writer{args=Rec})), Id end.
+        {ok,_}    -> raw_append(Rec,Feed), kvs:save(W#writer{cache=Rec,count=W#writer.count + 1}), Id;
+        {error,_} -> kvs:save(kvs:add(W#writer{args=Rec,cache=Rec})), Id end.
 
 prev(_,_,_,_,_,_,N,C) when C == N -> C;
 prev(I,Key,S,{ok,A,X},_,T,N,C) -> prev(I,Key,S,A,X,T,N,C);
