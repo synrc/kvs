@@ -8,7 +8,7 @@
                   first = [] :: [] | tuple() } ).
 -record(reader, { id    = [] :: [] | integer(),
                   pos   =  0 :: integer(),
-                  cache = [] :: [] | integer() | {term(),term()},
+                  cache = [] :: [] | integer() | {term(),term()} | reference(),
                   args  = 0 :: term(),
                   feed  = [] :: term(),
                   dir   =  0 :: 0 | 1 } ).

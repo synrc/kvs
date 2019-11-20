@@ -12,7 +12,6 @@ ref() -> kvs_rocks:ref().
 
 se(X,Y,Z)  -> setelement(X,Y,Z).
 e(X,Y)  -> element(X,Y).
-c3(R,V) -> se(#reader.cache, R, V).
 c4(R,V) -> se(#reader.args,  R, V).
 si(M,T) -> se(#it.id, M, T).
 id(T)   -> e(#it.id, T).
