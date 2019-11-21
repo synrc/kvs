@@ -93,7 +93,9 @@ add(M,#writer{cache=V1,count=S}=C) ->
     N=sp(sn(M,[]),id(V)), P=sn(V,id(M)), kvs:put([N,P]),
     C#writer{cache=N,count=S+1}.
 
-remove(Rec,Feed) -> -1.
+remove(Rec,Feed) ->
+   {ok,W=#writer{count=Count}} = kvs:get(writer,Feed),
+   kvs:save(W#writer{count=Count-1}).
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),

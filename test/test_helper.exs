@@ -32,12 +32,33 @@ defmodule BPE.Test do
         assert :lists.reverse(c) == KVS.reader(x2, :args)
 
       _ ->
+        # mnesia doesn't support `all` over feeds (only for tables)
         []
     end
 
     assert KVS.reader(x1, :args) == b
     assert length(KVS.reader(x1, :args)) == length(KVS.reader(x2, :args))
     assert x == length(b)
+  end
+
+  test "sym" do
+    id = {:sym, :kvs.seq([], [])}
+    :kvs.save(:kvs.writer(id))
+    x = 5
+
+    :lists.map(
+      fn
+        z ->
+          :kvs.remove(KVS.writer(z, :cache), id)
+      end, :lists.map(
+        fn _ ->
+          :kvs.save(:kvs.add(KVS.writer(:kvs.writer(id), args: {:"$msg", [], [], [], [], []})))
+        end,
+        :lists.seq(1, x)
+      )
+    )
+
+    {:ok, KVS.writer(count: 0)} = :kvs.get(:writer, id)
   end
 
   test "take" do
@@ -88,6 +109,6 @@ defmodule BPE.Test do
     IO.inspect({cache, t, a})
     assert length(a) == 1
 
-    assert :lists.reverse(z1++z2++z3) == :kvs.feed(id)
+    assert :lists.reverse(z1 ++ z2 ++ z3) == :kvs.feed(id)
   end
 end
