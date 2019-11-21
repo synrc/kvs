@@ -4,8 +4,9 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,next/8,format/1]).
+-export([ref/0,next/8,format/1,bt/1]).
 
+bt(X)      -> binary_to_term(X,[safe]).
 start()    -> ok.
 stop()     -> ok.
 destroy()  -> ok.
@@ -20,11 +21,12 @@ initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].
 ref() -> application:get_env(kvs,rocks_ref,[]).
 index(_,_,_) -> [].
 get(Tab, Key) ->
-    Address = <<(list_to_binary(lists:concat(["/",format(Tab),"/"])))/binary,(term_to_binary(Key))/binary>>,
+    Address = <<(list_to_binary(lists:concat(["/",format(Tab),"/"])))/binary,
+                (term_to_binary(Key))/binary>>,
 %    io:format("KVS.GET.Address: ~s~n",[Address]),
     case rocksdb:get(ref(), Address, []) of
          not_found -> {error,not_found};
-         {ok,Bin} -> {ok,binary_to_term(Bin,[safe])} end.
+         {ok,Bin} -> {ok,bt(Bin)} end.
 
 put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
 put(Record) -> 
@@ -53,8 +55,7 @@ next(I,Key,S,{ok,A,X},_,T,N,C) -> next(I,Key,S,A,X,T,N,C);
 next(_,___,_,{error,_},_,T,_,_) -> T;
 next(I,Key,S,A,X,T,N,C) when size(A) > S ->
      case binary:part(A,0,S) of Key ->
-          next(I,Key,S,rocksdb:iterator_move(I, next), [],
-                       [binary_to_term(X,[safe])|T],N,C+1);
+          next(I,Key,S,rocksdb:iterator_move(I, next), [], [bt(X)|T],N,C+1);
                   _ -> T end;
 next(_,_,_,_,_,T,_,_) -> T.
 

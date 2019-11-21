@@ -9,7 +9,7 @@
 -include("cursors.hrl").
 -include("kvs.hrl").
 -include("backend.hrl").
--export([dump/0,check/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,fetch/2,fetch/3,feed/2]).
+-export([dump/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,fetch/2,fetch/3,feed/2]).
 -export(?API).
 -export(?STREAM).
 -compile(export_all).
@@ -110,7 +110,6 @@ seq_gen() ->
                 {ok, _} -> {Key,skip} end end,
     [ Init(atom_to_list(Name))  || {Name,_Fields} <- cursors() ].
 
-
 put(Records,#kvs{mod=Mod}) when is_list(Records) -> Mod:put(Records);
 put(Record,#kvs{mod=Mod}) -> Mod:put(Record).
 get(RecordName, Key, #kvs{mod=Mod}) -> Mod:get(RecordName, Key).
@@ -120,33 +119,10 @@ index(Tab, Key, Value,#kvs{mod=DBA}) -> DBA:index(Tab, Key, Value).
 seq(Tab, Incr,#kvs{mod=DBA}) -> DBA:seq(Tab, Incr).
 dump(#kvs{mod=Mod}) -> Mod:dump().
 feed(Key,#kvs{st=Mod}=KVS) -> (Mod:take((kvs:reader(Key))#reader{args=-1}))#reader.args.
-
 remove(Rec,Feed) -> remove(Rec,Feed,#kvs{mod=dba(),st=kvs_stream()}).
-
 remove(Rec,Feed, #kvs{st=Mod}=KVS) -> Mod:remove(Rec,Feed).
-
 head(Key) -> case (kvs:take((kvs:reader(Key))#reader{args=1}))#reader.args of [X] -> X; [] -> [] end.
 head(Key,Count) -> (kvs:take((kvs:reader(Key))#reader{args=Count,dir=1}))#reader.args.
-
-% tests
-
-check() ->
-    Id1 = {list1,kvs:seq([],[])},
-    Id2 = {list2,kvs:seq([],[])},
-    X   = 5,
-    W1   = kvs:save(kvs:writer(Id1)),
-    W2   = kvs:save(kvs:writer(Id2)),
-    [ kvs:save(kvs:add((kvs:writer(Id1))#writer{args={'$msg',[],[],[],[],[]}})) || _ <- lists:seq(1,X) ],
-    [ kvs:append({'$msg',[],[],[],[],[]},Id2) || _ <- lists:seq(1,X) ],
-    R1  = kvs:save(kvs:reader(Id1)),
-    R2  = kvs:save(kvs:reader(Id2)),
-    R = kvs:take((kvs:load_reader(R2#reader.id))#reader{args=20}),
-    B = kvs:feed(Id1),
-    C = kvs:feed(Id2),
-    ?assertMatch(5,length(R#reader.args)),
- %   ?assertMatch(X,length(B)),
- ok.
-
 fetch(Table, Key) -> fetch(Table, Key, []).
 fetch(Table, Key, Default) -> case get(Table, Key) of
                                         {ok, Value} -> Value;

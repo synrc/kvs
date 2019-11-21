@@ -54,17 +54,15 @@ w({error,X},_,_)                          -> {error,X}.
 drop(#reader{cache=[]}=C) -> C#reader{args=[]};
 drop(#reader{dir=D,cache=B,args=N,pos=P}=C)  -> drop(acc(D),N,C,C,P,B).
 take(#reader{cache=[]}=C) -> C#reader{args=[]};
-take(#reader{dir=D,cache=B,args=N,pos=P}=C)  -> take(acc(D),N,C,C,[],P,B).
+take(#reader{dir=D,cache=B,args=N,pos=P}=C)  -> take(acc(D),N,C,C,[],P).
 
-take(_,_,{error,_},C2,R,P,B) -> C2#reader{args=lists:flatten(R),pos=P,cache=B};
-take(_,0,_,C2,R,P,B)         -> C2#reader{args=lists:flatten(R),pos=P,cache=B};
-take(A,N,#reader{cache={T,I},pos=P}=C,C2,R,_,_) ->
-    take(A,N-1,?MODULE:A(C),C2,[element(2,kvs:get(T,I))|R],P,{T,I}).
+take(_,_,{error,_},C2,R,P) -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
+take(_,0,_,C2,R,P)         -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
+take(A,N,#reader{cache={T,I},pos=P}=C,C2,R,_) -> take(A,N-1,?MODULE:A(C),C2,[element(2,kvs:get(T,I))|R],P).
 
 drop(_,_,{error,_},C2,P,B)     -> C2#reader{pos=P,cache=B};
 drop(_,0,_,C2,P,B)             -> C2#reader{pos=P,cache=B};
-drop(A,N,#reader{cache=B,pos=P}=C,C2,_,_) ->
-    drop(A,N-1,?MODULE:A(C),C2,P,B).
+drop(A,N,#reader{cache=B,pos=P}=C,C2,_,_) -> drop(A,N-1,?MODULE:A(C),C2,P,B).
 
 % new, save, load, up, down, top, bot
 

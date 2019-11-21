@@ -32,5 +32,4 @@ defmodule KVS do
       end
     end)
   end
-
 end
