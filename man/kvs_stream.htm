@@ -23,25 +23,25 @@
   <article>
     <section>
 	<h3>INTRO</h3>
-	<p>The STREAM module provides chain accumulation, traversal and persistence.</p>
+	<p>The STREAM module provides chain persistence, accumulation and traversal.</p>
         <blockquote>
-          <ul><li><b><a href="#writer">writer/1</a></b> — creates writer cursor to db.</li>
-              <li><b><a href="#reader">reader/1</a></b> — creates reader cursor to db.</li>
+          <ul><li><b><a href="#writer">writer/1</a></b> — creates writer cursor for the chain.</li>
+              <li><b><a href="#reader">reader/1</a></b> — creates reader cursor for the chain.</li>
               <li><b><a href="#save">save/1</a></b> — stores cursor to db.</li>
               <li><b><a href="#load_reader">load_reader/1</a></b> — loads reader cursor.</li>
-              <li><b><a href="#load_writer">load_writer/1</a></b> — loads writer cursor.</li>
-              <li><b><a href="#top">top/1</a></b> — returns top of the chain.</li>
-              <li><b><a href="#bot">bot/1</a></b> — returns bottom of the chain.</li>
+              <li><b><a href="#top">top/1</a></b> — returns top of the reader.</li>
+              <li><b><a href="#bot">bot/1</a></b> — returns bottom of the reader.</li>
               <li><b><a href="#next">next/1</a></b> — moves reader next.</li>
               <li><b><a href="#prev">prev/1</a></b> — moves reader prev.</li>
               <li><b><a href="#take">take/1</a></b> — takes N elements from reader.</li>
               <li><b><a href="#drop">drop/1</a></b> — skips N elements from reader.</li>
-              <li><b><a href="#add">add/1</a></b> — adds element to list.</li>
-              <li><b><a href="#append">append/2</a></b> — adds element to feed.</li>
-              <li><b><a href="#cut">cut/2</a></b> — cleanup feed by a given timestamp.</li>
+              <li><b><a href="#add">add/1</a></b> — adds element to writer.</li>
+              <li><b><a href="#append">append/2</a></b> — appends element to feed.</li>
+              <li><b><a href="#append">remove/2</a></b> — removes element to feed.</li>
+              <li><b><a href="#cut">cut/2</a></b> — cleans-up the feed up to the key.</li>
           </ul></blockquote>
 
-	<p>You can grab <a style="margin-bottom:30px;" href="https://raw.githubusercontent.com/synrc/kvs/master/src/kvs_stream.erl">kvs_stream</a>
+	<p>You can grab <a style="margin-bottom:30px;" href="https://raw.githubusercontent.com/synrc/kvs/master/src/layers/kvs_stream.erl">kvs_stream</a>
 	   and use it in your applications without importing <b>synrc/kvs</b> dependency,
 	   as this module is self-containing.
 	   The possible applications are: public and private feeds, FIFO queues,
@@ -50,34 +50,66 @@
     <section>
 	<h3>WRITER</h3>
 
-	<p>Writer cursor represents append list chain with some cached values.
-	   E.g., chain size, first element of the chain, cached value of
-	   previous written message and field for passing arguments for stream functions, like add.</p>
+	<p>Writer cursor represents unique append list chain with some cached values.
+	   E.g., elements <b>count</b>, <b>first</b> element of the chain, <b>cache</b> field for value of
+	   a previous written message and <b>args</b> field for passing arguments in fixpoint style.</p>
 
-	<figure><code>  -record(writer, { id    = [] :: term(),
+	<figure><code> -record(writer,  { id    = [] :: term(),
                     count =  0 :: integer(),
                     cache = [] :: [] | tuple(),
                     args  = [] :: term(),
                     first = [] :: [] | tuple() } ).</code></figure>
-	<p>For adding data to database you need first create writer cursor,
-	   set the args field with record from metainfo and call save function.</p>
 
-	<h4 id="writer">writer(term()) -> #writer{}.</h4>
-	<p>Creates writer cursor.</p>
+	<p>For adding data to storage you need to create writer cursor,
+	   set the <b>args</b> field with the record to be added:</p>
 
-	<h4 id="add">add(#writer{}) -> #writer{}.</h4>
-	<p>Adds element to list declared by writer cursor.</p>
+	<figure><code> > require KVS
+ KVS
+ > KVS.writer
+ {:writer, [], 0, [], [], []}</code></figure>
 
-	<h4 id="load_writer">load_writer(#writer{}) -> #writer{}.</h4>
-	<p>Loads writer cursor.</p>
+	<h4 id="writer">writer(list()) -> #writer{}.</h4>
+	<p>Creates writer cursor. After this you normally call <b>save</b> function for cursor persistence.
+	   As a parameter provide cursor name as a list.</p>
+
+	<figure><code> > w = :kvs.writer '/cursors/cur1'
+ {:writer, '/cursors/cur1', 0, [], [], []}</code></figure>
 
 	<h4 id="save">save(#writer{}) -> #writer{}.</h4>
 	<p>Flushes writer cursor to database.</p>
+
+	<figure><code> > :kvs.save w
+ {:writer, '/cursors/cur1', 0, [], [], []}
+ > :kvs.get :writer, '/cursors/cur1'
+ {:ok, {:writer, '/cursors/cur1', 0, [], [], []}}</code></figure>
+
+	<h4 id="add">add(#writer{}) -> #writer{}.</h4>
+	<p>Adds element to persistent chain declared by writer cursor.
+	   Adding elements to chain affects <b>count</b> field.</p>
+
+	<figure><code> > :lists.map fn _ ->
+   {:ok,w} = :kvs.get(:writer,'/cursors/cur1')
+   :kvs.save(:kvs.add(KVS.writer(w, args: {:"$msg", [], [], [], [], []})))
+ end, :lists.seq(1, 5)
+ [
+  {:writer, '/cursors/cur1', 1, {:"$msg", '1313544188019000'}, [], []},
+  {:writer, '/cursors/cur1', 2, {:"$msg", '1313544189127000'}, [], []},
+  {:writer, '/cursors/cur1', 3, {:"$msg", '1313544189869000'}, [], []},
+  {:writer, '/cursors/cur1', 4, {:"$msg", '1313544190519000'}, [], []},
+  {:writer, '/cursors/cur1', 5, {:"$msg", '1313544191134000'}, [], []}
+ ]
+ > :kvs.get :writer, '/cursors/cur1'
+ {:ok,
+  {:writer, '/cursors/cur1', 5, {:"$msg", '1314009332950000'}, [], []}}</code></figure>
 
     </section>
     <section>
 
 	<h3>READER</h3>
+	<p>Reader cursor represents a user reading pointer to the writer feed.
+	   Field <b>#reader.feed</b> is linked to <b>#writer.id</b>.
+	   The <b>pos</b> field represents current position in feed.
+	   Field <b>dir</b> is used for changing <b>take</b> and <b>drop</b> directions.</p>
 	<figure><figcaption>Reader Cursor</figcaption>
 	<code>  -record(reader, { id    = [] :: integer(),
                     pos   =  0 :: [] | integer(),
@@ -86,10 +118,10 @@
                     feed  = [] :: term(),
                     dir   =  0 :: 0 | 1 } ).</code></figure>
 
-	<h4 id="reader">reader(integer()) -> #reader{}.</h4>
-	<p>Creates reader cursor.</p>
+	<h4 id="reader">reader(term()) -> #reader{}.</h4>
+	<p>Creates reader cursor for a given writer id.</p>
 
-	<h4 id="load_reader">load_reader(#reader{}) -> #reader{}.</h4>
+	<h4 id="load_reader">load_reader(term()) -> #reader{}.</h4>
 	<p>Loads reader cursor from database.</p>
 
 	<h4 id="save">save(#reader{}) -> #reader{}.</h4>
@@ -126,8 +158,11 @@
 	<h4 id="append">append(tuple(), list()) -> term().</h4>
 	<p>Adds record to feed.</p>
 
+	<h4 id="append">remove(tuple(), list()) -> term().</h4>
+	<p>Removes record from feed.</p>
+
 	<h4 id="cut">cut(list(), term()) -> #ok{} | #error{}.</h4>
-	<p>Adds record to feed.</p>
+	<p>Cuts the feed up to a given key.</p>
 
     </section>
     <section>
