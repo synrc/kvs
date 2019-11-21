@@ -35,7 +35,7 @@ defmodule BPE.Test do
         []
     end
 
-    assert :lists.reverse(KVS.reader(x1, :args)) == :lists.reverse(b)
+    assert KVS.reader(x1, :args) == b
     assert length(KVS.reader(x1, :args)) == length(KVS.reader(x2, :args))
     assert x == length(b)
   end
