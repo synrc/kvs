@@ -60,11 +60,11 @@ defmodule BPE.Test do
     r = :kvs.save(:kvs.reader(id))
     rid = KVS.reader(r, :id)
     p = 2
-    IO.inspect(:kvs.feed(id))
 
     cache = KVS.reader(r, :cache)
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     a = :lists.reverse(KVS.reader(t, :args))
+    z1 = a
     r = :kvs.save(t)
     IO.inspect({cache, r, a})
     assert {:erlang.element(1, hd(a)), :erlang.element(2, hd(a))} == cache
@@ -74,6 +74,7 @@ defmodule BPE.Test do
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     a = :lists.reverse(KVS.reader(t, :args))
     r = :kvs.save(t)
+    z2 = a
     IO.inspect({cache, r, a})
     assert {:erlang.element(1, hd(a)), :erlang.element(2, hd(a))} == cache
     assert length(a) == p
@@ -82,8 +83,11 @@ defmodule BPE.Test do
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     a = :lists.reverse(KVS.reader(t, :args))
     r = :kvs.save(t)
+    z3 = a
     assert {:erlang.element(1, hd(a)), :erlang.element(2, hd(a))} == cache
     IO.inspect({cache, t, a})
     assert length(a) == 1
+
+    assert :lists.reverse(z1++z2++z3) == :kvs.feed(id)
   end
 end
