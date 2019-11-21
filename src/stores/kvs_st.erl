@@ -28,20 +28,12 @@ next (#reader{feed=Feed,cache=I}=C) when is_tuple(I) ->
    rocksdb:iterator_move(I, {seek,Key}),
    case rocksdb:iterator_move(I, next) of
         {ok,_,Bin} -> C#reader{cache=bt(Bin)};
-            {error,Reason} -> {error,Reason} end;
-next (#reader{cache=I}=C) when is_reference(I) ->
-   case rocksdb:iterator_move(I, next) of
-        {ok,_,Bin} -> C#reader{cache=bt(Bin)};
             {error,Reason} -> {error,Reason} end.
 
 prev (#reader{cache=[]}) -> {error,empty};
 prev (#reader{cache=I,id=Feed}=C) when is_tuple(I) ->
    Key = feed_key(I,Feed),
    rocksdb:iterator_move(I, {seek,Key}),
-   case rocksdb:iterator_move(I, prev) of
-        {ok,_,Bin} -> C#reader{cache=bt(Bin)};
-            {error,Reason} -> {error,Reason} end;
-prev (#reader{cache=I}=C) when is_reference(I) ->
    case rocksdb:iterator_move(I, prev) of
         {ok,_,Bin} -> C#reader{cache=bt(Bin)};
             {error,Reason} -> {error,Reason} end.

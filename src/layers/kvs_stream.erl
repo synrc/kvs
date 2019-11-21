@@ -95,7 +95,9 @@ add(M,#writer{cache=V1,count=S}=C) ->
 
 remove(Rec,Feed) ->
    {ok,W=#writer{count=Count}} = kvs:get(writer,Feed),
-   kvs:save(W#writer{count=Count-1}).
+   NC = Count-1,
+   kvs:save(W#writer{count=NC}),
+   NC.
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
