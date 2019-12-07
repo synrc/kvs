@@ -37,6 +37,7 @@ put(Record) ->
 
 format(X) when is_list(X) -> X;
 format(X) when is_atom(X) -> atom_to_list(X);
+format(X) when is_binary(X) -> binary_to_list(X);
 format(X) -> io_lib:format("~p",[X]).
 
 delete(Feed, Id) ->
