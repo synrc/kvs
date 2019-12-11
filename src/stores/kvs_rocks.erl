@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,next/8,format/1,bt/1]).
+-export([ref/0,next/8,prev/8,format/1,bt/1]).
 
 bt(X)      -> binary_to_term(X,[safe]).
 start()    -> ok.

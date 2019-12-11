@@ -73,6 +73,20 @@ defmodule BPE.Test do
     assert KVS.reader(t, :args) == b
   end
 
+  test "take back" do
+    id = {:partial, :kvs.seq([], [])}
+    x = 5
+    :kvs.save(:kvs.writer(id))
+    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(id))
+    t = :kvs.take(KVS.reader(:kvs.load_reader(KVS.reader(r, :id)), args: 5))
+    KVS.reader(id: tid) = :kvs.save(KVS.reader(t, dir: 1))
+    n = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: 5, dir: 1))
+    b = :kvs.feed(id)
+    assert KVS.reader(t, :args) == b
+    assert KVS.reader(n, :args) == :lists.reverse(b)
+  end
+
   test "partial take" do
     id = {:partial, :kvs.seq([], [])}
     x = 5
