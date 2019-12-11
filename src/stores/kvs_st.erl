@@ -81,11 +81,7 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
    case {Res,length(Res) < N + 1 orelse N == -1} of
         {[],_}    -> C#reader{args=[],cache=[]};
         {[H|X],false} -> C#reader{args=X,cache={e(1,H),e(2,H)}};
-        {[H|X],true} -> C#reader{args=Res,cache={e(1,H),e(2,H)}} end;
-
-take(X) ->
-   io:format("ERROR: ~p~n",[X]),
-   X.
+        {[H|X],true} -> C#reader{args=Res,cache={e(1,H),e(2,H)}} end.
 
 % new, save, load, up, down, top, bot
 
