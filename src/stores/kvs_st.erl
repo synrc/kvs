@@ -19,8 +19,8 @@ id(T)   -> e(#it.id, T).
 
 % section: next, prev
 
-top  (#reader{}=C) -> C.
-bot  (#reader{}=C) -> C.
+top  (#reader{}=C) -> C#reader{dir=1}.
+bot  (#reader{}=C) -> C#reader{dir=0}.
 
 next (#reader{cache=[]}) -> {error,empty};
 next (#reader{feed=Feed,cache=I}=C) when is_tuple(I) ->

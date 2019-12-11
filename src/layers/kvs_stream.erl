@@ -44,9 +44,9 @@ p({ok,R},C,P)    -> r(kvs:get(tab(R),ep(R)),C,P);
 p({error,X},_,_) -> {error,X}.
 r({ok,R},C,P)    -> C#reader{cache={tab(R),id(R)},pos=P};
 r({error,X},_,_) -> {error,X}.
-w({ok,#writer{first=[]}},bot,C)           -> C#reader{cache=[],pos=1};
-w({ok,#writer{first=B}},bot,C)            -> C#reader{cache={tab(B),id(B)},pos=1};
-w({ok,#writer{cache=B,count=Size}},top,C) -> C#reader{cache={tab(B),id(B)},pos=Size};
+w({ok,#writer{first=[]}},bot,C)           -> C#reader{cache=[],pos=1,dir=0};
+w({ok,#writer{first=B}},bot,C)            -> C#reader{cache={tab(B),id(B)},pos=1,dir=0};
+w({ok,#writer{cache=B,count=Size}},top,C) -> C#reader{cache={tab(B),id(B)},pos=Size,dir=1};
 w({error,X},_,_)                          -> {error,X}.
 
 % section: take, drop
