@@ -78,10 +78,11 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
    Res = kvs_rocks:prev(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
-   case {Res,length(Res) < N + 1 orelse N == -1} of
-        {[],_}    -> C#reader{args=[],cache=[]};
-        {[H|X],false} -> C#reader{args=X,cache={e(1,H),e(2,H)}};
-        {[H|X],true} -> C#reader{args=Res,cache={e(1,H),e(2,H)}} end.
+   case {lists:reverse(Res),length(Res) < N -1 orelse N == -1, N == length(Res)} of
+        {[],_, _}    -> C#reader{args=[],cache=[]};
+        {[H|_] = ResRev,_, true} -> C#reader{args=ResRev,cache={e(1,H),e(2,H)}};
+        {[H|X],false, _} -> C#reader{args=X,cache={e(1,H),e(2,H)}};
+        {[H|X],true, _} -> C#reader{args=Res,cache={e(1,H),e(2,H)}} end.
 
 % new, save, load, up, down, top, bot
 

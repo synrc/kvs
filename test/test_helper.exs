@@ -84,8 +84,73 @@ defmodule BPE.Test do
     n = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: 5, dir: 1))
     b = :kvs.feed(id)
     assert KVS.reader(t, :args) == b
-    assert KVS.reader(n, :args) == :lists.reverse(b)
+    assert KVS.reader(n, :args) == b
   end
+
+  test "take back2" do
+    id = {:partial, :kvs.seq([], [])}
+    x = 3
+    p = 2
+    :kvs.save(:kvs.writer(id))
+    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(id))
+    t = :kvs.take(KVS.reader(:kvs.load_reader(KVS.reader(r, :id)), args: p))
+    KVS.reader(id: tid) = :kvs.save(KVS.reader(t, dir: 1))
+    n = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p, dir: 1))
+    assert KVS.reader(t, :args) == KVS.reader(n, :args)
+  end
+
+  test "take back3" do
+    id = {:partial, :kvs.seq([], [])}
+    x = 5
+    p =2
+    :kvs.save(:kvs.writer(id))
+    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(id))
+    rid = KVS.reader(r, :id)
+    t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
+    
+    z1 = :lists.reverse(KVS.reader(t1, :args))
+    r = :kvs.save(t1)
+    IO.inspect "------ START"
+    IO.inspect z1
+    IO.inspect "------ z1"
+
+    t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
+    z2 = :lists.reverse(KVS.reader(t2, :args))
+    r = :kvs.save(t2)
+    IO.inspect z2
+    IO.inspect "------ z2"
+
+    t3 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
+    z3 = :lists.reverse(KVS.reader(t3, :args))
+    
+    IO.inspect "------ z3 --"
+    IO.inspect z3
+    IO.inspect "------ z3 --"
+
+    KVS.reader(id: tid) = :kvs.save(KVS.reader(t3, dir: 1))
+
+    n1 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p, dir: 1))
+    nz1 = :lists.reverse(KVS.reader(n1, :args))
+    KVS.reader(id: tid) = :kvs.save(KVS.reader(n1, dir: 1))
+
+    IO.inspect nz1
+    IO.inspect "------ nz2"
+   
+    n2 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p, dir: 1))
+    nz2 = :lists.reverse(KVS.reader(n2, :args))
+    r = :kvs.save(KVS.reader(n2, dir: 1))
+    
+    IO.inspect nz2
+    IO.inspect "---------- nz3"
+
+    b = :kvs.feed(id)
+     IO.inspect b
+    IO.inspect "------ feed"
+   # assert :lists.reverse(z1 ++ z2 ++ z3) == :lists.reverse(nz2 ++ nz1 ++ z3) 
+  end
+
 
   test "partial take" do
     id = {:partial, :kvs.seq([], [])}
