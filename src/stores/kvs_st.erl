@@ -80,9 +80,9 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
    Res = kvs_rocks:prev(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
    case {lists:reverse(Res),length(Res) < N -1 orelse N == -1, N == length(Res)} of
         {[],_, _}    -> C#reader{args=[],cache=[]};
-        {[H|_] = ResRev,_, true} -> C#reader{args=ResRev,cache={e(1,H),e(2,H)}};
-        {[H|X],false, _} -> C#reader{args=X,cache={e(1,H),e(2,H)}};
-        {[H|X],true, _} -> C#reader{args=Res,cache={e(1,H),e(2,H)}} end.
+        {[H|_], _, true} -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)}};
+        {[H|X],false, _} -> [HX|_] = Res, C#reader{args=X,cache={e(1,HX),e(2,HX)}};
+        {[H|X],true, _}  -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)}} end.
 
 % new, save, load, up, down, top, bot
 
