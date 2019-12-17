@@ -74,11 +74,16 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) ->
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
    {KK,Res} = kvs_rocks:next2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
+   RevRes = lists:reverse(Res),
+   Last = case RevRes of
+        [] -> 0;
+        [M|_] when element(2,M) == O -> 'end'
+   end,
    case {Res,length(Res)} of
         {[],_}    -> C#reader{args=[],cache=[]};
-        {[H|_],A} when element(2,KK) == O -> C#reader{args=Res,pos='end',cache={e(1,H),e(2,H)}};
-        {[H|X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)}};
-        {[H|X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)}};
+        {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos='end',cache={e(1,H),e(2,H)}};
+        {[H|X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
+        {[H|X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)},pos=Last};
         {[H|X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
 
 take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]};

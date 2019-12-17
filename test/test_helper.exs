@@ -207,7 +207,7 @@ defmodule BPE.Test do
     r = :kvs.save(t3)
     IO.inspect "t3:"
     IO.inspect t3
-#    assert  z3 == []
+    assert  z3 == []
 
     KVS.reader(id: tid) = :kvs.save(KVS.reader(t3, dir: 1, pos: 0))
     n1 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p))
