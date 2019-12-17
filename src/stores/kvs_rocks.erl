@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,next/8,prev/8,prev2/8,next2/8,format/1,bt/1]).
+-export([ref/0,cut/8,next/8,prev/8,prev2/8,next2/8,format/1,bt/1]).
 
 bt([])     -> [];
 bt(X)      -> binary_to_term(X,[safe]).
@@ -74,6 +74,17 @@ prev2(I,Key,S,A,X,T,N,C) when size(A) > S ->
           _ -> {hd(lists:reverse(T)),T} end;
 prev2(_,Key,_,{ok,A,_},X,T,_,_) -> {bt(X),T};
 prev2(_,Key,_,_,X,T,_,_) -> {bt(X),T}.
+
+cut(_,_,_,_,_,_,N,C) when C == N -> C;
+cut(I,Key,S,{ok,A,X},_,T,N,C) -> prev(I,Key,S,A,X,T,N,C);
+cut(_,___,_,{error,_},_,_,_,C) -> C;
+cut(I,Key,S,A,_,_,N,C) when size(A) > S ->
+     case binary:part(A,0,S) of Key ->
+          rocksdb:delete(ref(), A, []),
+          Next = rocksdb:iterator_move(I, prev),
+          cut(I,Key, S, Next, [], A, N, C + 1);
+                                  _ -> C end;
+cut(_,_,_,_,_,_,_,C) -> C.
 
 seq(_,_) ->
   case os:type() of
