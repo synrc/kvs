@@ -4,8 +4,9 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,next/8,prev/8,format/1,bt/1]).
+-export([ref/0,next/8,prev/8,prev2/8,next2/8,format/1,bt/1]).
 
+bt([])     -> [];
 bt(X)      -> binary_to_term(X,[safe]).
 start()    -> ok.
 stop()     -> ok.
@@ -51,23 +52,28 @@ all(R) -> {ok,I} = rocksdb:iterator(ref(), []),
            First = rocksdb:iterator_move(I, {seek,Key}),
            lists:reverse(next(I,Key,size(Key),First,[],[],-1,0)).
 
-next(_,_,_,_,_,T,N,C) when C == N -> T;
-next(I,Key,S,{ok,A,X},_,T,N,C) -> next(I,Key,S,A,X,T,N,C);
-next(_,___,_,{error,_},_,T,_,_) -> T;
-next(I,Key,S,A,X,T,N,C) when size(A) > S ->
-     case binary:part(A, 0, S) of Key ->
-          next(I, Key, S, rocksdb:iterator_move(I, next), [], [bt(X)|T], N, C + 1);
-          _ -> T end;
-next(_,_,_,_,_,T,_,_) -> T.
+next(I,Key,S,A,X,T,N,C) -> {_,L} = next2(I,Key,S,A,X,T,N,C), L.
+prev(I,Key,S,A,X,T,N,C) -> {_,L} = prev2(I,Key,S,A,X,T,N,C), L.
 
-prev(_,_,_,_,_,T,N,C) when C == N -> T;
-prev(I,Key,S,{ok,A,X},_,T,N,C) -> prev(I,Key,S,A,X,T,N,C);
-prev(_,___,_,{error,_},_,T,_,_) -> T;
-prev(I,Key,S,A,X,T,N,C) when size(A) > S ->
+next2(_,Key,_,_,X,T,N,C) when C == N -> {bt(X),T};
+next2(I,Key,S,{ok,A,X},_,T,N,C) -> next2(I,Key,S,A,X,T,N,C);
+next2(_,Key,_,{error,_},X,T,_,_) -> {bt(X),T};
+next2(I,Key,S,A,X,T,N,C) when size(A) > S ->
      case binary:part(A, 0, S) of Key ->
-          prev(I, Key, S, rocksdb:iterator_move(I, prev), [], [bt(X)|T], N, C + 1);
-          _ -> T end;
-prev(_,_,_,_,_,T,_,_) -> T.
+          next2(I, Key, S, rocksdb:iterator_move(I, next), [], [bt(X)|T], N, C + 1);
+          _ -> {hd(lists:reverse(T)),T} end;
+next2(_,Key,_,{ok,A,_},X,T,_,_) -> {bt(X),T};
+next2(_,Key,_,_,X,T,_,_) -> {bt(X),T}.
+
+prev2(_,Key,_,_,X,T,N,C) when C == N -> {bt(X),T};
+prev2(I,Key,S,{ok,A,X},_,T,N,C) -> prev2(I,Key,S,A,X,T,N,C);
+prev2(_,Key,_,{error,_},X,T,_,_) -> {bt(X),T};
+prev2(I,Key,S,A,X,T,N,C) when size(A) > S ->
+     case binary:part(A, 0, S) of Key ->
+          prev2(I, Key, S, rocksdb:iterator_move(I, prev), [], [bt(X)|T], N, C + 1);
+          _ -> {hd(lists:reverse(T)),T} end;
+prev2(_,Key,_,{ok,A,_},X,T,_,_) -> {bt(X),T};
+prev2(_,Key,_,_,X,T,_,_) -> {bt(X),T}.
 
 seq(_,_) ->
   case os:type() of
