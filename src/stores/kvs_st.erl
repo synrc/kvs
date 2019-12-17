@@ -64,12 +64,13 @@ drop(#reader{args=N,feed=Feed,cache=I}=C) when N > 0 ->
    C#reader{cache=bt(element(1,element(2,Term)))}.
 
 %  1. Курсор всегда выставлен на следущий невычитанный элемент
-%  2. Если после вычитки курсор указывает на последний вычитаный элемент -- это признак конца списка
+%  2. Если после вычитки курсор указывает на недавно вычитаный элемент -- это признак конца списка
 %  3. Если результат вычитки меньше требуемого значения -- это признак конца списка
-%  4. Если курсор установлен в конец списка значит результат вычитки будет равным пустому списку
+%  4. Если курсор установлен в конец списка и уже вернул его последний элемент
+%     то результат вычитки будет равным пустому списку
 
-take(#reader{pos='end',dir=0}=C) -> C#reader{args=[]};
-take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) ->
+take(#reader{pos='end',dir=0}=C) -> C#reader{args=[]}; % 4
+take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) -> % 1
    Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
@@ -81,13 +82,13 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) ->
    end,
    case {Res,length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
-        {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos='end',cache={e(1,H),e(2,H)}};
+        {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos='end',cache={e(1,H),e(2,H)}}; % 2
         {[H|X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
         {[H|X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)}};
         {[H|X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
 
-take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]};
-take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
+take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]}; % 4
+take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
    Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
@@ -99,7 +100,7 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
    end,
    case {lists:reverse(Res),length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
-        {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos='begin',cache={e(1,H),e(2,H)}};
+        {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos='begin',cache={e(1,H),e(2,H)}}; % 2
         {[H|X],A} when A < N - 1 orelse N == -1 -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)},pos=Last};
         {[H|X],A} when A == N -> [HX|TL] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)}};
         {[H|X],_} -> [HX|TL] = Res, C#reader{args=lists:reverse(TL),cache={e(1,HX),e(2,HX)}}
