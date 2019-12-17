@@ -55,13 +55,16 @@ all(R) -> {ok,I} = rocksdb:iterator(ref(), []),
 next(I,Key,S,A,X,T,N,C) -> {_,L} = next2(I,Key,S,A,X,T,N,C), L.
 prev(I,Key,S,A,X,T,N,C) -> {_,L} = prev2(I,Key,S,A,X,T,N,C), L.
 
+shd([]) -> [];
+shd(X) -> hd(X).
+
 next2(_,Key,_,_,X,T,N,C) when C == N -> {bt(X),T};
 next2(I,Key,S,{ok,A,X},_,T,N,C) -> next2(I,Key,S,A,X,T,N,C);
 next2(_,Key,_,{error,_},X,T,_,_) -> {bt(X),T};
 next2(I,Key,S,A,X,T,N,C) when size(A) > S ->
      case binary:part(A, 0, S) of Key ->
           next2(I, Key, S, rocksdb:iterator_move(I, next), [], [bt(X)|T], N, C + 1);
-          _ -> {hd(lists:reverse(T)),T} end;
+          _ -> {shd(lists:reverse(T)),T} end;
 next2(_,Key,_,{ok,A,_},X,T,_,_) -> {bt(X),T};
 next2(_,Key,_,_,X,T,_,_) -> {bt(X),T}.
 
@@ -71,7 +74,7 @@ prev2(_,Key,_,{error,_},X,T,_,_) -> {bt(X),T};
 prev2(I,Key,S,A,X,T,N,C) when size(A) > S ->
      case binary:part(A, 0, S) of Key ->
           prev2(I, Key, S, rocksdb:iterator_move(I, prev), [], [bt(X)|T], N, C + 1);
-          _ -> {hd(lists:reverse(T)),T} end;
+          _ -> {shd(lists:reverse(T)),T} end;
 prev2(_,Key,_,{ok,A,_},X,T,_,_) -> {bt(X),T};
 prev2(_,Key,_,_,X,T,_,_) -> {bt(X),T}.
 
