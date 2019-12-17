@@ -75,10 +75,10 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) -> % 1
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
    {KK,Res} = kvs_rocks:next2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
-   RevRes = lists:reverse(Res),
-   Last = case RevRes of
-        [] -> 0;
-        [M|_] when element(2,M) == O -> 'end'
+   Last = case KK of
+      [] -> 'end';
+      _ when element(2,KK) == O -> 'end';
+      _ -> 0
    end,
    case {Res,length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
@@ -93,10 +93,10 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
    {KK,Res} = kvs_rocks:prev2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
-   RevRes = lists:reverse(Res),
-   Last = case RevRes of
-        [] -> 0;
-        [M|_] when element(2,M) == O -> 'begin'
+   Last = case KK of
+      [] -> 'end';
+      _ when element(2,KK) == O -> 'end';
+      _ -> 0
    end,
    case {lists:reverse(Res),length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
