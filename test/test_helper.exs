@@ -150,7 +150,7 @@ defmodule BPE.Test do
     assert z3 ++ z2 ++ z1 == nz1 ++ nz2 ++ nz3
   end
 
-      test "test bidirectional (new)" do
+  test "test bidirectional (new)" do
     id = {:partial, :kvs.seq([], [])}
     x = 6
     p = 3
@@ -199,6 +199,34 @@ defmodule BPE.Test do
     r = :kvs.save(t4)
 
     assert length(z4) == p
+
+  end
+
+  test "test take_back" do
+    id = {:partial, :kvs.seq([], [])}
+    x = 9
+    p = 3
+    :kvs.save(:kvs.writer(id))
+    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(id))
+    rid = KVS.reader(r, :id)
+
+    #next
+    t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
+    z1 = KVS.reader(t1, :args)
+    r = :kvs.save(t1)
+
+    #next
+    t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
+    z2 = KVS.reader(t2, :args)
+    :kvs.save(KVS.reader(t2, dir: 1, pos: 0))
+
+    #prev
+    n1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
+    nz1 = KVS.reader(n1, :args)
+    :kvs.save n1
+
+    #assert z1 == nz1  
 
   end
 
