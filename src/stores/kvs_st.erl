@@ -74,15 +74,12 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) ->
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
    {KK,Res} = kvs_rocks:next2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
-   RevHd = hd(lists:reverse(Res)),
-   io:format("Res: ~p~n",[{KK,O,element(2,RevHd)}]),
-   case {KK,Res,length(Res)} of
-        {_,[],_}    -> C#reader{args=[],cache=[]};
-        {KK,[H|_],A} when element(2,KK) == O -> C#reader{args=Res,pos='end',cache={e(1,H),e(2,H)}};
-%        {_,[H|_],A} when element(2,H) == O -> C#reader{args=[],pos='end',cache={e(1,H),e(2,H)}};
-        {_,[H|X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)}};
-        {_,[H|X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)}};
-        {_,[H|X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
+   case {Res,length(Res)} of
+        {[],_}    -> C#reader{args=[],cache=[]};
+        {[H|_],A} when element(2,KK) == O -> C#reader{args=Res,pos='end',cache={e(1,H),e(2,H)}};
+        {[H|X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)}};
+        {[H|X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)}};
+        {[H|X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
 
 take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]};
 take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
@@ -90,12 +87,11 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
    {ok,I} = rocksdb:iterator(ref(), []),
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
    {KK,Res} = kvs_rocks:prev2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
-   RevHd = hd(lists:reverse(Res)),
    case {lists:reverse(Res),length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
         {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos='begin',cache={e(1,H),e(2,H)}};
         {[H|X],A} when A < N - 1 orelse N == -1 -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)}};
-        {[H|X],A} when A == N -> [HX|TL] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)}};
+%        {[H|X],A} when A == N -> [HX|TL] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)}};
         {[H|X],A} when A == N + 1 -> [HX|TL] = Res, C#reader{args=lists:reverse(TL),cache={e(1,HX),e(2,HX)}};
         {[H|X],A} -> [HX|_] = Res, C#reader{args=X,cache={e(1,HX),e(2,HX)}}
    end.
