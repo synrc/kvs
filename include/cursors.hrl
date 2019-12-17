@@ -7,7 +7,7 @@
                   args  = [] :: term(),
                   first = [] :: [] | tuple() } ).
 -record(reader, { id    = [] :: [] | integer(),
-                  pos   =  0 :: integer(),
+                  pos   =  0 :: integer() | atom(),
                   cache = [] :: [] | integer() | {term(),term()},
                   args  = 0 :: term(),
                   feed  = [] :: term(),

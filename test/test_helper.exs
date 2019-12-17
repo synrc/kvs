@@ -73,7 +73,7 @@ defmodule BPE.Test do
     assert KVS.reader(t, :args) == b
   end
 
-  test "take back" do
+  test "take back full" do
     id = {:partial, :kvs.seq([], [])}
     x = 5
     :kvs.save(:kvs.writer(id))
@@ -91,7 +91,7 @@ defmodule BPE.Test do
     assert KVS.reader(t, :args) == b
   end
 
-  test "take back2" do
+  test "partial take back" do
     id = {:partial, :kvs.seq([], [])}
     x = 3
     p = 2
@@ -100,11 +100,11 @@ defmodule BPE.Test do
     KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     :kvs.save(KVS.reader(t, dir: 1))
-    n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p + 1, dir: 1))
+    n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p + 1))
     assert KVS.reader(t, :args) == tl(KVS.reader(n, :args))
   end
 
-  test "take back3" do
+  test "partial full bidirectional" do
     id = {:partial, :kvs.seq([], [])}
     x = 5
     p =2
@@ -150,8 +150,7 @@ defmodule BPE.Test do
     assert z3 ++ z2 ++ z1 == nz1 ++ nz2 ++ nz3
   end
 
-
-  test "partial take" do
+  test "partial take forward full" do
     id = {:partial, :kvs.seq([], [])}
     x = 7
     :kvs.save(:kvs.writer(id))
@@ -182,7 +181,7 @@ defmodule BPE.Test do
     assert :lists.reverse(z1) ++ :lists.reverse(z2) ++ z3 == :kvs.all(id)
   end
 
-  test "take back4" do
+  test "take with empy" do
     id = {:partial, :kvs.seq([], [])}
     x = 6
     p = 3
