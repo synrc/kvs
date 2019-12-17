@@ -91,7 +91,7 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) ->
         {[],_} -> C#reader{args=[],cache=[]};
         {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos='begin',cache={e(1,H),e(2,H)}};
         {[H|X],A} when A < N - 1 orelse N == -1 -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)}};
-%        {[H|X],A} when A == N -> [HX|TL] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)}};
+        {[H|X],A} when A == N -> [HX|TL] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)}};
         {[H|X],A} when A == N + 1 -> [HX|TL] = Res, C#reader{args=lists:reverse(TL),cache={e(1,HX),e(2,HX)}};
         {[H|X],A} -> [HX|_] = Res, C#reader{args=X,cache={e(1,HX),e(2,HX)}}
    end.
