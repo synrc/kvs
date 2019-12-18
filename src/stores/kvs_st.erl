@@ -91,7 +91,6 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
    {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
    {KK,Res} = kvs_rocks:prev2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
    Last = last(KK,O,'begin'),
-   io:format("Debug: ~p~n",[{KK,O,Res}]),
    case {lists:reverse(Res),length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
         {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos=Last,cache={e(1,H),e(2,H)}}; % 2
