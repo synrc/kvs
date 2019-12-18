@@ -14,5 +14,5 @@
 -spec modules() -> list(atom()).
 -spec cursors() -> list({atom(),list(atom())}).
 -spec tables() -> list(#table{}).
--spec table(Tab :: atom()) -> #table{}.
+-spec table(Tab :: atom()) -> #table{} | false.
 -endif.
