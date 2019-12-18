@@ -22,6 +22,21 @@ start(_,_) -> supervisor:start_link({local, kvs}, kvs, []).
 stop(_) -> ok.
 test_tabs() -> [ #table{name='$msg', fields=record_info(fields,'$msg')} ].
 
+fields(Table) ->
+  case table(Table) of
+    false -> [];
+    T -> T#table.fields
+  end.
+
+defined(TableRecord, Field) ->
+  FieldsList = fields(element(1, TableRecord)),
+  lists:member(Field, FieldsList).
+
+field(TableRecord, Field) ->
+  FieldsList = fields(element(1, TableRecord)),
+  Index = string:str(FieldsList, [Field]) + 1,
+  element(Index, TableRecord).
+
 % kvs api
 
 dba()              -> application:get_env(kvs,dba,kvs_mnesia).
