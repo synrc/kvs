@@ -272,6 +272,50 @@ defmodule BPE.Test do
     log(:end, "take with empy")
   end
 
+  test "test prev" do
+    log(:st, "test prev")
+    id = {:partial, :kvs.seq([], [])}
+    x = 6
+    p = 3
+    :kvs.save(:kvs.writer(id))
+    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(id))
+    rid = KVS.reader(r, :id)
+    IO.inspect :kvs.all(id)
+
+    t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
+    z1 = KVS.reader(t1, :args)
+    r = :kvs.save(t1)
+    log("next z1:", z1)
+
+    t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
+    z2 = KVS.reader(t2, :args)
+
+    KVS.reader(id: tid) = :kvs.save(KVS.reader(t2, dir: 1))
+    log("next z2:", z2)
+
+    pos = KVS.reader(t2, :pos) 
+    log("___ pos1", pos)  # end
+
+    n1 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p + 1))
+    nz1 = tl(:lists.reverse(KVS.reader(n1, :args)))
+    :kvs.save(KVS.reader(n1, pos: 0))
+    log("prev nz1:", nz1)
+
+    n2 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p))
+    nz2 = KVS.reader(n2, :args)
+    :kvs.save n2
+    log("prev n2:", n2)
+
+    n3 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p))
+    nz3 = KVS.reader(n3, :args)
+    :kvs.save(KVS.reader(n3, dir: 0))
+    log("prev nz3:", nz3)
+ 
+    log(:end, "test prev")
+
+  end
+
   def log(:st, nameTest), do: IO.inspect "________ Start: " <> nameTest
   def log(:end, nameTest), do: IO.inspect "``````` end: " <> nameTest
   def log(key, value) do 
