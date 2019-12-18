@@ -291,15 +291,12 @@ defmodule BPE.Test do
     t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z2 = KVS.reader(t2, :args)
 
-    KVS.reader(id: tid) = :kvs.save(KVS.reader(t2, dir: 1))
+    KVS.reader(id: tid) = :kvs.save(KVS.reader(t2, dir: 1, pos: 0))
     log("next z2:", z2)
-
-    pos = KVS.reader(t2, :pos) 
-    log("___ pos1", pos)  # end
 
     n1 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p + 1))
     nz1 = tl(:lists.reverse(KVS.reader(n1, :args)))
-    :kvs.save(KVS.reader(n1, pos: 0))
+    :kvs.save(n1)
     log("prev nz1:", nz1)
 
     n2 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p))
@@ -307,10 +304,15 @@ defmodule BPE.Test do
     :kvs.save n2
     log("prev n2:", n2)
 
+    #assert length(nz2) == p
+    #assert nz2 == z1
+
     n3 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p))
     nz3 = KVS.reader(n3, :args)
     :kvs.save(KVS.reader(n3, dir: 0))
     log("prev nz3:", nz3)
+
+    #assert nz3 = []
  
     log(:end, "test prev")
 
