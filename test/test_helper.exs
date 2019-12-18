@@ -98,8 +98,10 @@ defmodule BPE.Test do
     :kvs.save(:kvs.writer(id))
     :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
     KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
+
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     :kvs.save(KVS.reader(t, dir: 1))
+
     n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p + 1))
     assert KVS.reader(t, :args) == tl(KVS.reader(n, :args))
   end
@@ -191,7 +193,7 @@ defmodule BPE.Test do
     nz3 = KVS.reader(n3, :args)
     :kvs.save(KVS.reader(n3, dir: 0))
 
-   # assert nz3 == []  
+    assert nz3 == []
 
     #next
     t4 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
@@ -210,23 +212,30 @@ defmodule BPE.Test do
     :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
     r = :kvs.save(:kvs.reader(id))
     rid = KVS.reader(r, :id)
+    IO.inspect :kvs.all(id)
 
     #next
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z1 = KVS.reader(t1, :args)
     r = :kvs.save(t1)
+    IO.inspect "t1:"
+    IO.inspect t1
 
     #next
     t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z2 = KVS.reader(t2, :args)
     :kvs.save(KVS.reader(t2, dir: 1, pos: 0))
+    IO.inspect "t2:"
+    IO.inspect t2
 
     #prev
-    n1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
+    n1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p + 1))
     nz1 = KVS.reader(n1, :args)
     :kvs.save n1
+    IO.inspect "n1:"
+    IO.inspect n1
 
-    #assert z1 == nz1  
+    assert z2 == tl(nz1)
 
   end
 
