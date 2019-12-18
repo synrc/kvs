@@ -22,7 +22,7 @@ start(_,_) -> supervisor:start_link({local, kvs}, kvs, []).
 stop(_) -> ok.
 test_tabs() -> [ #table{name='$msg', fields=record_info(fields,'$msg')} ].
 
-fields(Table) ->
+fields(Table) when is_atom(Table) ->
   case table(Table) of
     false -> [];
     T -> T#table.fields
