@@ -74,6 +74,7 @@ defmodule BPE.Test do
   end
 
   test "take back full" do
+    log(:st, "take back full")
     id = {:partial, :kvs.seq([], [])}
     x = 5
     :kvs.save(:kvs.writer(id))
@@ -81,14 +82,13 @@ defmodule BPE.Test do
     KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 5))
     :kvs.save(KVS.reader(t, dir: 1))
-    IO.inspect "t:"
-    IO.inspect t
+    log("t:", t)
     n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 5))
     b = :kvs.feed(id)
-    IO.inspect "n:"
-    IO.inspect n
+    log("n:", n)
     assert KVS.reader(n, :args) == KVS.reader(t, :args)
     assert KVS.reader(t, :args) == b
+    log(:end, "take back full")
   end
 
   test "partial take back" do
@@ -98,15 +98,14 @@ defmodule BPE.Test do
     :kvs.save(:kvs.writer(id))
     :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
     KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
-
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     :kvs.save(KVS.reader(t, dir: 1))
-
     n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p + 1))
     assert KVS.reader(t, :args) == tl(KVS.reader(n, :args))
   end
 
   test "partial full bidirectional" do
+    log(:st, "partial full bidirectional")
     id = {:partial, :kvs.seq([], [])}
     x = 5
     p =2
@@ -118,41 +117,38 @@ defmodule BPE.Test do
     z1 = KVS.reader(t1, :args)
     IO.inspect :kvs.all(id)
     r = :kvs.save(t1)
-    IO.inspect "t1:"
-    IO.inspect t1
+    log("next t1:", t1)
 
     t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z2 = KVS.reader(t2, :args)
     r = :kvs.save(t2)
-    IO.inspect "t2:"
-    IO.inspect t2
+    log("next t2:", t2)
 
     t3 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z3 = KVS.reader(t3, :args)
     :kvs.save(KVS.reader(t3, dir: 1, pos: 0))
-    IO.inspect "t3:"
-    IO.inspect t3
+    log("next t3:", t3)
 
     n1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     nz1 = KVS.reader(n1, :args)
     :kvs.save n1
-    IO.inspect "n1:"
-    IO.inspect n1
+    log("prev n1:", n1)
 
     n2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     nz2 = KVS.reader(n2, :args)
     :kvs.save n2
-    IO.inspect "n2:"
-    IO.inspect n2
+    log("prev n2:", n2)
 
     n3 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     nz3 = KVS.reader(n3, :args)
-    IO.inspect "n3:"
-    IO.inspect n3
+    log("prev n3:", n3)
+
     assert z3 ++ z2 ++ z1 == nz1 ++ nz2 ++ nz3
+    log(:end, "partial full bidirectional")
   end
 
   test "test bidirectional (new)" do
+    log(:st, "test bidirectional (new)")
     id = {:partial, :kvs.seq([], [])}
     x = 6
     p = 3
@@ -162,99 +158,51 @@ defmodule BPE.Test do
     rid = KVS.reader(r, :id)
     IO.inspect :kvs.all(id)
 
-    #next
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z1 = KVS.reader(t1, :args)
     r = :kvs.save(t1)
-    IO.inspect "t1:"
-    IO.inspect t1
+    log("next t1:", t1)
 
-    #next
     t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z2 = KVS.reader(t2, :args)
     r = :kvs.save(t2)
-    IO.inspect "t2:"
-    IO.inspect t2
+    log("next t2:", t2)
 
-    #next
     t3 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z3 = KVS.reader(t3, :args)
     :kvs.save(KVS.reader(t3, dir: 1, pos: 0))
-    IO.inspect "t3:"
-    IO.inspect t3
+    log("next t3:", t3)
 
     assert z3 == []
 
-    #prev
     n1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     nz1 = KVS.reader(n1, :args)
     :kvs.save n1
-    IO.inspect "n1:"
-    IO.inspect n1
+    log("prev n1:", n1)
 
-    #prev
     n2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     nz2 = KVS.reader(n2, :args)
     :kvs.save n2
-    IO.inspect "n2:"
-    IO.inspect n2
+    log("prev n2:", n2)
 
-    #prev
     n3 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     nz3 = KVS.reader(n3, :args)
     :kvs.save(KVS.reader(n3, dir: 0))
-    IO.inspect "n3:"
-    IO.inspect n3
+    log("prev n3:", n3)
 
     assert nz3 == []
 
-    #next
     t4 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z4 = KVS.reader(t4, :args)
     r = :kvs.save(t4)
-    IO.inspect "t4:"
-    IO.inspect t4
+    log("next t4:", t4)
 
     assert length(z4) == p
-
-  end
-
-  test "test take_back" do
-    id = {:partial, :kvs.seq([], [])}
-    x = 9
-    p = 3
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
-    r = :kvs.save(:kvs.reader(id))
-    rid = KVS.reader(r, :id)
-    IO.inspect :kvs.all(id)
-
-    #next
-    t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
-    z1 = KVS.reader(t1, :args)
-    r = :kvs.save(t1)
-    IO.inspect "t1:"
-    IO.inspect t1
-
-    #next
-    t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
-    z2 = KVS.reader(t2, :args)
-    :kvs.save(KVS.reader(t2, dir: 1, pos: 0))
-    IO.inspect "t2:"
-    IO.inspect t2
-
-    #prev
-    n1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p + 1))
-    nz1 = KVS.reader(n1, :args)
-    :kvs.save n1
-    IO.inspect "n1:"
-    IO.inspect n1
-
-    assert z2 == tl(nz1)
-
+    log(:end, "test bidirectional (new)")
   end
 
   test "partial take forward full" do
+    log(:st, "partial take forward full")
     id = {:partial, :kvs.seq([], [])}
     x = 7
     :kvs.save(:kvs.writer(id))
@@ -266,26 +214,25 @@ defmodule BPE.Test do
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z1 = KVS.reader(t1, :args)
     :kvs.save(t1)
-    IO.inspect "t1:"
-    IO.inspect t1
+    log("next t1:", t1)
 
     t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z2 = KVS.reader(t2, :args)
     :kvs.save(t2)
-    IO.inspect "t2:"
-    IO.inspect t2
+    log("next t2:", t2)
 
     t3 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z3 = KVS.reader(t3, :args)
     :kvs.save(t3)
-    IO.inspect "t3:"
-    IO.inspect t3
-    assert length(z3) == 1
+    log("next t3:", t3)
 
+    assert length(z3) == 1
     assert :lists.reverse(z1) ++ :lists.reverse(z2) ++ z3 == :kvs.all(id)
+    log(:end, "partial take forward full")
   end
 
   test "take with empy" do
+    log(:st, "take with empy")
     id = {:partial, :kvs.seq([], [])}
     x = 6
     p = 3
@@ -297,36 +244,38 @@ defmodule BPE.Test do
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z1 = KVS.reader(t1, :args)
     r = :kvs.save(t1)
-    IO.inspect "t1:"
-    IO.inspect t1
+    log("next t1:", t1)
 
     t2 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z2 = KVS.reader(t2, :args)
     r = :kvs.save(t2)
-    IO.inspect "t2:"
-    IO.inspect t2
+    log("next t2:", t2)
 
     t3 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z3 = KVS.reader(t3, :args)
     r = :kvs.save(t3)
-    IO.inspect "t3:"
-    IO.inspect t3
+    log("next t3:", t3)
     assert  z3 == []
 
     KVS.reader(id: tid) = :kvs.save(KVS.reader(t3, dir: 1, pos: 0))
     n1 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p))
     nz1 = KVS.reader(n1, :args)
     :kvs.save n1
-    IO.inspect "b1:"
-    IO.inspect n1
+    log("prev b1:", n1)
 
     n2 = :kvs.take(KVS.reader(:kvs.load_reader(tid), args: p))
     nz2 = KVS.reader(n2, :args)
     :kvs.save n2
-    IO.inspect "b2:"
-    IO.inspect n2
+    log("prev b2:", n2)
 
     assert z2 ++ z1 == nz1 ++ nz2
+    log(:end, "take with empy")
   end
 
+  def log(:st, nameTest), do: IO.inspect "________ Start: " <> nameTest
+  def log(:end, nameTest), do: IO.inspect "``````` end: " <> nameTest
+  def log(key, value) do 
+    IO.inspect "~~~~~~~~~~ " <> key 
+    IO.inspect value 
+  end
 end
