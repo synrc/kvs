@@ -96,6 +96,7 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
         {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos=Last,cache={e(1,H),e(2,H)}}; % 2
         {[H|X],A} when A < N - 1 orelse N == -1 -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)},pos=Last};
         {[H|X],A} when A == N -> [HX|TL] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)},pos=Last};
+        {[H|X],A} when A =< N andalso Last == 'begin'-> [HX|TL] = Res, C#reader{args=lists:reverse(Res),cache={e(1,HX),e(2,HX)},pos=Last};
         {[H|X],_} -> [HX|TL] = Res, C#reader{args=lists:reverse(TL),cache={e(1,HX),e(2,HX)}} end.
 
 last(KK,O,Atom) ->
