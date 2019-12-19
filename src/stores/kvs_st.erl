@@ -80,7 +80,6 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) -> % 1
         {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos=Last,cache={e(1,H),e(2,H)}}; % 2
         {[H|X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
         {[H|X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)},pos=Last};
-        {[H|X],A} when A =< N andalso Last == 'end'-> [HX|TL] = Res, C#reader{args=lists:reverse(Res),cache={e(1,HX),e(2,HX)},pos=Last};
         {[H|X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
 
 % TODO: try to remove lists:reverse and abstract both branches
