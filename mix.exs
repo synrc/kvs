@@ -4,7 +4,7 @@ defmodule KVS.Mixfile do
   def project do
     [
       app: :kvs,
-      version: "6.12.10",
+      version: "6.12.11",
       description: "KVS Abstract Chain Database",
       package: package(),
       deps: deps()
@@ -17,7 +17,7 @@ defmodule KVS.Mixfile do
 
   defp package do
     [
-      files: ~w(include man etc lib src LICENSE mix.exs README.md rebar.config sys.config),
+      files: ~w(include man config test lib src LICENSE mix.exs README.md rebar.config sys.config),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/synrc/kvs"}
     ]
