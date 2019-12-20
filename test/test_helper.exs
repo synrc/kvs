@@ -313,15 +313,13 @@ defmodule BPE.Test do
     log("prev nz3:", nz3)
 
     assert nz3 = []
- 
+
     log(:end, "test prev")
 
   end
 
-  def log(:st, nameTest), do: IO.inspect "________ Start: " <> nameTest
-  def log(:end, nameTest), do: IO.inspect "``````` end: " <> nameTest
-  def log(key, value) do 
-    IO.inspect "~~~~~~~~~~ " <> key 
-    IO.inspect value 
+  def log(x,cursor) do
+     IO.inspect {x,cursor}
   end
+
 end
