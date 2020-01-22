@@ -17,4 +17,4 @@ jobs:
     - name: Compilation
       run: mix compile
     - name: Tests
-      run: mix test test/test_helper.exs
+#      run: mix test test/test_helper.exs
