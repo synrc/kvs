@@ -37,6 +37,11 @@ field(TableRecord, Field) ->
   Index = string:str(FieldsList, [Field]) + 1,
   element(Index, TableRecord).
 
+setfield(TableRecord, Field, Value) ->
+  FieldsList = fields(element(1, TableRecord)),
+  Index = string:str(FieldsList, [Field]) + 1,
+  setelement(Index, TableRecord, Value).
+
 % kvs api
 
 dba()              -> application:get_env(kvs,dba,kvs_mnesia).
