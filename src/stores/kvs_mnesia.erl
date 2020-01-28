@@ -27,9 +27,7 @@ initialize() ->
     Res.
 
 index(Tab,Key,Value) ->
-    Table = kvs:table(Tab),
-    Index = string:str(Table#table.fields,[Key]),
-    lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Index+1) end)).
+    lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Key) end)).
 
 get(RecordName, Key) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
