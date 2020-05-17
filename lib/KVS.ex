@@ -13,11 +13,11 @@ defmodule KVS do
     Record.defrecord(name, definition)
   end)
 
-  defmacro defrecinfop(name, kv) do
+  defmacro deftable(name, kv) do
     quote bind_quoted: [name: name, kv: kv] do
       fields = Keyword.keys(Record.__fields__(:defrecord, kv))
-      defp record_info(:fields, unquote(name)) do
-        unquote(fields)
+      def unquote(:"#{name}_table")(keys \\ [:id]) do
+        KVS.table(name: unquote(name), fields: unquote(fields), keys: keys)
       end
     end
   end
