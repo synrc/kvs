@@ -68,6 +68,7 @@ drop(#reader{args=N,feed=Feed,cache=I}=C) when N > 0 ->
 %  4. Если курсор установлен в конец списка и уже вернул его последний элемент
 %     то результат вычитки будет равным пустому списку
 
+
 take(#reader{pos='end',dir=0}=C) -> C#reader{args=[]}; % 4
 take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) -> % 1
    Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
@@ -77,15 +78,16 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) -> % 1
    Last = last(KK,O,'end'),
    case {Res,length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
-        {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos=Last,cache={e(1,H),e(2,H)}}; % 2
-        {[H|X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
-        {[H|X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)},pos=Last};
-        {[H|X],A} when A =< N andalso Last == 'end'-> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
-        {[H|X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
+        {[H],  _A} when element(2,KK) == O -> C#reader{args=Res,pos=Last,cache={e(1,H),e(2,H)}}; % 2
+        {[H|_X],A} when A < N + 1 orelse N == -1 -> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
+        {[H| X],A} when A == N -> C#reader{args=[bt(BERT)|X],cache={e(1,H),e(2,H)},pos=Last};
+        {[H|_X],A} when A =< N andalso Last == 'end'-> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
+        {[H| X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
+
+take(#reader{pos=0,dir=0}=C)       -> C#reader{pos='begin',args=[]};
+take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]}; % 4
 
 % TODO: try to remove lists:reverse and abstract both branches
-
-take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]}; % 4
 take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
    Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
    {ok,I} = rocksdb:iterator(ref(), []),
@@ -94,18 +96,19 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
    Last = last(KK,O,'begin'),
    case {lists:reverse(Res),length(Res)} of
         {[],_} -> C#reader{args=[],cache=[]};
-        {[H],A} when element(2,KK) == O -> C#reader{args=Res,pos=Last,cache={e(1,H),e(2,H)}}; % 2
-        {[H|X],A} when A < N - 1 orelse N == -1 -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)},pos=Last};
-        {[H|X],A} when A == N -> [HX|TL] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)},pos=Last};
-        {[H|X],A} when A =< N andalso Last == 'begin'-> [HX|TL] = Res, C#reader{args=lists:reverse(Res),cache={e(1,HX),e(2,HX)},pos=Last};
-        {[H|X],_} -> [HX|TL] = Res, C#reader{args=lists:reverse(TL),cache={e(1,HX),e(2,HX)}} end.
+        {[H],_} when element(2,KK) == O -> C#reader{args=Res,pos=Last,cache={e(1,H),e(2,H)}}; % 2
+        {[_|_],A} when A < N - 1 orelse N == -1 -> [HX|_] = Res, C#reader{args=Res,cache={e(1,HX),e(2,HX)},pos=Last};
+        {[_|X],A} when A == N -> [HX|_] = Res, C#reader{args=[bt(BERT)|X],cache={e(1,HX),e(2,HX)},pos=Last};
+        {[_|_],A} when A =< N andalso Last == 'begin'-> [HX|_] = Res, C#reader{args=lists:reverse(Res),cache={e(1,HX),e(2,HX)},pos=Last};
+        {[_|_],_} -> [HX|TL] = Res, C#reader{args=lists:reverse(TL),cache={e(1,HX),e(2,HX)}} end.
 
 last(KK,O,Atom) ->
    Last = case KK of
       [] -> Atom;
       _ when element(2,KK) == O -> Atom;
       _ -> 0
-   end.
+   end,
+   Last.
 
 % new, save, load, up, down, top, bot
 
@@ -120,7 +123,7 @@ reader(Id) ->
          {ok,#writer{id=Feed}} ->
              Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
              {ok,I} = rocksdb:iterator(ref(), []),
-             {ok,K,BERT} = rocksdb:iterator_move(I, {seek,Key}),
+             {ok,_,BERT} = rocksdb:iterator_move(I, {seek,Key}),
              F = bt(BERT),
              #reader{id=kvs:seq([],[]),feed=Id,cache={e(1,F),e(2,F)}};
          {error,_} -> #reader{} end.
