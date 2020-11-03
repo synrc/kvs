@@ -1,8 +1,14 @@
 language: erlang
 otp_release:
-  - 19.3
-  - 20.0
+  - 20.3.8
+  - 21.3
+  - 22.0
+  - 23.0
+notifications:
+  email:
+    - maxim@synrc.com
 script:
+  - "rebar get-deps clean compile"
   - "curl -fsSL https://raw.github.com/synrc/mad/master/mad > mad"
   - "chmod +x mad"
   - "./mad dep com"
