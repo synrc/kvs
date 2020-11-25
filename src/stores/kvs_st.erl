@@ -22,21 +22,34 @@ id(T) -> e(#it.id, T).
 top(#reader{}=C) -> C#reader{dir=1}.
 bot(#reader{}=C) -> C#reader{dir=0}.
 
+% handle -> seek -> move
+move_it(Key,Dir) -> 
+  Seek = fun(F,{ok,H})            -> {F(H,{seek,Key}),H};
+            (F,{{ok,_,_},H})      -> F(H,Dir);
+            (F,{{ok,_}, H})       -> F(H,Dir);
+            (_,{error,Error})     -> {error,Error};
+            (_,{{error,Error},_}) -> {error,Error};
+            (F,{R,O})             -> F(R,O) end,
+
+  case lists:foldl(Seek, {ref(),[]},
+    [fun rocksdb:iterator/2, fun rocksdb:iterator_move/2, fun rocksdb:iterator_move/2]) of
+    {ok,_,Bin} -> {ok,bt(Bin)};
+    {error, Error} -> {error,Error}
+  end.
+
+% iterator -> specific feed reader
+read_it(C, Feed, Move) ->
+  case Move of 
+    {ok, Bin} when element(1,Bin) =:= Feed -> C#reader{cache=Bin};
+    {ok,_} -> C;
+    {error, Error} -> {error, Error}
+  end.
+
 next(#reader{cache=[]}) -> {error,empty};
-next(#reader{feed=Feed,cache=I}=C) when is_tuple(I) ->
-   Key = feed_key(I,Feed),
-   rocksdb:iterator_move(I, {seek,Key}),
-   case rocksdb:iterator_move(I, next) of
-        {ok,_,Bin} -> C#reader{cache=bt(Bin)};
-            {error,Reason} -> {error,Reason} end.
+next(#reader{feed=Feed,cache=I}=C) when is_tuple(I) -> read_it(C,Feed,move_it(feed_key(I,Feed),next)).
 
 prev(#reader{cache=[]}) -> {error,empty};
-prev(#reader{cache=I,id=Feed}=C) when is_tuple(I) ->
-   Key = feed_key(I,Feed),
-   rocksdb:iterator_move(I, {seek,Key}),
-   case rocksdb:iterator_move(I, prev) of
-        {ok,_,Bin} -> C#reader{cache=bt(Bin)};
-            {error,Reason} -> {error,Reason} end.
+prev(#reader{cache=I,feed=Feed}=C) when is_tuple(I) -> read_it(C,Feed,move_it(feed_key(I,Feed),prev)).
 
 % section: take, drop
 
