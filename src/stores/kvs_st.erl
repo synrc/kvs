@@ -54,20 +54,17 @@ prev(#reader{cache=I,feed=Feed}=C) when is_tuple(I) -> read_it(C,Feed,move_it(fe
 % section: take, drop
 
 drop(#reader{args=N}) when N < 0 -> #reader{};
-drop(#reader{args=N,feed=Feed,cache=I}=C) when N == 0 ->
-   Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
-   case rocksdb:iterator_move(I, {seek,Key}) of
-        {ok,_,Bin} -> C#reader{cache=bt(Bin)};
-                 _ -> C#reader{cache=[]} end;
-
+drop(#reader{args=N}=C) when N == 0 -> C;
 drop(#reader{args=N,feed=Feed,cache=I}=C) when N > 0 ->
    Key   = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
-   First = rocksdb:iterator_move(I, {seek,Key}),
+   {ok, H} = rocksdb:iterator(ref(), []),
+   First = rocksdb:iterator_move(H, {seek,Key}),
+
    Term  = lists:foldl(
     fun (_,{{ok,K,_},{_,X}}) when N > X -> {K,{<<131,106>>,N}};
         (_,{{ok,K,Bin},{A,X}}) when N =< X->
            case binary:part(K,0,size(Key)) of
-                Key -> {rocksdb:iterator_move(I,next),{Bin,X+1}};
+                Key -> {rocksdb:iterator_move(H,next),{Bin,X+1}};
                   _ -> {{error,range},{A,X}} end;
         (_,{_,{_,_}}) -> {[],{<<131,106>>,N}}
      end,
