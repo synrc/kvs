@@ -3,3 +3,7 @@ ebin
 *.gz
 *.dump
 .applist
+rocksdb/
+deps/
+_build/
+*.lock
