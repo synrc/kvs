@@ -10,10 +10,10 @@ bt([])     -> [];
 bt(X)      -> binary_to_term(X).
 start()    -> ok.
 stop()     -> ok.
-destroy()  -> ok.
+destroy()  -> rocksdb:destroy(application:get_env(kvs,rocks_name,"rocksdb")).
 version()  -> {version,"KVS ROCKSDB"}.
 dir()      -> [].
-leave() -> case ref() of [] -> skip; X -> rocksdb:close(X) end.
+leave() -> case ref() of [] -> skip; X -> rocksdb:close(X), application:set_env(kvs,rocks_ref,[]), X end.
 join(_) -> application:start(rocksdb),
            leave(), {ok, Ref} = rocksdb:open(application:get_env(kvs,rocks_name,"rocksdb"), [{create_if_missing, true}]),
            initialize(),

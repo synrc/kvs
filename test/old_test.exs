@@ -4,6 +4,8 @@ defmodule OLD.Test do
   use ExUnit.Case, async: true
   require KVS
 
+  setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs_rocks.destroy() end);:kvs.join())
+
   test "basic" do
     id1 = {:basic, :kvs.seq([], [])}
     id2 = {:basic, :kvs.seq([], [])}
