@@ -10,10 +10,10 @@ bt([])     -> [];
 bt(X)      -> binary_to_term(X).
 start()    -> ok.
 stop()     -> ok.
-destroy()  -> ok.
+destroy()  -> rocksdb:destroy(application:get_env(kvs,rocks_name,"rocksdb"), []).
 version()  -> {version,"KVS ROCKSDB"}.
 dir()      -> [].
-leave() -> case ref() of [] -> skip; X -> rocksdb:close(X) end.
+leave() -> case ref() of [] -> skip; X -> rocksdb:close(X), application:set_env(kvs,rocks_ref,[]), ok end.
 join(_) -> application:start(rocksdb),
            leave(), {ok, Ref} = rocksdb:open(application:get_env(kvs,rocks_name,"rocksdb"), [{create_if_missing, true}]),
            initialize(),
@@ -91,7 +91,7 @@ cut(_,_,_,_,_,_,_,C) -> C.
 
 seq(_,_) ->
   case os:type() of
-       {win32,nt} -> {Mega,Sec,Micro} = erlang:now(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);
+       {win32,nt} -> {Mega,Sec,Micro} = erlang:timestamp(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);
                 _ -> erlang:integer_to_list(element(2,hd(lists:reverse(erlang:system_info(os_monotonic_time_source)))))
   end.
 

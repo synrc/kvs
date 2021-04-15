@@ -54,6 +54,7 @@ join()             -> join    ([],    #kvs{mod=dba()}).
 dump()             -> dump    (#kvs{mod=dba()}).
 join(Node)         -> join    (Node,  #kvs{mod=dba()}).
 leave()            -> leave   (#kvs{mod=dba()}).
+destroy()          -> destroy (#kvs{mod=dba()}).
 count(Table)       -> count   (Table, #kvs{mod=dba()}).
 put(Record)        -> ?MODULE:put     (Record, #kvs{mod=dba()}).
 fold(Fun,Acc,T,S,C,D) -> fold (Fun,Acc,T,S,C,D, #kvs{mod=dba()}).
@@ -100,6 +101,7 @@ start(#kvs{mod=DBA}) -> DBA:start().
 stop_kvs(#kvs{mod=DBA}) -> DBA:stop().
 join(Node,#kvs{mod=DBA}) -> DBA:join(Node).
 leave(#kvs{mod=DBA}) -> DBA:leave().
+destroy(#kvs{mod=DBA}) -> DBA:destroy().
 ver(#kvs{mod=DBA}) -> DBA:version().
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
 table(Name) when is_atom(Name) -> lists:keyfind(Name,#table.name,tables());
@@ -138,9 +140,9 @@ count(Tab,#kvs{mod=DBA}) -> DBA:count(Tab).
 index(Tab, Key, Value,#kvs{mod=DBA}) -> DBA:index(Tab, Key, Value).
 seq(Tab, Incr,#kvs{mod=DBA}) -> DBA:seq(Tab, Incr).
 dump(#kvs{mod=Mod}) -> Mod:dump().
-feed(Key,#kvs{st=Mod}=KVS) -> (Mod:take((kvs:reader(Key))#reader{args=-1}))#reader.args.
+feed(Tab,#kvs{st=Mod}) -> Mod:feed(Tab).
 remove(Rec,Feed) -> remove(Rec,Feed,#kvs{mod=dba(),st=kvs_stream()}).
-remove(Rec,Feed, #kvs{st=Mod}=KVS) -> Mod:remove(Rec,Feed).
+remove(Rec,Feed, #kvs{st=Mod}) -> Mod:remove(Rec,Feed).
 head(Key) -> case (kvs:take((kvs:reader(Key))#reader{args=1}))#reader.args of [X] -> X; [] -> [] end.
 head(Key,Count) -> (kvs:take((kvs:reader(Key))#reader{args=Count,dir=1}))#reader.args.
 fetch(Table, Key) -> fetch(Table, Key, []).

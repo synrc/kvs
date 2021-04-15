@@ -9,6 +9,7 @@
 start()    -> mnesia:start().
 stop()     -> mnesia:stop().
 destroy()  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
+leave()    -> ok.
 version()  -> {version,"KVS MNESIA"}.
 dir()      -> [{table,T}||T<-mnesia:system_info(local_tables)].
 join([])   -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies), initialize();
@@ -41,7 +42,7 @@ count(RecordName) -> mnesia:table_info(RecordName, size).
 all(R) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end)).
 seq([],[]) ->
   case os:type() of
-       {win32,nt} -> {Mega,Sec,Micro} = erlang:now(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);
+       {win32,nt} -> {Mega,Sec,Micro} = erlang:timestamp(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);
                 _ -> erlang:integer_to_list(element(2,hd(lists:reverse(erlang:system_info(os_monotonic_time_source)))))
   end;
 seq(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
