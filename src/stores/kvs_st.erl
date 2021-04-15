@@ -18,6 +18,7 @@ si(M,T) -> se(#it.id, M, T).
 id(T) -> e(#it.id, T).
 
 % section: next, prev
+feed(Feed) -> take((reader(Feed))#reader{args=-1}).
 
 top(#reader{}=C) -> C#reader{dir=1}.
 bot(#reader{}=C) -> C#reader{dir=0}.
