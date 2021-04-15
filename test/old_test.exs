@@ -4,7 +4,7 @@ defmodule OLD.Test do
   use ExUnit.Case, async: true
   require KVS
 
-  setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs_rocks.destroy() end);:kvs.join())
+  setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
 
   test "basic" do
     id1 = {:basic, :kvs.seq([], [])}
@@ -25,7 +25,7 @@ defmodule OLD.Test do
     r2 = :kvs.save(:kvs.reader(id2))
     x1 = :kvs.take(KVS.reader(:kvs.load_reader(KVS.reader(r1, :id)), args: 20))
     x2 = :kvs.take(KVS.reader(:kvs.load_reader(KVS.reader(r2, :id)), args: 20))
-    b = :kvs.feed(id1)
+    b = KVS.reader(:kvs.feed(id1), :args)
 
     case :application.get_env(:kvs, :dba_st, :kvs_st) do
       :kvs_st ->
@@ -38,6 +38,7 @@ defmodule OLD.Test do
     end
 
     assert KVS.reader(x1, :args) == b
+
     assert length(KVS.reader(x1, :args)) == length(KVS.reader(x2, :args))
     assert x == length(b)
   end
@@ -69,8 +70,8 @@ defmodule OLD.Test do
     :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
     KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 20))
-    b = :kvs.feed(id)
-    # mnesia
+    b = KVS.reader(:kvs.feed(id), :args)
+    #: mnesia
     assert KVS.reader(t, :args) == b
   end
 
@@ -85,7 +86,7 @@ defmodule OLD.Test do
     :kvs.save(KVS.reader(t, dir: 1))
     log("t:", t)
     n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 5))
-    b = :kvs.feed(id)
+    b = KVS.reader(:kvs.feed(id), :args)
     log("n:", n)
     assert KVS.reader(n, :args) == KVS.reader(t, :args)
     assert KVS.reader(t, :args) == b

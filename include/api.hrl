@@ -1,6 +1,6 @@
 -ifndef(API_HRL).
 -define(API_HRL, true).
--define(API,[start/0,stop/0,leave/0,leave/1,
+-define(API,[start/0,stop/0,leave/0,leave/1,destroy/0,
              join/0,join/1,modules/0,cursors/0,get/2,get/3,put/1,put/2,index/3,delete/2,
              table/1,tables/0,dir/0,initialize/2,seq/2,all/1,all/2,count/1,ver/0]).
 -include("metainfo.hrl").
@@ -9,6 +9,7 @@
 -spec dir() -> list({'table',atom()}).
 -spec ver() -> {'version',string()}.
 -spec leave() -> ok.
+-spec destroy() -> ok.
 -spec join() -> ok | {error,any()}.
 -spec join(Node :: string()) -> [{atom(),any()}].
 -spec modules() -> list(atom()).

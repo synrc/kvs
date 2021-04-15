@@ -54,6 +54,7 @@ join()             -> join    ([],    #kvs{mod=dba()}).
 dump()             -> dump    (#kvs{mod=dba()}).
 join(Node)         -> join    (Node,  #kvs{mod=dba()}).
 leave()            -> leave   (#kvs{mod=dba()}).
+destroy()          -> destroy (#kvs{mod=dba()}).
 count(Table)       -> count   (Table, #kvs{mod=dba()}).
 put(Record)        -> ?MODULE:put     (Record, #kvs{mod=dba()}).
 fold(Fun,Acc,T,S,C,D) -> fold (Fun,Acc,T,S,C,D, #kvs{mod=dba()}).
@@ -100,6 +101,7 @@ start(#kvs{mod=DBA}) -> DBA:start().
 stop_kvs(#kvs{mod=DBA}) -> DBA:stop().
 join(Node,#kvs{mod=DBA}) -> DBA:join(Node).
 leave(#kvs{mod=DBA}) -> DBA:leave().
+destroy(#kvs{mod=DBA}) -> DBA:destroy().
 ver(#kvs{mod=DBA}) -> DBA:version().
 tables() -> lists:flatten([ (M:metainfo())#schema.tables || M <- modules() ]).
 table(Name) when is_atom(Name) -> lists:keyfind(Name,#table.name,tables());
