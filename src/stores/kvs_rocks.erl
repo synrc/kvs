@@ -5,7 +5,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
 -export([ref/0,cut/8,next/8,prev/8,prev2/8,next2/8,bt/1,key/2,key/1]).
--export([seek_it/1]).
+-export([seek_it/1, move_it/3]).
 
 e(X,Y)     -> element(X,Y).
 bt([])     -> [];
@@ -62,6 +62,7 @@ index(_,_,_) -> [].
 
 close_it(H) -> try rocksdb:iterator_close(H) catch error:badarg -> ok end.
 seek_it(K) -> o(K,K,ok,[fun rocksdb:iterator/2,fun rocksdb:iterator_move/2]).
+move_it(K,FK,Dir) -> o(K,FK,Dir,[fun rocksdb:iterator/2,fun rocksdb:iterator_move/2,fun rocksdb:iterator_move/2]).
 
 get(Tab, Key) ->
     case rocksdb:get(ref(), key(Tab,Key), []) of
