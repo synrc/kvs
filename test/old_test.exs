@@ -7,8 +7,8 @@ defmodule OLD.Test do
   setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
 
   test "basic" do
-    id1 = {:basic, :kvs.seq([], [])}
-    id2 = {:basic, :kvs.seq([], [])}
+    id1 = "/basic/one"
+    id2 = "/basic/two"
     x = 5
     :kvs.save(:kvs.writer(id1))
     :kvs.save(:kvs.writer(id2))
@@ -29,9 +29,8 @@ defmodule OLD.Test do
 
     case :application.get_env(:kvs, :dba_st, :kvs_st) do
       :kvs_st ->
-        c = :kvs.all(id2)
+        c = :kvs.all("/basic/two")
         assert :lists.reverse(c) == KVS.reader(x2, :args)
-
       _ ->
         # mnesia doesn't support `all` over feeds (only for tables)
         []
@@ -64,29 +63,29 @@ defmodule OLD.Test do
   end
 
   test "take" do
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 5
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
-    KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, feed) end, :lists.seq(1, x))
+    KVS.reader(id: rid) = :kvs.save(:kvs.reader(feed))
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 20))
-    b = KVS.reader(:kvs.feed(id), :args)
+    b = KVS.reader(:kvs.feed(feed), :args)
     #: mnesia
     assert KVS.reader(t, :args) == b
   end
 
   test "take back full" do
     log(:st, "take back full")
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 5
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
-    KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, feed) end, :lists.seq(1, x))
+    KVS.reader(id: rid) = :kvs.save(:kvs.reader(feed))
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 5))
     :kvs.save(KVS.reader(t, dir: 1))
     log("t:", t)
     n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 5))
-    b = KVS.reader(:kvs.feed(id), :args)
+    b = KVS.reader(:kvs.feed(feed), :args)
     log("n:", n)
     assert KVS.reader(n, :args) == KVS.reader(t, :args)
     assert KVS.reader(t, :args) == b
@@ -94,12 +93,12 @@ defmodule OLD.Test do
   end
 
   test "partial take back" do
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 3
     p = 2
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
-    KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, feed) end, :lists.seq(1, x))
+    KVS.reader(id: rid) = :kvs.save(:kvs.reader(feed))
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     :kvs.save(KVS.reader(t, dir: 1))
     n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p + 1))
@@ -108,16 +107,16 @@ defmodule OLD.Test do
 
   test "partial full bidirectional" do
     log(:st, "partial full bidirectional")
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 5
     p =2
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
-    r = :kvs.save(:kvs.reader(id))
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, feed) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(feed))
     rid = KVS.reader(r, :id)
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z1 = KVS.reader(t1, :args)
-    IO.inspect :kvs.all(id)
+    IO.inspect :kvs.all(feed)
     r = :kvs.save(t1)
     log("next t1:", t1)
 
@@ -151,14 +150,14 @@ defmodule OLD.Test do
 
   test "test bidirectional (new)" do
     log(:st, "test bidirectional (new)")
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 6
     p = 3
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
-    r = :kvs.save(:kvs.reader(id))
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, feed) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(feed))
     rid = KVS.reader(r, :id)
-    IO.inspect :kvs.all(id)
+    IO.inspect :kvs.all(feed)
 
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z1 = KVS.reader(t1, :args)
@@ -205,13 +204,13 @@ defmodule OLD.Test do
 
   test "partial take forward full" do
     log(:st, "partial take forward full")
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 7
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, id) end, :lists.seq(1, x))
-    KVS.reader(id: rid) = :kvs.save(:kvs.reader(id))
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, feed) end, :lists.seq(1, x))
+    KVS.reader(id: rid) = :kvs.save(:kvs.reader(feed))
     p = 3
-    IO.inspect :kvs.all id
+    IO.inspect :kvs.all(feed)
 
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p))
     z1 = KVS.reader(t1, :args)
@@ -229,19 +228,19 @@ defmodule OLD.Test do
     log("next t3:", t3)
 
     assert length(z3) == 1
-    assert :lists.reverse(z1) ++ :lists.reverse(z2) ++ z3 == :kvs.all(id)
+    assert :lists.reverse(z1) ++ :lists.reverse(z2) ++ z3 == :kvs.all(:partial)
     log(:end, "partial take forward full")
   end
 
   test "take with empy" do
     log(:st, "take with empy")
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 6
     p = 3
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
-    r = :kvs.save(:kvs.reader(id))
-    IO.inspect :kvs.all(id)
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, feed) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(feed))
+    IO.inspect :kvs.all(feed)
     rid = KVS.reader(r, :id)
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z1 = KVS.reader(t1, :args)
@@ -276,14 +275,14 @@ defmodule OLD.Test do
 
   test "test prev" do
     log(:st, "test prev")
-    id = {:partial, :kvs.seq([], [])}
+    feed = :partial
     x = 6
     p = 3
-    :kvs.save(:kvs.writer(id))
-    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, id) end, :lists.seq(1, x))
-    r = :kvs.save(:kvs.reader(id))
+    :kvs.save(:kvs.writer(feed))
+    :lists.map(fn _ -> :kvs.append({:"$msg", :kvs.seq([],[]), [], [], [], []}, feed) end, :lists.seq(1, x))
+    r = :kvs.save(:kvs.reader(feed))
     rid = KVS.reader(r, :id)
-    IO.inspect :kvs.all(id)
+    IO.inspect :kvs.all(feed)
 
     t1 = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: p, dir: 0))
     z1 = KVS.reader(t1, :args)

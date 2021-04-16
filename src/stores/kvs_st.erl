@@ -4,10 +4,7 @@
 -include("stream.hrl").
 -include("metainfo.hrl").
 -export(?STREAM).
--export([ref/0,feed_key/2]).
-
-bt(X) -> kvs_rocks:bt(X).
-ref() -> kvs_rocks:ref().
+-import(kvs_rocks, [key/2, key/1, bt/1, ref/0]).
 
 % section: kvs_stream prelude
 
@@ -47,17 +44,17 @@ read_it(C, Feed, Move) ->
   end.
 
 next(#reader{cache=[]}) -> {error,empty};
-next(#reader{feed=Feed,cache=I}=C) when is_tuple(I) -> read_it(C,Feed,move_it(feed_key(I,Feed),next)).
+next(#reader{feed=Feed,cache=I}=C) when is_tuple(I) -> read_it(C,Feed,move_it(key(Feed,I),next)).
 
 prev(#reader{cache=[]}) -> {error,empty};
-prev(#reader{cache=I,feed=Feed}=C) when is_tuple(I) -> read_it(C,Feed,move_it(feed_key(I,Feed),prev)).
+prev(#reader{cache=I,feed=Feed}=C) when is_tuple(I) -> read_it(C,Feed,move_it(key(Feed,I),prev)).
 
 % section: take, drop
 
 drop(#reader{args=N}) when N < 0 -> #reader{};
 drop(#reader{args=N}=C) when N == 0 -> C;
 drop(#reader{args=N,feed=Feed,cache=I}=C) when N > 0 ->
-   Key   = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
+   Key = key(Feed),
    {ok, H} = rocksdb:iterator(ref(), []),
    First = rocksdb:iterator_move(H, {seek,Key}),
 
@@ -82,9 +79,9 @@ drop(#reader{args=N,feed=Feed,cache=I}=C) when N > 0 ->
 
 take(#reader{pos='end',dir=0}=C) -> C#reader{args=[]}; % 4
 take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) -> % 1
-   Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
+   Key = key(Feed),
    {ok,I} = rocksdb:iterator(ref(), []),
-   {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
+   {ok,K,BERT} = rocksdb:iterator_move(I, {seek,key(Feed,{T,O})}),
    {KK,Res} = kvs_rocks:next2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
    Last = last(KK,O,'end'),
    case {Res,length(Res)} of
@@ -100,9 +97,9 @@ take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]}; % 4
 
 % TODO: try to remove lists:reverse and abstract both branches
 take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
-   Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
+   Key = key(Feed),
    {ok,I} = rocksdb:iterator(ref(), []),
-   {ok,K,BERT} = rocksdb:iterator_move(I, {seek,feed_key({T,O},Feed)}),
+   {ok,K,BERT} = rocksdb:iterator_move(I, {seek,key(Feed,{T,O})}),
    {KK,Res} = kvs_rocks:prev2(I,Key,size(Key),K,BERT,[],case N of -1 -> -1; J -> J + 1 end,0),
    Last = last(KK,O,'begin'),
    case {lists:reverse(Res),length(Res)} of
@@ -132,7 +129,7 @@ writer(Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id
 reader(Id) ->
     case kvs:get(writer,Id) of
          {ok,#writer{id=Feed}} ->
-             Key = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed)])),
+             Key = key(Feed),
              {ok,I} = rocksdb:iterator(ref(), []),
              {ok,_,BERT} = rocksdb:iterator_move(I, {seek,Key}),
              F = bt(BERT),
@@ -147,9 +144,6 @@ add(#writer{args=M}=C) -> add(M,C).
 
 add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache=M,count=NS}.
 
-feed_key(M,Feed) -> <<(list_to_binary(lists:concat(["/",kvs_rocks:format(Feed),"/"])))/binary,
-                      (term_to_binary(id(M)))/binary>>.
-
 remove(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
    W = #writer{count=C} = kvs:writer(Feed),
@@ -161,19 +155,19 @@ remove(Rec,Feed) ->
          _ -> C end.
 
 raw_append(M,Feed) ->
-   rocksdb:put(ref(), feed_key(M,Feed), term_to_binary(M), [{sync,true}]).
+   rocksdb:put(ref(), key(Feed,M), term_to_binary(M), [{sync,true}]).
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
-   Id = element(2,Rec),
+   Id = e(2,Rec),
    W = kvs:writer(Feed),
    case kvs:get(Feed,Id) of
         {ok,_} -> raw_append(Rec,Feed), kvs:save(W#writer{cache=Rec,count=W#writer.count + 1}), Id;
         {error,_} -> kvs:save(kvs:add(W#writer{args=Rec,cache=Rec})), Id end.
 
 cut(Feed,Id) ->
-    Key    = list_to_binary(lists:concat(["/",kvs_rocks:format(Feed),"/"])),
-    A      = <<Key/binary,(term_to_binary(Id))/binary>>,
+    Key    = key(Feed),
+    A      = key(Feed,Id),
     {ok,I} = rocksdb:iterator(ref(), []),
     case rocksdb:iterator_move(I, {seek,A}) of
          {ok,A,X} -> {ok,kvs_rocks:cut(I,Key,size(Key),A,X,[],-1,0)};

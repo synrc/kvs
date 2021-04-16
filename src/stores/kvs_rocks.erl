@@ -4,10 +4,22 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,cut/8,next/8,prev/8,prev2/8,next2/8,format/1,bt/1]).
+-export([ref/0,cut/8,next/8,prev/8,prev2/8,next2/8,bt/1,key/2,key/1]).
 
+e(X,Y)     -> element(X,Y).
 bt([])     -> [];
 bt(X)      -> binary_to_term(X).
+tb([])     -> [];
+tb(T) when is_list(T) -> list_to_binary(T);
+tb(T) when is_atom(T) -> atom_to_binary(T);
+tb(T) when is_binary(T) -> T;
+tb(T)      -> term_to_binary(T).
+
+key(R)     when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
+key(R)     -> key(R,[]).
+key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
+key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), tb(R)]))]).
+
 start()    -> ok.
 stop()     -> ok.
 destroy()  -> rocksdb:destroy(application:get_env(kvs,rocks_name,"rocksdb"), []).
@@ -22,33 +34,17 @@ initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].
 ref() -> application:get_env(kvs,rocks_ref,[]).
 index(_,_,_) -> [].
 get(Tab, Key) ->
-    Address = <<(list_to_binary(lists:concat(["/",format(Tab),"/"])))/binary,
-                (term_to_binary(Key))/binary>>,
-%    io:format("KVS.GET.Address: ~s~n",[Address]),
-    case rocksdb:get(ref(), Address, []) of
+    case rocksdb:get(ref(), key(Tab,Key), []) of
          not_found -> {error,not_found};
          {ok,Bin} -> {ok,bt(Bin)} end.
 
 put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
-put(Record) -> 
-    Address = <<(list_to_binary(lists:concat(["/",format(element(1,Record)),"/"])))/binary,
-                         (term_to_binary(element(2,Record)))/binary>>,
-%    io:format("KVS.PUT.Address: ~s~n",[Address]),
-    rocksdb:put(ref(), Address, term_to_binary(Record), [{sync,true}]).
-
-format(X) when is_list(X) -> X;
-format(X) when is_atom(X) -> atom_to_list(X);
-format(X) when is_binary(X) -> binary_to_list(X);
-format(X) -> io_lib:format("~p",[X]).
-
-delete(Feed, Id) ->
-    Key    = list_to_binary(lists:concat(["/",format(Feed),"/"])),
-    A      = <<Key/binary,(term_to_binary(Id))/binary>>,
-    rocksdb:delete(ref(), A, []).
+put(Record) -> rocksdb:put(ref(), key(Record), term_to_binary(Record), [{sync,true}]).
+delete(Feed, Id) -> rocksdb:delete(ref(), key(Feed,Id), []).
 
 count(_) -> 0.
 all(R) -> {ok,I} = rocksdb:iterator(ref(), []),
-           Key = list_to_binary(lists:concat(["/",format(R)])),
+           Key = key(R),
            First = rocksdb:iterator_move(I, {seek,Key}),
            lists:reverse(next(I,Key,size(Key),First,[],[],-1,0)).
 
