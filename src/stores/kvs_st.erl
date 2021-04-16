@@ -40,14 +40,11 @@ read_it(C, Feed, Move) ->
   case Move of 
     {ok, Bin} when element(1,Bin) =:= Feed -> C#reader{cache=Bin};
     {ok,_} -> C;
-    {error, Error} -> {error, Error}
+    {error,_} -> C
   end.
 
-next(#reader{cache=[]}) -> {error,empty};
-next(#reader{feed=Feed,cache=I}=C) when is_tuple(I) -> read_it(C,Feed,move_it(key(Feed,I),next)).
-
-prev(#reader{cache=[]}) -> {error,empty};
-prev(#reader{cache=I,feed=Feed}=C) when is_tuple(I) -> read_it(C,Feed,move_it(key(Feed,I),prev)).
+next(#reader{feed=Feed,cache=I}=C) -> read_it(C,Feed,move_it(key(Feed,I),next)).
+prev(#reader{cache=I,feed=Feed}=C) -> read_it(C,Feed,move_it(key(Feed,I),prev)).
 
 % section: take, drop
 
@@ -92,8 +89,10 @@ take(#reader{args=N,feed=Feed,cache={T,O},dir=0}=C) -> % 1
         {[H|_X],A} when A =< N andalso Last == 'end'-> C#reader{args=Res,cache={e(1,H),e(2,H)},pos=Last};
         {[H| X],_} -> C#reader{args=X,cache={e(1,H),e(2,H)}} end;
 
+
 take(#reader{pos=0,dir=0}=C)       -> C#reader{pos='begin',args=[]};
 take(#reader{pos='begin',dir=1}=C) -> C#reader{args=[]}; % 4
+take(#reader{pos=0,cache=[],dir=1}=C) -> C#reader{args=[]};
 
 % TODO: try to remove lists:reverse and abstract both branches
 take(#reader{args=N,feed=Feed,cache={T,O},dir=1}=C) -> % 1
@@ -126,15 +125,13 @@ load_reader(Id) ->
               _ -> #reader{id=[]} end.
 
 writer(Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
-reader(Id) ->
-    case kvs:get(writer,Id) of
-         {ok,#writer{id=Feed}} ->
-             Key = key(Feed),
-             {ok,I} = rocksdb:iterator(ref(), []),
-             {ok,_,BERT} = rocksdb:iterator_move(I, {seek,Key}),
-             F = bt(BERT),
-             #reader{id=kvs:seq([],[]),feed=Id,cache={e(1,F),e(2,F)}};
-         {error,_} -> #reader{} end.
+reader(Id) -> case kvs:get(writer,Id) of
+  {ok,#writer{id=Feed}} ->
+    {ok,I} = rocksdb:iterator(ref(), []),
+    {ok,_,BERT} = rocksdb:iterator_move(I, {seek,key(Feed)}),
+    F = bt(BERT),
+    #reader{id=kvs:seq([],[]),feed=Id,cache={e(1,F),e(2,F)}};
+  {error,_} -> save(#writer{id=Id}), reader(Id) end.
 save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 
 % add

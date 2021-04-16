@@ -16,6 +16,24 @@ defmodule ST.Test do
     test "al0", kvs, do: assert kvs[:ids] |> Enum.map(&msg(id: &1)) == :kvs.all(:feed)
     test "al1", kvs, do: assert (kvs[:id0] ++ kvs[:id2] ++ kvs[:id1]) |> Enum.map(&msg(id: &1)) == :kvs.all("/crm/personal/Реєстратор А1/in")
 
+    test "take-ø", kvs do
+        r = KVS.reader() = :kvs.reader("/empty-feed")
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1))
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1, dir: 1))
+        assert r2 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.next(r)
+        assert r3 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.prev(r)
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100))
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100, dir: 1))
+        KVS.reader(id: rid) = :kvs.save(r1)
+        assert rs1 = KVS.reader(id: rid) = :kvs.load_reader(rid)
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 5))
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 5, dir: 1))
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.next(rs1)
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.prev(rs1)
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 0))
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 0, dir: 1))
+    end
+
     defp log(x), do: IO.puts '#{inspect(x)}'
     defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
 
