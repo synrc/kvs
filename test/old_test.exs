@@ -25,7 +25,7 @@ defmodule OLD.Test do
     r2 = :kvs.save(:kvs.reader(id2))
     x1 = :kvs.take(KVS.reader(:kvs.load_reader(KVS.reader(r1, :id)), args: 20))
     x2 = :kvs.take(KVS.reader(:kvs.load_reader(KVS.reader(r2, :id)), args: 20))
-    b = KVS.reader(:kvs.feed(id1), :args)
+    b = :kvs.feed(id1)
 
     case :application.get_env(:kvs, :dba_st, :kvs_st) do
       :kvs_st ->
@@ -69,7 +69,7 @@ defmodule OLD.Test do
     :lists.map(fn _ -> :kvs.append({:"$msg", [], [], [], [], []}, feed) end, :lists.seq(1, x))
     KVS.reader(id: rid) = :kvs.save(:kvs.reader(feed))
     t = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 20))
-    b = KVS.reader(:kvs.feed(feed), :args)
+    b = :kvs.feed(feed)
     #: mnesia
     assert KVS.reader(t, :args) == b
   end
@@ -85,7 +85,7 @@ defmodule OLD.Test do
     :kvs.save(KVS.reader(t, dir: 1))
     log("t:", t)
     n = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 5))
-    b = KVS.reader(:kvs.feed(feed), :args)
+    b = :kvs.feed(feed)
     log("n:", n)
     assert KVS.reader(n, :args) == KVS.reader(t, :args)
     assert KVS.reader(t, :args) == b

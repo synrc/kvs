@@ -50,7 +50,7 @@ w({ok,#writer{cache=B,count=Size}},top,C) -> C#reader{cache={tab(B),id(B)},pos=S
 w({error,X},_,_)                          -> {error,X}.
 
 % section: take, drop
-feed(Feed) -> take((reader(Feed))#reader{args=-1}).
+feed(Feed) -> #reader{args=Args} = take((reader(Feed))#reader{args=-1}), Args.
 
 drop(#reader{cache=[]}=C) -> C#reader{args=[]};
 drop(#reader{dir=D,cache=B,args=N,pos=P}=C)  -> drop(acc(D),N,C,C,P,B).

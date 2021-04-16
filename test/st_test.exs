@@ -15,11 +15,21 @@ defmodule ST.Test do
 
     test "al0", kvs, do: assert kvs[:ids] |> Enum.map(&msg(id: &1)) == :kvs.all(:feed)
     test "al1", kvs, do: assert (kvs[:id0] ++ kvs[:id2] ++ kvs[:id1]) |> Enum.map(&msg(id: &1)) == :kvs.all("/crm/personal/Реєстратор А1/in")
+    
+    #: old behaviour is reversed ? 
+    test "fe0", kvs, do: assert kvs[:ids] |> Enum.reverse |> Enum.map(&msg(id: &1)) == :kvs.feed(:feed)
 
     #: real cache {:feed, :msg, id}
     test "top",  kvs, do: (r0=:kvs.reader(:feed); assert KVS.reader(r0, cache: {:msg, Enum.at(kvs[:ids],0)}, dir: 0) == :kvs.top(r0))
     test "bot",  kvs, do: (r0=:kvs.reader(:feed); assert KVS.reader(r0, cache: {:msg, Enum.at(kvs[:ids],9)}, dir: 1) == :kvs.bot(r0))
     
+    test "next", kvs, do: kvs[:ids] |> Enum.each(&assert(KVS.reader(cache: {:msg,&1}) = :kvs.next(:kvs.reader(:feed))))
+
+    test "prev", kvs do
+        KVS.reader(id: rid) = :kvs.save(:kvs.bot(:kvs.reader(:feed)))
+        kvs[:ids] |> Enum.reverse |> Enum.each(&assert KVS.reader(cache: {:msg, &1}) = :kvs.prev(:kvs.load_reader(rid)))
+    end
+   
 
     test "take-ø", kvs do
         r = KVS.reader() = :kvs.reader("/empty-feed")
