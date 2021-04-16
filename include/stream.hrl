@@ -11,7 +11,7 @@
 -spec prev(#reader{}) -> #reader{}.
 -spec drop(#reader{}) -> #reader{}.
 -spec take(#reader{}) -> #reader{}.
--spec feed (term())   -> #reader{}.
+-spec feed (term())   -> list().
 -spec load_reader (term()) -> #reader{}.
 -spec writer (term()) -> #writer{}.
 -spec reader (term()) -> #reader{}.

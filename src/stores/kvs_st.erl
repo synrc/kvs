@@ -15,7 +15,7 @@ si(M,T) -> se(#it.id, M, T).
 id(T) -> e(#it.id, T).
 
 % section: next, prev
-feed(Feed) -> take((reader(Feed))#reader{args=-1}).
+feed(Feed) -> #reader{args=Args} = take((reader(Feed))#reader{args=-1}), Args.
 
 top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(Feed), read_it(C#reader{count=Cn},seek_it(key(Feed))).
 bot(#reader{feed=Feed}=C) -> #writer{cache=Ch, count=Cn} = writer(Feed), C#reader{cache=Ch, count=Cn, dir=1}.
