@@ -5,6 +5,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
 -export([ref/0,cut/8,next/8,prev/8,prev2/8,next2/8,bt/1,key/2,key/1]).
+-export([seek_it/1]).
 
 e(X,Y)     -> element(X,Y).
 bt([])     -> [];
@@ -20,6 +21,31 @@ key(R)     -> key(R,[]).
 key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
 key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), tb(R)]))]).
 
+fd(Key) ->
+  B = lists:reverse(binary:split(tb(Key), [<<"/">>, <<"//">>], [global, trim_all])),
+  B1 = lists:reverse(case B of [] -> [];[X] -> [X];[_|T] -> T end),
+  iolist_to_binary(lists:join(<<"/">>, [<<>>]++B1)).
+
+o(<<>>,FK,_,_) -> {ok,FK,[],[]};
+o(Key,FK,Dir,Fx) ->
+  S = size(FK),
+
+  Sheaf = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]};
+                                              (_,K,H,V,Acc) -> close_it(H),
+                                                               throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,
+
+  It = fun(F,{ok,H})            -> {F(H,{seek,Key}),H};
+          (F,{{ok,K,V},H})      -> Sheaf(F,K,H,V,[]);
+          (F,{{ok,K,V},H,A})    -> Sheaf(F,K,H,V,A);
+          (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};
+          (F,{R,O})             -> F(R,O);
+          (F,H)                 -> F(H) end,
+  catch case lists:foldl(It, {ref(),[]}, Fx) of
+    {{ok,K,Bin},_,A} when binary_part(K,{0,S}) == FK  -> {ok,fd(K),bt(Bin),[bt(A1)||A1<-A]};
+    {{ok,K,Bin},_,_}                                  -> {ok,fd(K),bt(Bin),[]};
+    {{ok,K,Bin},_}                                    -> {ok,fd(K),bt(Bin),[]}
+  end.
+
 start()    -> ok.
 stop()     -> ok.
 destroy()  -> rocksdb:destroy(application:get_env(kvs,rocks_name,"rocksdb"), []).
@@ -33,6 +59,10 @@ join(_) -> application:start(rocksdb),
 initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].
 ref() -> application:get_env(kvs,rocks_ref,[]).
 index(_,_,_) -> [].
+
+close_it(H) -> try rocksdb:iterator_close(H) catch error:badarg -> ok end.
+seek_it(K) -> o(K,K,ok,[fun rocksdb:iterator/2,fun rocksdb:iterator_move/2]).
+
 get(Tab, Key) ->
     case rocksdb:get(ref(), key(Tab,Key), []) of
          not_found -> {error,not_found};

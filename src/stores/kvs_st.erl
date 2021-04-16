@@ -4,7 +4,7 @@
 -include("stream.hrl").
 -include("metainfo.hrl").
 -export(?STREAM).
--import(kvs_rocks, [key/2, key/1, bt/1, ref/0]).
+-import(kvs_rocks, [key/2, key/1, bt/1, ref/0, seek_it/1]).
 
 % section: kvs_stream prelude
 
@@ -17,8 +17,8 @@ id(T) -> e(#it.id, T).
 % section: next, prev
 feed(Feed) -> take((reader(Feed))#reader{args=-1}).
 
-top(#reader{}=C) -> C#reader{dir=1}.
-bot(#reader{}=C) -> C#reader{dir=0}.
+top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(Feed), read_it(C#reader{count=Cn},seek_it(key(Feed))).
+bot(#reader{feed=Feed}=C) -> #writer{cache=Ch, count=Cn} = writer(Feed), C#reader{cache=Ch, count=Cn, dir=1}.
 
 % handle -> seek -> move
 move_it(Key,Dir) -> 
@@ -36,6 +36,8 @@ move_it(Key,Dir) ->
   end.
 
 % iterator -> specific feed reader
+read_it(C,{ok,F,V,H}) -> C#reader{cache={e(1,V),id(V)}, args=lists:reverse(H)}; % real cache {F,e(1,V),id(V)}
+read_it(C,_) -> C.
 read_it(C, Feed, Move) ->
   case Move of 
     {ok, Bin} when element(1,Bin) =:= Feed -> C#reader{cache=Bin};
@@ -126,11 +128,11 @@ load_reader(Id) ->
 
 writer(Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
 reader(Id) -> case kvs:get(writer,Id) of
-  {ok,#writer{id=Feed}} ->
+  {ok,#writer{id=Feed, count=Cn}} ->
     {ok,I} = rocksdb:iterator(ref(), []),
     {ok,_,BERT} = rocksdb:iterator_move(I, {seek,key(Feed)}),
     F = bt(BERT),
-    #reader{id=kvs:seq([],[]),feed=Id,cache={e(1,F),e(2,F)}};
+    #reader{id=kvs:seq([],[]),feed=Id,count=Cn,cache={e(1,F),e(2,F)}};
   {error,_} -> save(#writer{id=Id}), reader(Id) end.
 save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 
@@ -139,15 +141,15 @@ save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
 add(#writer{args=M}=C) -> add(M,C).
 
-add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache=M,count=NS}.
+add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M)},count=NS}.
 
 remove(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
-   W = #writer{count=C} = kvs:writer(Feed),
-   {ok,I} = rocksdb:iterator(ref(), []),
+   W = #writer{count=C, cache=Ch} = kvs:writer(Feed),
+   Ch1 = case {e(1,Rec),e(2,Rec)} of Ch -> Ch;_ -> [] end, % need to keep reference for next element
    case kvs:delete(Feed,id(Rec)) of
         ok -> Count = C - 1,
-              kvs:save(W#writer{count = Count, cache = I}),
+              kvs:save(W#writer{count = Count, cache=Ch1}),
               Count;
          _ -> C end.
 
@@ -159,8 +161,8 @@ append(Rec,Feed) ->
    Id = e(2,Rec),
    W = kvs:writer(Feed),
    case kvs:get(Feed,Id) of
-        {ok,_} -> raw_append(Rec,Feed), kvs:save(W#writer{cache=Rec,count=W#writer.count + 1}), Id;
-        {error,_} -> kvs:save(kvs:add(W#writer{args=Rec,cache=Rec})), Id end.
+        {ok,_} -> raw_append(Rec,Feed), kvs:save(W#writer{cache={e(1,Rec),Id},count=W#writer.count + 1}), Id;
+        {error,_} -> kvs:save(kvs:add(W#writer{args=Rec,cache={e(1,Rec),Id}})), Id end.
 
 cut(Feed,Id) ->
     Key    = key(Feed),
