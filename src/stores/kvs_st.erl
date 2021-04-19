@@ -29,24 +29,8 @@ prev(#reader{cache=I,feed=Feed}=C) -> read_it(C,move_it(key(Feed,I),key(Feed),pr
 
 % section: take, drop
 
-drop(#reader{args=N}) when N < 0 -> #reader{};
-drop(#reader{args=N}=C) when N == 0 -> C;
-drop(#reader{args=N,feed=Feed,cache=I}=C) when N > 0 ->
-   Key = key(Feed),
-   {ok, H} = rocksdb:iterator(ref(), []),
-   First = rocksdb:iterator_move(H, {seek,Key}),
-
-   Term  = lists:foldl(
-    fun (_,{{ok,K,_},{_,X}}) when N > X -> {K,{<<131,106>>,N}};
-        (_,{{ok,K,Bin},{A,X}}) when N =< X->
-           case binary:part(K,0,size(Key)) of
-                Key -> {rocksdb:iterator_move(H,next),{Bin,X+1}};
-                  _ -> {{error,range},{A,X}} end;
-        (_,{_,{_,_}}) -> {[],{<<131,106>>,N}}
-     end,
-           {First,{<<131,106>>,1}},
-           lists:seq(0,N)),
-   C#reader{cache=bt(element(1,element(2,Term)))}.
+drop(#reader{args=N}=C) when N =< 0 -> C;
+drop(#reader{args=N,feed=Feed,cache=I}=C) -> (take(C#reader{dir=0}))#reader{args=[]}.
 
 %  1. Курсор всегда выставлен на следущий невычитанный элемент
 %  2. Если после вычитки курсор указывает на недавно вычитаный элемент -- это признак конца списка
