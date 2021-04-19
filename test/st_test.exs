@@ -49,6 +49,21 @@ defmodule ST.Test do
         assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 0, dir: 1))
     end
 
+    test "drop", kvs do
+        assert r = KVS.reader(id: rid, args: [], cache: c0) = :kvs.save(:kvs.reader(:feed))
+        assert r1 = KVS.reader(id: ^rid, feed: :feed, args: []) = :kvs.drop(KVS.reader(r,  args: 10, dir: 0))
+
+        kvs[:ids] |> Enum.map(&msg(id: &1)) 
+                  |> Enum.each(&assert(KVS.reader(id: rid, feed: :feed, args: [], cache: &1) = :kvs.save(:kvs.drop(KVS.reader(:kvs.load_reader(rid), args: 1, dir: 0)))))
+
+        assert r2 = KVS.reader(id: ^rid, feed: :feed, args: [], cache: c1) = :kvs.drop(KVS.reader(r, args: 1, dir: 0))
+        assert {:msg, Enum.at(kvs[:ids], 1)} == c1
+        assert r3 = KVS.reader(id: ^rid, feed: :feed, args: [], cache: c2) = :kvs.drop(KVS.reader(r2, args: 5, dir: 0))
+        assert {:msg, Enum.at(kvs[:ids], 6)} == c2
+        assert r4 = KVS.reader(id: ^rid, feed: :feed, args: [], cache: c3) = :kvs.drop(KVS.reader(r1, args: 100))
+        assert {:msg, Enum.at(kvs[:ids],9)} == c3
+    end
+
     defp log(x), do: IO.puts '#{inspect(x)}'
     defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
 
