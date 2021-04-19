@@ -17,7 +17,8 @@ id(T) -> e(#it.id, T).
 k(F,[]) -> key(F);
 k(_,{_,Id,SF}) -> key(SF,Id).
 
-read_it(C,{ok,F,V,H}) -> C#reader{cache={e(1,V),id(V),F}, args=lists:reverse(H)};
+read_it(C,{ok,_,[],H}) -> C#reader{cache=[], args=lists:reverse(H)};
+read_it(C,{ok,F,V,H})  -> C#reader{cache={e(1,V),id(V),F}, args=lists:reverse(H)};
 read_it(C,_) -> C.
 
 top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(Feed), read_it(C#reader{count=Cn},seek_it(key(Feed))).
