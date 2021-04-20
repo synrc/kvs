@@ -45,16 +45,24 @@ o(Key,FK,Dir,Fx) ->
   Sheaf = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]};
                                               (_,K,H,V,Acc) -> close_it(H),
                                                                throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,
+  Break = fun(F,K,V,H) -> case F(H,prev) of
+      {ok,K1,V1} when binary_part(K,{0,S}) == FK -> {{ok,K1,V1},H,[V]};
+      {ok,K1,V1} -> Sheaf(F,K1,H,V1,[]);
+      E -> E
+  end end,
 
   It = fun(F,{ok,H})            -> {F(H,{seek,Key}),H};
+          (F,{{ok,K,V},H})
+              when Dir =:= prev -> Break(F,K,V,H);
           (F,{{ok,K,V},H})      -> Sheaf(F,K,H,V,[]);
           (F,{{ok,K,V},H,A})    -> Sheaf(F,K,H,V,A);
           (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};
           (F,{R,O})             -> F(R,O);
           (F,H)                 -> F(H) end,
   catch case lists:foldl(It, {ref(),[]}, Fx) of
-    {{ok,K,Bin},_,A} -> {ok,fd(K),bt(Bin),[bt(A1)||A1<-A]};
-    {{ok,K,Bin},_}   -> {ok,fd(K),bt(Bin),[]}
+    {{ok,K,Bin},_,A}  -> {ok,fd(K), bt(Bin),[bt(A1)||A1<-A]};
+    {{ok,K,Bin},_}    -> {ok,fd(K), bt(Bin),[]};
+    {{error,_},H,Acc} -> {ok,fd(FK),bt(shd(Acc)),[bt(A1) ||A1<-Acc]}
   end.
 
 start()    -> ok.

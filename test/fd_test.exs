@@ -1,7 +1,7 @@
 ExUnit.start()
 
 defmodule Fd.Test do
-    use ExUnit.Case, async: true
+    use ExUnit.Case, async: false
     require KVS
     import Record
 
