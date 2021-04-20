@@ -32,10 +32,8 @@ defmodule St.Test do
         assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 0, dir: 1))
     end
 
-
     test "take-0", kvs do
         feed = "/crm/personal/Реєстратор А1/in/doc"
-        log "", :kvs.all(feed)
         assert r = KVS.reader(id: rid, args: []) = :kvs.reader(feed)
 
         assert KVS.reader(id: ^rid, feed: ^feed, args: []) = :kvs.take(KVS.reader(r, args: 0, dir: 0))
@@ -56,6 +54,31 @@ defmodule St.Test do
 
         assert KVS.reader(id: ^rid, feed: ^feed, args: a17) = :kvs.take(KVS.reader(r2, args: 100, dir: 0))
         assert Enum.drop(kvs[:id2],3) |> Enum.map(&msg(id: &1)) == a17
+    end
+
+    test "take-1", kvs do
+        feed = "/crm/personal/Реєстратор А1/in/mail"
+        log "", :kvs.all(feed)
+        top = Enum.at(kvs[:id1],0)
+        bot = Enum.at(kvs[:id1],9)
+        tpm = Enum.take(kvs[:id1],1) |> Enum.map(&msg(id: &1))
+
+        assert r = KVS.reader(id: rid, args: [], cache: {:msg, ^top, ^feed}, count: 10) = :kvs.reader(feed)
+        assert r = :kvs.top(r)
+        assert KVS.reader(id: ^rid, feed: ^feed, args: ^tpm, dir: 1) = :kvs.take(KVS.reader(r, args: 1, dir: 1))
+        assert KVS.reader(id: ^rid, feed: ^feed, args: ^tpm, dir: 1) = :kvs.take(KVS.reader(r, args: 100, dir: 1))
+
+        assert r1 = KVS.reader(feed: ^feed, count: 10, args: [], cache: {:msg,^bot,^feed}) = :kvs.bot(r)
+        
+        assert r2 = KVS.reader(feed: ^feed, count: 10, args: a01) = :kvs.take(KVS.reader(r1, args: 5, dir: 1))
+        x01 = Enum.drop(kvs[:id1],5) |> Enum.map(&msg(id: &1)) |> Enum.reverse
+        assert x01 == a01
+
+        assert r3 = KVS.reader(feed: ^feed, count: 10, args: a02) = :kvs.take(KVS.reader(r2, args: 10, dir: 1))
+        x02 = Enum.take(kvs[:id1],5) |> Enum.map(&msg(id: &1)) |> Enum.reverse
+        assert x02 == a02
+
+        assert KVS.reader(feed: ^feed, count: 10, args: []) = :kvs.take(KVS.reader(r3, args: 20, dir: 1))
     end
 
     defp log(x), do: IO.puts '#{inspect(x)}'
