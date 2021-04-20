@@ -14,7 +14,9 @@ defmodule Sc.Test do
     setup kvs, do: [
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/duck") end, :lists.seq(1,10)),
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/luck") end, :lists.seq(1,10)),
-        id2: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/truck") end, :lists.seq(1,10))]
+        id2: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/truck") end, :lists.seq(1,10)),
+        id3: :lists.map(fn _ -> :kvs.save(:kvs.add(KVS.writer(:kvs.writer(:sym),
+                                        args: msg(id: :kvs.seq([],[]))))) end, :lists.seq(1,10))]
 
     test "basic", kvs do
         id1 = "/crm/luck"
@@ -31,6 +33,12 @@ defmodule Sc.Test do
         assert :kvs.all("/crm/truck") == KVS.reader(x2, :args)
         assert KVS.reader(x1, :args) == b
         assert length(KVS.reader(x1, :args)) == length(KVS.reader(x2, :args))
+    end
+
+    test "sym",kvs do
+        :kvs.save(:kvs.writer(:sym))
+        KVS.writer(args: last) = Enum.at(kvs[:id3],-1)
+        {:ok, KVS.writer(id: :sym, count: 10, cache: last)} = :kvs.get(:writer, :sym)
     end
 
     defp log(x), do: IO.puts '#{inspect(x)}'
