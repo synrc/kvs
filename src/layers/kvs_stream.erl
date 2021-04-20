@@ -107,8 +107,3 @@ append(Rec,Feed) ->
    case kvs:get(Name,Id) of
         {ok,_}    -> Id;
         {error,_} -> kvs:save(kvs:add((kvs:writer(Feed))#writer{args=Rec})), Id end.
-
-cut(_Feed,Id) ->
-   case kvs:get(writer,Id) of
-        {ok,#writer{count=N}} -> {ok,N};
-        {error,_} -> {error,not_found} end.
