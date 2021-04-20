@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,cut/8,next/8,prev/8,prev2/8,next2/8,bt/1,key/2,key/1,fd/1]).
+-export([ref/0,bt/1,key/2,key/1,fd/1]).
 -export([seek_it/1, move_it/3, take_it/4]).
 
 e(X,Y)     -> element(X,Y).
@@ -32,7 +32,6 @@ key(R)     -> key(R,[]).
 key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
 key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, fmt(Tab), fmt(R)]))]).
 
-
 fd(Key) ->
   B = lists:reverse(binary:split(tb(Key), [<<"/">>, <<"//">>], [global, trim_all])),
   B1 = lists:reverse(case B of [] -> [];[X] -> [X];[_|T] -> T end),
@@ -43,8 +42,8 @@ o(Key,FK,Dir,Fx) ->
   S = size(FK),
 
   Infotech = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]};
-                                              (_,K,H,V,Acc) -> close_it(H),
-                                                               throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,
+                 (_,K,H,V,Acc) -> close_it(H),
+                                  throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,
   Privat = fun(F,K,V,H) -> case F(H,prev) of
       {ok,K1,V1} when binary_part(K,{0,S}) == FK -> {{ok,K1,V1},H,[V]};
       {ok,K1,V1} -> Infotech(F,K1,H,V1,[]);
@@ -62,7 +61,7 @@ o(Key,FK,Dir,Fx) ->
   catch case lists:foldl(It, {ref(),[]}, Fx) of
     {{ok,K,Bin},_,A}  -> {ok,fd(K), bt(Bin),[bt(A1)||A1<-A]};
     {{ok,K,Bin},_}    -> {ok,fd(K), bt(Bin),[]};
-    {{error,_},H,Acc} -> {ok,fd(FK),bt(shd(Acc)),[bt(A1) ||A1<-Acc]}
+    {{error,_},_,Acc} -> {ok,fd(FK),bt(shd(Acc)),[bt(A1) ||A1<-Acc]}
   end.
 
 start()    -> ok.
@@ -97,47 +96,14 @@ put(Record) -> rocksdb:put(ref(), key(Record), term_to_binary(Record), [{sync,tr
 delete(Feed, Id) -> rocksdb:delete(ref(), key(Feed,Id), []).
 
 count(_) -> 0.
-all(R) -> {ok,I} = rocksdb:iterator(ref(), []),
-           Key = key(R),
-           First = rocksdb:iterator_move(I, {seek,Key}),
-           lists:reverse(next(I,Key,size(Key),First,[],[],-1,0)).
 
-next(I,Key,S,A,X,T,N,C) -> {_,L} = next2(I,Key,S,A,X,T,N,C), L.
-prev(I,Key,S,A,X,T,N,C) -> {_,L} = prev2(I,Key,S,A,X,T,N,C), L.
+all(R) -> all(fun(K,FK) -> move_it(K,FK,next) end,key(R),key(R),[]).
+all(F,K,FK,Acc) -> case F(K,FK) of
+  {ok,P,{_,Id,_},H} when binary_part(P,{0,byte_size(FK)}) == FK -> all(F,key(P,Id),FK, H++Acc);
+  {ok,_,_,H} -> lists:reverse(H++Acc) end.
 
 shd([]) -> [];
 shd(X) -> hd(X).
-
-next2(_,Key,_,_,X,T,N,C) when C == N -> {shd(lists:reverse(T)),T};
-next2(I,Key,S,{ok,A,X},_,T,N,C) -> next2(I,Key,S,A,X,T,N,C);
-next2(_,Key,_,{error,_},X,T,_,_) -> {shd(lists:reverse(T)),T};
-next2(I,Key,S,A,X,T,N,C) when size(A) > S ->
-     case binary:part(A, 0, S) of Key ->
-          next2(I, Key, S, rocksdb:iterator_move(I, next), [], [bt(X)|T], N, C + 1);
-          _ -> {shd(lists:reverse(T)),T} end;
-next2(_,Key,_,{ok,A,_},X,T,_,_) -> {bt(X),T};
-next2(_,Key,_,_,X,T,_,_) -> {shd(lists:reverse(T)),T}.
-
-prev2(_,Key,_,_,X,T,N,C) when C == N -> {bt(X),T};
-prev2(I,Key,S,{ok,A,X},_,T,N,C) -> prev2(I,Key,S,A,X,T,N,C);
-prev2(_,Key,_,{error,_},X,T,_,_) -> {bt(X),T};
-prev2(I,Key,S,A,X,T,N,C) when size(A) > S ->
-     case binary:part(A, 0, S) of Key ->
-          prev2(I, Key, S, rocksdb:iterator_move(I, prev), [], [bt(X)|T], N, C + 1);
-          _ -> {shd(lists:reverse(T)),T} end;
-prev2(_,Key,_,{ok,A,_},X,T,_,_) -> {bt(X),T};
-prev2(_,Key,_,_,X,T,_,_) -> {bt(X),T}.
-
-cut(_,_,_,_,_,_,N,C) when C == N -> C;
-cut(I,Key,S,{ok,A,X},_,T,N,C) -> prev(I,Key,S,A,X,T,N,C);
-cut(_,___,_,{error,_},_,_,_,C) -> C;
-cut(I,Key,S,A,_,_,N,C) when size(A) > S ->
-     case binary:part(A,0,S) of Key ->
-          rocksdb:delete(ref(), A, []),
-          Next = rocksdb:iterator_move(I, prev),
-          cut(I,Key, S, Next, [], A, N, C + 1);
-                                  _ -> C end;
-cut(_,_,_,_,_,_,_,C) -> C.
 
 seq(_,_) ->
   case os:type() of
