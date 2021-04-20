@@ -34,9 +34,9 @@ feed(Feed) -> feed(fun(#reader{}=R) -> take(R#reader{args=4}) end, top(reader(ke
 feed(F,#reader{cache=C1}=R,Acc) ->
   #reader{args=A, cache=Ch, feed=Feed} = R1 = F(R),
   case Ch of
-    C1 -> lists:reverse(Acc ++ A);
+    C1 -> Acc ++ A;
     {_,_,K} when binary_part(K,{0,byte_size(Feed)}) == Feed -> feed(F, R1, Acc ++ A);
-    _ -> lists:reverse(Acc ++ A)
+    _ -> Acc ++ A
   end.
 
 load_reader(Id) ->

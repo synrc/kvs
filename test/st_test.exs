@@ -98,6 +98,24 @@ defmodule St.Test do
         assert KVS.reader(id: ^rid, feed: ^feed, args: []) = :kvs.drop(KVS.reader(r1, args: 100))
     end
 
+    test "feed",kvs do
+        docs  = :kvs.all("/crm/personal/Реєстратор А1/in/doc")
+        ducks = :kvs.all("/crm/personal/Реєстратор А1/in/directory/duck")
+        mail  = :kvs.all("/crm/personal/Реєстратор А1/in/mail")
+        total = :kvs.all("/crm/personal/Реєстратор А1/in")
+
+        assert ducks++docs++mail == total
+
+        assert docs  = :kvs.feed("/crm/personal/Реєстратор А1/in/doc")
+        assert ducks = :kvs.feed("/crm/personal/Реєстратор А1/in/directory/duck")
+        assert mail  = :kvs.feed("/crm/personal/Реєстратор А1/in/mail")
+        assert total = :kvs.feed("/crm/personal/Реєстратор А1/in")
+
+        assert :kvs.feed("/crm/personal/Реєстратор А1/in/directory/duck") 
+            ++ :kvs.feed("/crm/personal/Реєстратор А1/in/doc")
+            ++ :kvs.feed("/crm/personal/Реєстратор А1/in/mail") == :kvs.feed("/crm/personal/Реєстратор А1/in")
+    end 
+
     defp log(x), do: IO.puts '#{inspect(x)}'
     defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
 
