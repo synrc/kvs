@@ -14,6 +14,24 @@ defmodule St.Test do
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/personal/Реєстратор А1/in/mail") end, :lists.seq(1,10)),
         id2: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/personal/Реєстратор А1/in/doc") end, :lists.seq(1,10))]
 
+    test "take-ø", kvs do
+        r = KVS.reader() = :kvs.reader("/empty-feed")
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1))
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1, dir: 1))
+        assert r2 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.next(r)
+        assert r3 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.prev(r)
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100))
+        assert r1 = KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100, dir: 1))
+        KVS.reader(id: rid) = :kvs.save(r1)
+        assert rs1 = KVS.reader(id: rid) = :kvs.load_reader(rid)
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 5))
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 5, dir: 1))
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.next(rs1)
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.prev(rs1)
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 0))
+        assert KVS.reader(feed: "/empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 0, dir: 1))
+    end
+
     defp log(x), do: IO.puts '#{inspect(x)}'
     defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
 
