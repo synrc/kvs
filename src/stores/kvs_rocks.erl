@@ -12,7 +12,7 @@ bt([])     -> [];
 bt(X)      -> binary_to_term(X).
 tb([])     -> [];
 tb(T) when is_list(T) -> list_to_binary(T);
-tb(T) when is_atom(T) -> atom_to_binary(T);
+tb(T) when is_atom(T) -> atom_to_binary(T,utf8);
 tb(T) when is_binary(T) -> T;
 tb(T)      -> term_to_binary(T).
 
@@ -97,10 +97,7 @@ delete(Feed, Id) -> rocksdb:delete(ref(), key(Feed,Id), []).
 
 count(_) -> 0.
 
-all(R) -> all(fun(K,FK) -> move_it(K,FK,next) end,key(R),key(R),[]).
-all(F,K,FK,Acc) -> case F(K,FK) of
-  {ok,P,{_,Id,_},H} when binary_part(P,{0,byte_size(FK)}) == FK -> all(F,key(P,Id),FK, H++Acc);
-  {ok,_,_,H} -> lists:reverse(H++Acc) end.
+all(R) -> kvs_st:feed(R).
 
 shd([]) -> [];
 shd(X) -> hd(X).
