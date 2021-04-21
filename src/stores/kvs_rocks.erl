@@ -19,15 +19,19 @@ tb(T)      -> term_to_binary(T).
 fmt([]) -> [];
 fmt(K) -> tb(K).
 
+% put
+
 key(R)     when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
 key(R)     -> key(R,[]).
 key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
 key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, fmt(Tab), fmt(R)]))]).
 
+% get
+
 fd(Key) ->
-  B = lists:reverse(binary:split(tb(Key), [<<"/">>], [global, trim_all])),
+  B = lists:reverse(binary:split(tb(Key), [<<"/">>], [global])),
   B1 = lists:reverse(case B of [] -> [];[X] -> [X];[_|T] -> T end),
-  iolist_to_binary(lists:join(<<"/">>, [<<>>]++B1)).
+  iolist_to_binary(lists:join(<<"/">>, B1)).
 
 o(<<>>,FK,_,_) -> {ok,FK,[],[]};
 o(Key,FK,Dir,Fx) ->

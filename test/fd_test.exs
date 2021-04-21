@@ -5,6 +5,16 @@ defmodule Fd.Test do
     require KVS
     import Record
 
+    test "fd_test", kvs do
+       assert "//erp" = :kvs_rocks.fd "//erp/orgs"
+       assert "/erp" = :kvs_rocks.fd "/erp/orgs"
+    end
+
+    test "key_test", kvs do
+       assert "//erp/orgs" = :kvs_rocks.key "/erp/orgs"
+       assert "/erp/orgs"  = :kvs_rocks.key "erp/orgs"
+    end
+
     defrecord(:msg, id: [], body: [])
 
     setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
