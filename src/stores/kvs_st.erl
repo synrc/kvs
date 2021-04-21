@@ -15,14 +15,17 @@ si(M,T) -> se(#it.id, M, T).
 id(T) -> e(#it.id, T).
 
 k(F,[]) -> F; 
-k(_,{_,Id,SF}) -> iolist_to_binary([SF,<<"/">>,tb(Id)]).  
+k(_,{_,Id,SF}) -> iolist_to_binary([SF,<<"/">>,tb(Id)]).
+
+f2(Feed) -> X = tb(Feed),
+  case binary:match(X, <<"//">>,[]) of {0,2} -> binary:part(X,{1,size(X)-1}); _ -> X end.
 
 read_it(C,{ok,_,[],H}) -> C#reader{cache=[], args=lists:reverse(H)};
 read_it(C,{ok,F,V,H})  -> C#reader{cache={e(1,V),id(V),F}, args=lists:reverse(H)};
 read_it(C,_) -> C.
 
-top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(Feed), read_it(C#reader{count=Cn},seek_it(Feed)).
-bot(#reader{feed=Feed}=C) -> #writer{cache=Ch, count=Cn} = writer(Feed), C#reader{cache=Ch, count=Cn}.
+top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(f2(Feed)), read_it(C#reader{count=Cn},seek_it(Feed)).
+bot(#reader{feed=Feed}=C) -> #writer{cache=Ch, count=Cn} = writer(f2(Feed)), C#reader{cache=Ch, count=Cn}.
 next(#reader{feed=Feed,cache=I}=C) -> read_it(C,move_it(k(Feed,I),Feed,next)).
 prev(#reader{cache=I,feed=Feed}=C) -> read_it(C,move_it(k(Feed,I),Feed,prev)).
 take(#reader{args=N,feed=Feed,cache=I,dir=1}=C) -> read_it(C,take_it(k(Feed,I),Feed,prev,N));
@@ -46,8 +49,8 @@ load_reader(Id) ->
 
 writer(Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
 reader(Id) -> case kvs:get(writer,Id) of
-  {ok,#writer{id=Feed, count=Cn}} ->
-    read_it(#reader{id=kvs:seq([],[]),feed=key(Feed),count=Cn},seek_it(key(Feed)));
+  {ok,#writer{id=Feed, count=Cn, cache=Ch}} ->
+    read_it(#reader{id=kvs:seq([],[]),feed=key(Feed),count=Cn,cache=Ch},seek_it(key(Feed)));
   {error,_} -> save(#writer{id=Id}), reader(Id) end.
 save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 
@@ -56,7 +59,7 @@ save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
 add(#writer{args=M}=C) -> add(M,C).
 
-add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M),fd(Feed)},count=NS}.
+add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M),key(Feed)},count=NS}.
 
 remove(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
