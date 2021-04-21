@@ -45,7 +45,6 @@ defmodule Sc.Test do
     end
 
     test "partial take back" do
-        log "all",:kvs.all("/crm/luck")
         KVS.reader(id: rid) = :kvs.save(:kvs.reader("/crm/luck"))
         r = KVS.reader(args: t) = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 2))
         :kvs.save(KVS.reader(r, dir: 1))

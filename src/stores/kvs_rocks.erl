@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,bt/1,key/2,key/1,fd/1]).
+-export([ref/0,bt/1,key/2,key/1,fd/1, tb/1]).
 -export([seek_it/1, move_it/3, take_it/4]).
 
 e(X,Y)     -> element(X,Y).
@@ -22,16 +22,20 @@ fmt(K) -> tb(K).
 % put
 
 key(R)     when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
-key(R)     -> key(R,[]).
+key(R)                                                -> key(R,[]).
 key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
-key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, fmt(Tab), fmt(R)]))]).
+key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), fmt(R)]))]).
 
-% get
-
-fd(Key) ->
-  B = lists:reverse(binary:split(tb(Key), [<<"/">>], [global])),
-  B1 = lists:reverse(case B of [] -> [];[X] -> [X];[_|T] -> T end),
-  iolist_to_binary(lists:join(<<"/">>, B1)).
+fd(K) -> Key = tb(K),
+  End = byte_size(Key),
+  {S,_} = case binary:matches(Key,[<<"/">>],[]) of
+    [{0,1}]         -> {End,End};
+    [{0,1},{1,1}]   -> {End,End};
+    [{0,1},{1,1}|T] -> hd(lists:reverse(T));
+    [{0,1}|T]       -> hd(lists:reverse(T));
+    _ -> {End,End}
+  end,
+  binary:part(Key,{0,S}).
 
 o(<<>>,FK,_,_) -> {ok,FK,[],[]};
 o(Key,FK,Dir,Fx) ->

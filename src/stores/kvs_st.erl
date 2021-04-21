@@ -4,7 +4,7 @@
 -include("stream.hrl").
 -include("metainfo.hrl").
 -export(?STREAM).
--import(kvs_rocks, [key/2, key/1, bt/1, ref/0, fd/1, seek_it/1, move_it/3, take_it/4]).
+-import(kvs_rocks, [key/2, key/1, bt/1, tb/1, ref/0, fd/1, seek_it/1, move_it/3, take_it/4]).
 
 % section: kvs_stream prelude
 
@@ -14,23 +14,23 @@ c4(R,V) -> se(#reader.args,  R, V).
 si(M,T) -> se(#it.id, M, T).
 id(T) -> e(#it.id, T).
 
-k(F,[]) -> key(F);
-k(_,{_,Id,SF}) -> key(SF,Id).
+k(F,[]) -> F; 
+k(_,{_,Id,SF}) -> iolist_to_binary([SF,<<"/">>,tb(Id)]).  
 
 read_it(C,{ok,_,[],H}) -> C#reader{cache=[], args=lists:reverse(H)};
 read_it(C,{ok,F,V,H})  -> C#reader{cache={e(1,V),id(V),F}, args=lists:reverse(H)};
 read_it(C,_) -> C.
 
-top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(Feed), read_it(C#reader{count=Cn},seek_it(key(Feed))).
+top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(Feed), read_it(C#reader{count=Cn},seek_it(Feed)).
 bot(#reader{feed=Feed}=C) -> #writer{cache=Ch, count=Cn} = writer(Feed), C#reader{cache=Ch, count=Cn}.
-next(#reader{feed=Feed,cache=I}=C) -> read_it(C,move_it(k(Feed,I),key(Feed),next)).
-prev(#reader{cache=I,feed=Feed}=C) -> read_it(C,move_it(k(Feed,I),key(Feed),prev)).
-take(#reader{args=N,feed=Feed,cache=I,dir=1}=C) -> read_it(C,take_it(k(Feed,I),key(Feed),prev,N));
-take(#reader{args=N,feed=Feed,cache=I,dir=_}=C) -> read_it(C,take_it(k(Feed,I),key(Feed),next,N)).
+next(#reader{feed=Feed,cache=I}=C) -> read_it(C,move_it(k(Feed,I),Feed,next)).
+prev(#reader{cache=I,feed=Feed}=C) -> read_it(C,move_it(k(Feed,I),Feed,prev)).
+take(#reader{args=N,feed=Feed,cache=I,dir=1}=C) -> read_it(C,take_it(k(Feed,I),Feed,prev,N));
+take(#reader{args=N,feed=Feed,cache=I,dir=_}=C) -> read_it(C,take_it(k(Feed,I),Feed,next,N)).
 drop(#reader{args=N}=C) when N =< 0 -> C;
 drop(#reader{}=C) -> (take(C#reader{dir=0}))#reader{args=[]}.
 
-feed(Feed) -> feed(fun(#reader{}=R) -> take(R#reader{args=4}) end, top(reader(key(Feed))),[]).
+feed(Feed) -> feed(fun(#reader{}=R) -> take(R#reader{args=4}) end, top(reader(Feed)),[]).
 feed(F,#reader{cache=C1}=R,Acc) ->
   #reader{args=A, cache=Ch, feed=Feed} = R1 = F(R),
   case Ch of
@@ -56,7 +56,7 @@ save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
 add(#writer{args=M}=C) -> add(M,C).
 
-add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M),key(Feed)},count=NS}.
+add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M),fd(Feed)},count=NS}.
 
 remove(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
