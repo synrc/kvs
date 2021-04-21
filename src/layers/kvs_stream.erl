@@ -57,7 +57,7 @@ prev(#reader{cache={T,R},pos=P}=C) -> p(kvs:get(T,R),C,P-1).
 drop(#reader{cache=[]}=C) -> C#reader{args=[]};
 drop(#reader{dir=D,cache=B,args=N,pos=P}=C)  -> drop(acc(D),N,C,C,P,B).
 take(#reader{cache=[]}=C) -> C#reader{args=[]};
-take(#reader{dir=D,cache=B,args=N,pos=P}=C)  -> take(acc(D),N,C,C,[],P).
+take(#reader{dir=D,cache=_B,args=N,pos=P}=C)  -> take(acc(D),N,C,C,[],P).
 
 take(_,_,{error,_},C2,R,P) -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
 take(_,0,_,C2,R,P)         -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
@@ -94,7 +94,7 @@ add(M,#writer{cache=V1,count=S}=C) ->
     N=sp(sn(M,[]),id(V)), P=sn(V,id(M)), kvs:put([N,P]),
     C#writer{cache=N,count=S+1}.
 
-remove(Rec,Feed) ->
+remove(_Rec,Feed) ->
    {ok,W=#writer{count=Count}} = kvs:get(writer,Feed),
    NC = Count-1,
    kvs:save(W#writer{count=NC}),

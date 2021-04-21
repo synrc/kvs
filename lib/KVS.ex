@@ -20,7 +20,7 @@ defmodule KVS do
       |> Keyword.get(:with, [:kvs])
 
     Enum.map(imports, fn mod ->
-      if Code.ensure_compiled?(mod) do
+      if Code.ensure_compiled(mod) do
         upcased = Module.concat([String.upcase(to_string(mod))])
 
         quote do

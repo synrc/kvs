@@ -9,12 +9,10 @@
 -include("cursors.hrl").
 -include("kvs.hrl").
 -include("backend.hrl").
--export([dump/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,feed/2]).
+-export([dump/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,feed/2,fields/1,defined/2,field/2,setfield/3,cut/2]).
 -export(?API).
 -export(?STREAM).
--compile(export_all).
 -export([init/1, start/2, stop/1]).
-
 -record('$msg', {id,next,prev,user,msg}).
 
 init([]) -> {ok, { {one_for_one, 5, 10}, []} }.
