@@ -6,6 +6,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
 -export([info/1,exec/1,dump/1]).
+
 start()    -> mnesia:start().
 stop()     -> mnesia:stop().
 destroy()  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
@@ -13,6 +14,7 @@ leave()    -> ok.
 version()  -> {version,"KVS MNESIA"}.
 dir()      -> [{table,T}||T<-mnesia:system_info(local_tables)].
 join([])   -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies), initialize();
+
 join(Node) ->
     mnesia:start(),
     mnesia:change_config(extra_db_nodes, [Node]),
@@ -61,7 +63,6 @@ just_one(Fun) ->
         R when is_list(R) -> {ok,R};
         Error -> Error end.
 
-%add(Record) -> mnesia:activity(context(),fun() -> kvs:append(Record,#kvs{mod=?MODULE}) end).
 context() -> application:get_env(kvs,mnesia_context,async_dirty).
 
 dump() -> dump([ N || #table{name=N} <- kvs:tables() ]), ok.

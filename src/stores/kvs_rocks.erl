@@ -44,6 +44,7 @@ o(Key,FK,Dir,Fx) ->
   Infotech = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]};
                  (_,K,H,V,Acc) -> close_it(H),
                                   throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,
+
   Privat = fun(F,K,V,H) -> case F(H,prev) of
       {ok,K1,V1} when binary_part(K,{0,S}) == FK -> {{ok,K1,V1},H,[V]};
       {ok,K1,V1} -> Infotech(F,K1,H,V1,[]);
@@ -58,6 +59,7 @@ o(Key,FK,Dir,Fx) ->
           (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};
           (F,{R,O})             -> F(R,O);
           (F,H)                 -> F(H) end,
+
   catch case lists:foldl(It, {ref(),[]}, Fx) of
     {{ok,K,Bin},_,A}  -> {ok,fd(K), bt(Bin),[bt(A1)||A1<-A]};
     {{ok,K,Bin},_}    -> {ok,fd(K), bt(Bin),[]};
