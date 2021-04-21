@@ -9,7 +9,7 @@
 -include("cursors.hrl").
 -include("kvs.hrl").
 -include("backend.hrl").
--export([dump/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,fetch/2,fetch/3,feed/2]).
+-export([dump/0,metainfo/0,ensure/1,seq_gen/0,fold/6,fold/7,head/1,head/2,feed/2]).
 -export(?API).
 -export(?STREAM).
 -compile(export_all).
@@ -145,8 +145,3 @@ remove(Rec,Feed) -> remove(Rec,Feed,#kvs{mod=dba(),st=kvs_stream()}).
 remove(Rec,Feed, #kvs{st=Mod}) -> Mod:remove(Rec,Feed).
 head(Key) -> case (kvs:take((kvs:reader(Key))#reader{args=1}))#reader.args of [X] -> X; [] -> [] end.
 head(Key,Count) -> (kvs:take((kvs:reader(Key))#reader{args=Count,dir=1}))#reader.args.
-fetch(Table, Key) -> fetch(Table, Key, []).
-fetch(Table, Key, Default) -> case get(Table, Key) of
-                                        {ok, Value} -> Value;
-                                        _ -> Default
-                                  end.
