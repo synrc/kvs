@@ -12,26 +12,19 @@ bt([])     -> [];
 bt(X)      -> binary_to_term(X).
 tb([])     -> [];
 tb(T) when is_list(T) -> list_to_binary(T);
-tb(T) when is_atom(T) -> atom_to_binary(T,utf8);
+tb(T) when is_atom(T) -> atom_to_binary(T, utf8);
 tb(T) when is_binary(T) -> T;
 tb(T)      -> term_to_binary(T).
 
 fmt([]) -> [];
-fmt(K) ->
-  B = tb(K),
-  S = if byte_size(B) > 1 -> 2;true -> byte_size(B) end,
-  B1 = binary:split(B,[<<"/">>,<<"//">>], [{scope,{0,S}},trim_all]),
-  B2 = case B1 of [] -> <<>>;[X|_] -> X end,
-  S1 = if byte_size(B2) > 1 -> -2; true -> 0 end,
-  B3 = binary:split(B2,[<<"/">>,<<"//">>], [{scope,{byte_size(B2),S1}},trim_all]),
-  B4 = case B3 of [] -> <<>>;[X1|_] -> X1 end,
-  B4.
+fmt(K) -> tb(K).
+
+% put
 
 key(R)     when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
-key(R)     -> key(R,[]).
+key(R)                                                -> key(R,[]).
 key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
-key(Tab,R) ->
-  iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), fmt(R)]))]).
+key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), fmt(R)]))]).
 
 fd(K) -> Key = tb(K),
   End = byte_size(Key),
