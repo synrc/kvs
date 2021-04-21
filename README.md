@@ -1,8 +1,6 @@
 KVS: Abstract Chain Database
 ============================
 
-tkit
-
 [![Actions Status](https://github.com/synrc/kvs/workflows/mix/badge.svg)](https://github.com/synrc/kvs/actions)
 [![Build Status](https://travis-ci.com/synrc/kvs.svg?branch=master)](https://travis-ci.com/synrc/kvs)
 [![Hex pm](http://img.shields.io/hexpm/v/kvs.svg?style=flat)](https://hex.pm/packages/kvs)
