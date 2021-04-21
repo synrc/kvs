@@ -56,7 +56,7 @@ save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
 add(#writer{args=M}=C) -> add(M,C).
 
-add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M),key(Feed)},count=NS}.
+add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M),fd(Feed)},count=NS}.
 
 remove(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),

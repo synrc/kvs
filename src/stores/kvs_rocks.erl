@@ -33,7 +33,7 @@ key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
 key(Tab,R) ->
   iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), fmt(R)]))]).
 
-fd(Key) ->
+fd(K) -> Key = tb(K),
   End = byte_size(Key),
   {S,_} = case binary:matches(Key,[<<"/">>],[]) of
     [{0,1}]         -> {End,End};
