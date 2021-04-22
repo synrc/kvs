@@ -38,21 +38,20 @@ o(<<>>,FK,_,_) -> {ok,FK,[],[]};
 o(Key,FK,Dir,Fx) ->
   S = size(FK),
 
-  Infotech = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]};
-                 (_,K,H,V,Acc) -> close_it(H),
-                                  throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,
+  Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]}; % continue
+            (_,K,H,V,Acc) -> close_it(H), % gracely quit
+                             throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,
 
-  Privat = fun(F,K,V,H) -> case F(H,prev) of
-      {ok,K1,V1} when binary_part(K,{0,S}) == FK -> {{ok,K1,V1},H,[V]};
-      {ok,K1,V1} -> Infotech(F,K1,H,V1,[]);
-      E -> E
+  RangeCheckRun = fun(F,K,V,H) -> case F(H,prev) of
+      {ok,K1,V1} when binary_part(K,{0,S}) == FK -> {{ok,K1,V1},H,[V]}; % return
+      {ok,K1,V1} -> Run(F,K1,H,V1,[]);
+      E -> E % violation
   end end,
 
   It = fun(F,{ok,H})            -> {F(H,{seek,Key}),H};
-          (F,{{ok,K,V},H})
-              when Dir =:= prev -> Privat(F,K,V,H);
-          (F,{{ok,K,V},H})      -> Infotech(F,K,H,V,[]);
-          (F,{{ok,K,V},H,A})    -> Infotech(F,K,H,V,A);
+          (F,{{ok,K,V},H}) when Dir =:= prev -> RangeCheckRun(F,K,V,H);
+          (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]);
+          (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A);
           (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};
           (F,{R,O})             -> F(R,O);
           (F,H)                 -> F(H) end,
