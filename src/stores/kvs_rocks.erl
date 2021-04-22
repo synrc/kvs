@@ -48,7 +48,7 @@ o(Key, % key
             (_,K,H,V,Acc) -> stop_it(H),                                           % fail-safe closing     |
                              throw({ok, fd(K), bt(V), [bt(A1) || A1 <- Acc]}) end, % acc unfold            |
                                                                                    %                       |
-  Range_Check = fun(F,K,H,V) -> case F(H,prev) of                       %                                  |
+  Range_Check = fun(F,K,H,V) -> case F(H,prev) of                       % backward prefetch                |
       {ok,K1,V1} when binary_part(K,{0,S}) == SK -> {{ok,K1,V1},H,[V]}; % return (range-check error)       |
       {ok,K1,V1} -> Run(F,K1,H,V1,[]);                                  % run prev-take chain              | loop
       E -> E                                                            % violation                        |
