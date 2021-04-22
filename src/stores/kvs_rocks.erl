@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,bt/1,key/2,key/1,fd/1, tb/1]).
+-export([ref/0,bt/1,key/2,key/1,fd/1,tb/1]).
 -export([seek_it/1, move_it/3, take_it/4]).
 
 e(X,Y) -> element(X,Y).
@@ -21,7 +21,19 @@ tb(T) -> term_to_binary(T).
 key(R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
 key(R) -> key(R,[]).
 key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
-key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), tb(R)]))]).
+key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), fmt(R)]))]).
+
+fmt([]) -> [];
+fmt(K) -> Key = tb(K),
+  End = byte_size(Key),
+  {S,E} = case binary:matches(Key, [<<"/">>], []) of
+    [{0,1}]         -> {1, End-1};
+    [{0,1},{1,1}]   -> {2, End-2};
+    [{0,1},{1,1}|T] -> {2, End-2};
+    [{0,1}|T]       -> {1, End-1};
+    _               -> {0, End}
+  end,
+  binary:part(Key,{S,E}).
 
 fd(K) -> Key = tb(K),
   End = byte_size(Key),
