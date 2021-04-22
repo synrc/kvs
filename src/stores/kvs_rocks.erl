@@ -84,7 +84,7 @@ compile(move)     -> [fun rocksdb:iterator_move/2];
 compile(close)    -> [fun rocksdb:iterator_close/1].
 compile(take,N)   -> lists:map(fun(_) -> fun rocksdb:iterator_move/2 end, lists:seq(1, N)).
 
-stop_it(H)        -> try (compile(close))(H) catch error:badarg -> ok end.
+stop_it(H)        -> try begin [F]=compile(close), F(H) end catch error:badarg -> ok end.
 seek_it(K)        -> o(K,K,ok,compile(seek)).
 move_it(K,FK,Dir) -> o(K,FK,Dir,compile(seek) ++ compile(move)).
 take_it(Key,FK,Dir,N) when is_integer(N) andalso N >= 0 -> o(Key,FK,Dir,compile(seek) ++ compile(take,N));
