@@ -35,28 +35,30 @@ fd(K) -> Key = tb(K),
   binary:part(Key,{0,S}).
 
 o(<<>>,FK,_,_) -> {ok,FK,[],[]};
-o(Key,FK,Dir,Fx) ->
+o(Key,FK,Dir,CompiledOperations) ->
   S = size(FK),
 
-  Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]}; % continue
-            (_,K,H,V,Acc) -> close_it(H),                                          % failsafe close
-                             throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,        % acc unfold
+  Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == FK -> {F(H,Dir),H,[V|Acc]}; % continue +------------+
+            (_,K,H,V,Acc) -> close_it(H),                                          % failsafe close        |
+                             throw({ok,fd(K),bt(V),[bt(A1)||A1<-Acc]}) end,        % acc unfold            |
+                                                                                   %                       |
+  RangeCheckRun = fun(F,K,V,H) -> case F(H,prev) of                     %                                  |
+      {ok,K1,V1} when binary_part(K,{0,S}) == FK -> {{ok,K1,V1},H,[V]}; % return (range-check error)       |
+      {ok,K1,V1} -> Run(F,K1,H,V1,[]);                                  % run prev-take chain              | loop
+      E -> E                                                            % violation                        |
+  end end,                                                              %                                  |
+                                                                        %                                  |
+  StateMachine = fun                                                    %                                  |
+    (F,{ok,H})            -> {F(H,{seek,Key}),H};                       % first move (seek)                |
+    (F,{{ok,K,V},H}) when Dir =:= prev -> RangeCheckRun(F,K,V,H);       % first chained prev-take          |
+    (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]);                           % first chained next-take          |
+    (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A);                            % chained CPS-take continuator +---+
+    (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};                        % error effects
+    (F,{R,O})             -> F(R,O);                                    % chain constructor
+    (F,H)                 -> F(H)
+  end,
 
-  RangeCheckRun = fun(F,K,V,H) -> case F(H,prev) of
-      {ok,K1,V1} when binary_part(K,{0,S}) == FK -> {{ok,K1,V1},H,[V]}; % return (range-check error)
-      {ok,K1,V1} -> Run(F,K1,H,V1,[]);                                  % run prev-take chain
-      E -> E                                                            % violation
-  end end,
-
-  It = fun(F,{ok,H})            -> {F(H,{seek,Key}),H};                 % first move (seek)
-          (F,{{ok,K,V},H}) when Dir =:= prev -> RangeCheckRun(F,K,V,H); % first chained prev-take
-          (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]);                     % first chained next-take
-          (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A);                      % chained CPS-take continuator
-          (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};                  % error effects
-          (F,{R,O})             -> F(R,O);                              % chain constructor
-          (F,H)                 -> F(H) end,
-
-  catch case lists:foldl(It, {ref(),[]}, Fx) of
+  catch case lists:foldl(StateMachine, {ref(),[]}, CompiledOperations) of
     {{ok,K,Bin},_,A}  -> {ok,fd(K), bt(Bin),[bt(A1)||A1<-A]};
     {{ok,K,Bin},_}    -> {ok,fd(K), bt(Bin),[]};
     {{error,_},_,Acc} -> {ok,fd(FK),bt(shd(Acc)),[bt(A1) ||A1<-Acc]}
