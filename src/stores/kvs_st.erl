@@ -1,12 +1,9 @@
 -module(kvs_st).
--description('KVS STREAM NATIVE ROCKS').
 -include("kvs.hrl").
 -include("stream.hrl").
 -include("metainfo.hrl").
 -export(?STREAM).
 -import(kvs_rocks, [key/2, key/1, bt/1, tb/1, ref/0, fd/1, seek_it/1, move_it/3, take_it/4]).
-
-% section: kvs_stream prelude
 
 se(X,Y,Z) -> setelement(X,Y,Z).
 e(X,Y) -> element(X,Y).
@@ -56,10 +53,15 @@ save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
 
 % add
 
+raw_append(M,Feed) -> rocksdb:put(ref(), key(Feed,M), term_to_binary(M), [{sync,true}]).
+
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
 add(#writer{args=M}=C) -> add(M,C).
 
-add(M,#writer{id=Feed,count=S}=C) -> NS=S+1, raw_append(M,Feed), C#writer{cache={e(1,M),e(2,M),key(Feed)},count=NS}.
+add(M,#writer{id=Feed,count=S}=C) ->
+   NS=S+1,
+   raw_append(M,Feed),
+   C#writer{cache={e(1,M),e(2,M),key(Feed)},count=NS}.
 
 remove(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
@@ -70,8 +72,6 @@ remove(Rec,Feed) ->
               save(W#writer{count = Count, cache=Ch1}),
               Count;
          _ -> C end.
-
-raw_append(M,Feed) -> rocksdb:put(ref(), key(Feed,M), term_to_binary(M), [{sync,true}]).
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
