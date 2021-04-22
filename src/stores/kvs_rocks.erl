@@ -17,6 +17,8 @@ tb(T) when is_list(T) -> list_to_binary(T);
 tb(T) when is_atom(T) -> atom_to_binary(T, utf8);
 tb(T) when is_binary(T) -> T;
 tb(T) -> term_to_binary(T).
+sz([]) -> 0;
+sz(B)  -> byte_size(B).
 
 key(R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
 key(R) -> key(R,[]).
@@ -25,7 +27,7 @@ key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab)
 
 fmt([]) -> [];
 fmt(K) -> Key = tb(K),
-  End = byte_size(Key),
+  End = sz(Key),
   {S,E} = case binary:matches(Key, [<<"/">>], []) of
     [{0,1}]         -> {1, End-1};
     [{0,1},{1,1}]   -> {2, End-2};
@@ -36,7 +38,7 @@ fmt(K) -> Key = tb(K),
   binary:part(Key,{S,E}).
 
 fd(K) -> Key = tb(K),
-  End = byte_size(Key),
+  End = sz(Key),
   {S,_} = case binary:matches(Key,[<<"/">>],[]) of
     [{0,1}]         -> {End,End};
     [{0,1},{1,1}]   -> {End,End};
@@ -48,13 +50,13 @@ fd(K) -> Key = tb(K),
 
 o(<<>>,SK,_,_) -> {ok,SK,[],[]};
 o(Key, % key
-  SK,  % sub-key
+  SK,  % sup-key
   Dir, % direction next/prev
   Compiled_Operations) ->
 
-  S = size(SK),
+  S = sz(SK),
 
-% H is cache prefix
+% H is iterator reference
 
   Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == SK -> {F(H,Dir),H,[V|Acc]}; % continue +------------+
             (_,K,H,V,Acc) -> stop_it(H),                                           % fail-safe closing     |
