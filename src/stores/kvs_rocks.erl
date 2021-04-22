@@ -49,9 +49,9 @@ o(Key,FK,Dir,Fx) ->
   end end,
 
   It = fun(F,{ok,H})            -> {F(H,{seek,Key}),H};
-          (F,{{ok,K,V},H}) when Dir =:= prev -> RangeCheckRun(F,K,V,H);
-          (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]);
-          (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A);
+          (F,{{ok,K,V},H}) when Dir =:= prev -> RangeCheckRun(F,K,V,H); % first move
+          (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]); % first move
+          (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A); % CPS continuator
           (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};
           (F,{R,O})             -> F(R,O);
           (F,H)                 -> F(H) end,
