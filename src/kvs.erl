@@ -9,6 +9,7 @@
 -include("kvs.hrl").
 -include("backend.hrl").
 -export([dump/0,metainfo/0,ensure/1,seq_gen/0,fields/1,defined/2,field/2,setfield/3,cut/2]).
+-export([join/2,seq/3]).
 -export(?API).
 -export(?STREAM).
 -export([init/1, start/2, stop/1]).
