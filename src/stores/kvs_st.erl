@@ -19,7 +19,7 @@ f2(Feed) -> X = tb(Feed),
 
 read_it(C,{ok,_,[],H}) -> C#reader{cache=[], args=lists:reverse(H)};
 read_it(C,{ok,F,V,H})  -> C#reader{cache={e(1,V),id(V),F}, args=lists:reverse(H)};
-read_it(C,_) -> C.
+read_it(C,_) -> C#reader{args=[]}.
 
 top(#reader{feed=Feed}=C) -> #writer{count=Cn} = writer(f2(Feed)), read_it(C#reader{count=Cn},seek_it(Feed)).
 bot(#reader{feed=Feed}=C) -> #writer{cache=Ch, count=Cn} = writer(f2(Feed)), C#reader{cache=Ch, count=Cn}.

@@ -29,8 +29,8 @@ fmt(K) -> Key = tb(K),
   {S,E} = case binary:matches(Key, [<<"/">>], []) of
     [{0,1}]         -> {1, End-1};
     [{0,1},{1,1}]   -> {2, End-2};
-    [{0,1},{1,1}|T] -> {2, End-2};
-    [{0,1}|T]       -> {1, End-1};
+    [{0,1},{1,1}|_] -> {2, End-2};
+    [{0,1}|_]       -> {1, End-1};
     _               -> {0, End}
   end,
   binary:part(Key,{S,E}).
@@ -79,7 +79,8 @@ o(Key, % key
   catch case lists:foldl(State_Machine, {ref(), []}, Compiled_Operations) of
     {{ok,K,Bin},_,A}  -> {ok, fd(K),  bt(Bin), [bt(A1) || A1 <- A]};
     {{ok,K,Bin},_}    -> {ok, fd(K),  bt(Bin), []};
-    {{error,_},_,Acc} -> {ok, fd(SK), bt(shd(Acc)), [bt(A1) || A1 <- Acc]}
+    {{error,_},_,Acc} -> {ok, fd(SK), bt(shd(Acc)), [bt(A1) || A1 <- Acc]};
+    {{error,_},_}     -> {ok, fd(SK), [], []}
   end.
 
 initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].
