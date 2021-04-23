@@ -94,6 +94,16 @@ defmodule Fd.Test do
         assert r = KVS.reader(:kvs.prev(:kvs.top(r)), args: [])                 
     end
 
+    test "prev to empty" do        
+        :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/aco") end, :lists.seq(1,2))
+        all = :kvs.all("/aco")
+        head = Enum.at(all,0)
+
+        r = :kvs.bot(:kvs.reader("/aco"))
+        r1 = KVS.reader(args: args) = :kvs.take(KVS.reader(r, args: 2, dir: 1))
+        assert all == :lists.reverse(args)
+        assert KVS.reader(args: [^head]) = :kvs.take(KVS.reader(r1, args: 1000, dir: 1))
+    end
 
     defp log(x), do: IO.puts '#{inspect(x)}'
     defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
