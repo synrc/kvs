@@ -12,7 +12,7 @@ e(X,Y) -> element(X,Y).
 bt([]) -> [];
 bt(X)  -> binary_to_term(X).
 
-tb([]) -> [];
+tb([]) -> <<>>;
 tb(T) when is_list(T) -> list_to_binary(T);
 tb(T) when is_atom(T) -> atom_to_binary(T, utf8);
 tb(T) when is_binary(T) -> T;
@@ -23,7 +23,8 @@ sz(B)  -> byte_size(B).
 key(R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
 key(R) -> key(R,[]).
 key(Tab,R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(Tab, e(2,R));
-key(Tab,R) -> iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, tb(Tab), fmt(R)]))]).
+key(Tab,R) -> Fd = case Tab of [] -> []; _ -> tb(Tab) end,
+              iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, Fd, fmt(R)]))]).
 
 fmt([]) -> [];
 fmt(K) -> Key = tb(K),
@@ -65,7 +66,8 @@ o(Key, % key
   Range_Check = fun(F,K,H,V) -> case F(H,prev) of                       % backward prefetch                |
       {ok,K1,V1} when binary_part(K,{0,S}) == SK -> {{ok,K1,V1},H,[V]}; % return (range-check error)       |
       {ok,K1,V1} -> Run(F,K1,H,V1,[]);                                  % run prev-take chain              | loop
-      E -> E                                                            % violation                        |
+      _ -> stop_it(H),                                                  % fail-safe closing                |
+           throw({ok, fd(K), bt(V), [bt(V)]})                           % acc unfold                       |
   end end,                                                              %                                  |
                                                                         %                                  |
   State_Machine = fun                                                   %                                  |
@@ -73,9 +75,8 @@ o(Key, % key
     (F,{{ok,K,V},H}) when Dir =:= prev -> Range_Check(F,K,H,V);         % first chained prev-take          |
     (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]);                           % first chained next-take          |
     (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A);                            % chained CPS-take continuator +---+
-    (_,{{error,_},H,Acc}) -> {{ok,[],[]},H,Acc};                        % error effects
-    (F,{R,O})             -> F(R,O);                                    % chain constructor
-    (F,H)                 -> F(H)
+    (_,{{error,E},H,Acc}) -> {{error,E},H,Acc};                         % error effects
+    (F,{R,O})             -> F(R,O)                                     % chain constructor
   end,
 
   catch case lists:foldl(State_Machine, {ref(), []}, Compiled_Operations) of
