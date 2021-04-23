@@ -39,17 +39,18 @@ feed(F,#reader{cache=C1}=R,Acc) ->
     _ -> Acc ++ A
   end.
 
-load_reader(Id) ->
-    case kvs:get(reader,Id) of
-         {ok,#reader{}=C} -> C;
-              _ -> #reader{id=[]} end.
+load_reader(Id) -> case kvs:get(reader,Id) of {ok,#reader{}=C} -> C; _ -> #reader{id=kvs:seq([],[])} end.
 
 writer(Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
 reader(Id) -> case kvs:get(writer,Id) of
   {ok,#writer{id=Feed, count=Cn, cache=Ch}} ->
     read_it(#reader{id=kvs:seq([],[]),feed=key(Feed),count=Cn,cache=Ch},seek_it(key(Feed)));
-  {error,_} -> save(#writer{id=Id}), reader(Id) end.
-save(C) -> NC = c4(C,[]), kvs:put(NC), NC.
+  {error,_} -> 
+    W = save(#writer{id=Id}), reader(W#writer.id) end.
+save(C) ->
+  N1 = case id(C) of [] -> si(C,kvs:seq([],[])); _ -> C end,
+  NC = c4(N1,[]),
+  kvs:put(NC), NC.
 
 % add
 

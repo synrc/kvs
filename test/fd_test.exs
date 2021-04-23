@@ -33,7 +33,7 @@ defmodule Fd.Test do
         assert KVS.reader(feed: "//crm", count: 0, dir: 0, args: [], cache: {:msg, ^dtop, "//crm/duck"}) = :kvs.reader("/crm")
         assert KVS.reader(feed: "//noroute", count: 0, dir: 0, args: []) = :kvs.reader("/noroute")
         assert KVS.reader(feed: "//", count: 0, dir: 0, args: [], cache: {:msg, ^dtop, "//crm/duck"}) = :kvs.reader("/")
-        assert KVS.reader(feed: "", count: 0, dir: 0, args: [], cache: []) = :kvs.reader([])
+        assert KVS.reader(count: 0, dir: 0, args: [], cache: []) = :kvs.reader([])
     end
 
     test "range", kvs do
