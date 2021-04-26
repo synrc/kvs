@@ -13,7 +13,7 @@ bt([]) -> [];
 bt(X)  -> binary_to_term(X).
 
 tb([]) -> <<>>;
-tb(T) when is_list(T) -> list_to_binary(T);
+tb(T) when is_list(T) -> unicode:characters_to_nfkc_binary(T);
 tb(T) when is_atom(T) -> atom_to_binary(T, utf8);
 tb(T) when is_binary(T) -> T;
 tb(T) -> term_to_binary(T).
