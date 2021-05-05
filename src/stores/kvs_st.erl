@@ -4,6 +4,7 @@
 -include("metainfo.hrl").
 -export(?STREAM).
 -import(kvs_rocks, [key/2, key/1, bt/1, tb/1, ref/0, seek_it/1, move_it/3, take_it/4]).
+-export([raw_append/2]).
 
 se(X,Y,Z) -> setelement(X,Y,Z).
 e(X,Y) -> element(X,Y).
