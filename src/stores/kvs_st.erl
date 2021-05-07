@@ -12,7 +12,7 @@ c4(R,V) -> se(#reader.args,  R, V).
 si(M,T) -> se(#it.id, M, T).
 id(T) -> e(#it.id, T).
 
-k(F,[]) -> F; 
+k(F,[]) -> F;
 k(_,{_,Id,SF}) -> iolist_to_binary([SF,<<"/">>,tb(Id)]).
 
 f2(Feed) -> X = tb(Feed),
@@ -55,7 +55,7 @@ save(C) ->
 
 % add
 
-raw_append(M,Feed) -> rocksdb:put(ref(), key(Feed,M), term_to_binary(M), [{sync,true}]).
+raw_append(M,Feed) -> rocksdb:put(ref(), key(Feed,e(2,M)), term_to_binary(M), [{sync,true}]).
 
 add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq([],[])),C);
 add(#writer{args=M}=C) -> add(M,C).
