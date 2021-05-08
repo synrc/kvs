@@ -115,6 +115,8 @@ take_it(Key,SK,Dir,_) -> take_it(Key,SK,Dir,0).
 
 all(R) -> kvs_st:feed(R).
 
+get(Tab, {step,N,[208|_]=Key}) -> get(Tab, {step,N,list_to_binary(Key)});
+get(Tab, [208|_]=Key) -> get(Tab, list_to_binary(Key));
 get(Tab, Key) ->
     case rocksdb:get(ref(), key(Tab,Key), []) of
          not_found -> {error,not_found};
