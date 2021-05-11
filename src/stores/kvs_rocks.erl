@@ -23,7 +23,7 @@ sz(B)  -> byte_size(B).
 key(R) when is_tuple(R) andalso tuple_size(R) > 1 -> key(e(1,R), e(2,R));
 key(R) -> key(R,[]).
 key(writer,R) -> % allow old writers
-              iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, erlang:atom_to_binary(writer), tb(R)]))]);
+              iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, erlang:atom_to_binary(writer, utf8), tb(R)]))]);
 key(Tab,R) -> Fd = case Tab of [] -> []; _ -> tb(Tab) end,
               iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, Fd, fmt(R)]))]).
 

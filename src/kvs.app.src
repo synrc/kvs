@@ -1,6 +1,6 @@
 {application, kvs,
    [{description, "KVS Abstract Chain Database"},
-    {vsn, "8.5.0"},
+    {vsn, "8.5.1"},
     {registered, []},
     {applications, [kernel,stdlib]},
     {mod, { kvs, []}},
