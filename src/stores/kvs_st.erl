@@ -16,7 +16,10 @@ k(F,[]) -> F;
 k(_,{_,Id,SF}) -> iolist_to_binary([SF,<<"/">>,tb(Id)]).
 
 f2(Feed) -> X = tb(Feed),
-  case binary:match(X, <<"//">>,[]) of {0,2} -> binary:part(X,{1,size(X)-1}); _ -> X end.
+  case binary:matches(X, <<"/">>,[]) of
+    [{0,1}|_] -> binary:part(X,{1,size(X)-1});
+            _ -> X
+  end.
 
 read_it(C,{ok,_,[],H}) -> C#reader{cache=[], args=lists:reverse(H)};
 read_it(C,{ok,F,V,H})  -> C#reader{cache={e(1,V),id(V),F}, args=lists:reverse(H)};
