@@ -36,7 +36,9 @@ feed(F,#reader{cache=C1}=R,Acc) ->
   #reader{args=A, cache=Ch, feed=Feed} = R1 = F(R),
   case Ch of
     C1 -> Acc ++ A;
-    {_,_,K} when binary_part(K,{0,byte_size(Feed)}) == Feed -> feed(F, R1, Acc ++ A);
+    {_,_,K} when binary_part(K,{0,byte_size(Feed)}) == Feed
+            andalso length(A) == 4
+      -> feed(F, R1, Acc ++ A);
     _ -> Acc ++ A
   end.
 
