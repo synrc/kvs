@@ -51,8 +51,9 @@ writer(Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id
 reader(Id) -> case kvs:get(writer,Id) of
   {ok,#writer{id=Feed, count=Cn, cache=Ch}} ->
     read_it(#reader{id=kvs:seq([],[]),feed=key(Feed),count=Cn,cache=Ch},seek_it(key(Feed)));
-  {error,_} -> 
-    W = save(#writer{id=Id}), reader(W#writer.id) end.
+  {error,_} ->
+    read_it(#reader{id=kvs:seq([],[]),feed=key(Id),count=0,cache=[]},seek_it(key(Id)))
+  end.
 save(C) ->
   N1 = case id(C) of [] -> si(C,kvs:seq([],[])); _ -> C end,
   NC = c4(N1,[]),
