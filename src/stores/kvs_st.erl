@@ -167,7 +167,7 @@ append(Rec,Feed) ->
    Id = element(2,Rec),
    W = kvs:writer(Feed),
    case kvs:get(Feed,Id) of
-        {ok,_} -> raw_append(Rec,Feed), kvs:save(W#writer{cache=Rec,count=W#writer.count + 1}), Id;
+        {ok,_} -> raw_append(Rec,Feed), kvs:save(W#writer{cache=Rec}), Id;
         {error,_} -> kvs:save(kvs:add(W#writer{args=Rec,cache=Rec})), Id end.
 
 cut(Feed,Id) ->
