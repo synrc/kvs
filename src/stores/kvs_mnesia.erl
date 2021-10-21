@@ -47,7 +47,7 @@ seq([],[]) ->
        {win32,nt} -> {Mega,Sec,Micro} = erlang:timestamp(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);
                 _ -> erlang:integer_to_list(element(2,hd(lists:reverse(erlang:system_info(os_monotonic_time_source)))))
   end;
-seq(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
+seq(RecordName, Incr) -> erlang:integer_to_list(mnesia:dirty_update_counter({id_seq, RecordName}, Incr)).
 many(Fun) -> case mnesia:activity(context(),Fun) of {atomic, [R]} -> R; {aborted, Error} -> {error, Error}; X -> X end.
 void(Fun) -> case mnesia:activity(context(),Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error}; X -> X end.
 info(T) -> try mnesia:table_info(T,all) catch _:_ -> [] end.
