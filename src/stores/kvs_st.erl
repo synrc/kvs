@@ -86,5 +86,5 @@ append(Rec,Feed) ->
    Id = e(2,Rec),
    W = writer(Feed),
    case kvs:get(Feed,Id) of
-        {ok,_} -> raw_append(Rec,Feed), save(W#writer{cache={e(1,Rec),Id,key(Feed)},count=W#writer.count + 1}), Id;
+        {ok,_} -> raw_append(Rec,Feed), save(W#writer{cache={e(1,Rec),Id,key(Feed)}}), Id;
         {error,_} -> save(add(W#writer{args=Rec})), Id end.
