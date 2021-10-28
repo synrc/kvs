@@ -105,6 +105,13 @@ defmodule Fd.Test do
         assert KVS.reader(args: [^head]) = :kvs.take(KVS.reader(r1, args: 1000, dir: 1))
     end
 
+
+    test "keys with feeds separator" do
+        :kvs.append(msg(id: "1/1"), "/one/two")
+        :kvs.append(msg(id: "1/2"), "/one/two")
+        assert KVS.reader(cache: {:msg, _, "//one/two"}) = :kvs.reader("/one/two")
+    end
+
     defp log(x), do: IO.puts '#{inspect(x)}'
     defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
 end
