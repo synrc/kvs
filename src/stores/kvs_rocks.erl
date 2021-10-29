@@ -75,7 +75,7 @@ run(Key, % key
   end end,                                                              %                                  |
                                                                         %                                  |
   State_Machine = fun                                                   %                                  |
-    (F,{ok,H})            -> Refresh(H),{F(H,{seek,Key}),H};            % first move (seek)                |
+    (F,{ok,H})            -> {F(H,{seek,Key}),H};                       % first move (seek)                |
     (F,{{ok,K,V},H}) when Dir =:= prev -> Range_Check(F,K,H,V);         % first chained prev-take          |
     (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]);                           % first chained next-take          |
     (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A);                            % chained CPS-take continuator +---+
@@ -84,10 +84,10 @@ run(Key, % key
   end,
 
   catch case lists:foldl(State_Machine, Initial_Object, Compiled_Operations) of
-    {{ok,K,Bin},_,A}  -> {ok, fd(K),  bt(Bin), [bt(A1) || A1 <- A]};
-    {{ok,K,Bin},_}    -> {ok, fd(K),  bt(Bin), []};
-    {{error,_},_,Acc} -> {ok, fd(SK), bt(shd(Acc)), [bt(A1) || A1 <- Acc]};
-    {{error,_},_}     -> {ok, fd(SK), [], []}
+    {{ok,K,Bin},H,A}  -> stop_it(H), {ok, fd(K),  bt(Bin), [bt(A1) || A1 <- A]};
+    {{ok,K,Bin},H}    -> stop_it(H), {ok, fd(K),  bt(Bin), []};
+    {{error,_},H,Acc} -> stop_it(H), {ok, fd(SK), bt(shd(Acc)), [bt(A1) || A1 <- Acc]};
+    {{error,_},H}     -> stop_it(H), {ok, fd(SK), [], []}
   end.
 
 initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].

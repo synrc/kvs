@@ -4,7 +4,7 @@ defmodule KVS.Mixfile do
   def project do
     [
       app: :kvs,
-      version: "8.10.2",
+      version: "8.10.3",
       description: "KVS Abstract Chain Database",
       package: package(),
       deps: deps()
