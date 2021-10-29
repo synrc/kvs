@@ -59,6 +59,9 @@ run(Key, % key
 
   S = sz(SK),
   Initial_Object = {ref(), []},
+  
+  % refresh memtables/sst/cached data in current position
+  Refresh = fun(H) -> rocksdb:iterator_refresh(H) end,
 
   Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == SK -> {F(H,Dir),H,[V|Acc]}; % continue +------------+
             (_,K,H,V,Acc) -> stop_it(H),                                           % fail-safe closing     |
@@ -72,7 +75,7 @@ run(Key, % key
   end end,                                                              %                                  |
                                                                         %                                  |
   State_Machine = fun                                                   %                                  |
-    (F,{ok,H})            -> {F(H,{seek,Key}),H};                       % first move (seek)                |
+    (F,{ok,H})            -> Refresh(H),{F(H,{seek,Key}),H};            % first move (seek)                |
     (F,{{ok,K,V},H}) when Dir =:= prev -> Range_Check(F,K,H,V);         % first chained prev-take          |
     (F,{{ok,K,V},H})      -> Run(F,K,H,V,[]);                           % first chained next-take          |
     (F,{{ok,K,V},H,A})    -> Run(F,K,H,V,A);                            % chained CPS-take continuator +---+
