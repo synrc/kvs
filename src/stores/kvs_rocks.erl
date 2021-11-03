@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,bt/1,key/2,key/1,fd/1,tb/1]).
+-export([ref/0,bt/1,key/2,key/1,fd/1,tb/1,estimate/0]).
 -export([seek_it/1, move_it/3, take_it/4]).
 
 e(X,Y) -> element(X,Y).
@@ -60,9 +60,6 @@ run(Key, % key
   S = sz(SK),
   Initial_Object = {ref(), []},
   
-  % refresh memtables/sst/cached data in current position
-  Refresh = fun(H) -> rocksdb:iterator_refresh(H) end,
-
   Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == SK -> {F(H,Dir),H,[V|Acc]}; % continue +------------+
             (_,K,H,V,Acc) -> stop_it(H),                                           % fail-safe closing     |
                              throw({ok, fd(K), bt(V), [bt(A1) || A1 <- Acc]}) end, % acc unfold            |
@@ -129,6 +126,12 @@ put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, 
 put(Record) -> rocksdb:put(ref(), key(Record), term_to_binary(Record), [{sync,true}]).
 delete(Feed, Id) -> rocksdb:delete(ref(), key(Feed,Id), []).
 count(_) -> 0.
+estimate() -> case rocksdb:get_property(ref(), <<"rocksdb.estimate-num-keys">>) of
+                {ok, Est} when is_binary(Est)  -> binary_to_integer(Est);
+                {ok, Est} when is_list(Est)    -> list_to_integer(Est);
+                {ok, Est} when is_integer(Est) -> Est;
+                _ -> 0 
+            end.
 
 shd([]) -> [];
 shd(X) -> hd(X).

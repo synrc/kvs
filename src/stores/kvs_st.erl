@@ -3,7 +3,7 @@
 -include("stream.hrl").
 -include("metainfo.hrl").
 -export(?STREAM).
--import(kvs_rocks, [key/2, key/1, bt/1, tb/1, ref/0, seek_it/1, move_it/3, take_it/4]).
+-import(kvs_rocks, [key/2, key/1, bt/1, tb/1, ref/0, seek_it/1, move_it/3, take_it/4, estimate/0]).
 -export([raw_append/2]).
 
 se(X,Y,Z) -> setelement(X,Y,Z).
@@ -34,14 +34,22 @@ take(#reader{args=N,feed=Feed,cache=I,dir=_}=C) -> read_it(C,take_it(k(Feed,I),F
 drop(#reader{args=N}=C) when N =< 0 -> C;
 drop(#reader{}=C) -> (take(C#reader{dir=0}))#reader{args=[]}.
 
-feed(Feed) -> feed(fun(#reader{}=R) -> take(R#reader{args=4}) end, top(reader(Feed)),[]).
-feed(F,#reader{cache=C1}=R,Acc) ->
+feed(Feed) ->
+  #reader{count=Cn} = Top = top(reader(Feed)),
+  Halt = case {estimate(),Cn} of 
+          {E,C} when E =< 0 -> max(C,4);
+          {E,_} -> E
+         end,
+  feed(fun(#reader{}=R) -> take(R#reader{args=4}) end,Top,[],Halt).
+
+feed(F,#reader{},Acc,H) when H =< 0 -> Acc;
+feed(F,#reader{cache=C1,count=Cn}=R,Acc,H) ->
   #reader{args=A, cache=Ch, feed=Feed} = R1 = F(R),
   case Ch of
     C1 -> Acc ++ A;
     {_,_,K} when binary_part(K,{0,byte_size(Feed)}) == Feed
             andalso length(A) == 4
-      -> feed(F, R1, Acc ++ A);
+      -> feed(F, R1, Acc ++ A, H-4);
     _ -> Acc ++ A
   end.
 
