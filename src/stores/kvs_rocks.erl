@@ -59,7 +59,7 @@ run(Key, % key
 
   S = sz(SK),
   Initial_Object = {ref(), []},
-  
+
   Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == SK -> {F(H,Dir),H,[V|Acc]}; % continue +------------+
             (_,K,H,V,Acc) -> stop_it(H),                                           % fail-safe closing     |
                              throw({ok, fd(K), bt(V), [bt(A1) || A1 <- Acc]}) end, % acc unfold            |
