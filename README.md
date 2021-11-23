@@ -1,5 +1,5 @@
-KVS: Abstract Chain Database
-============================
+KVS: Abstract Term Database
+===========================
 
 [![Actions Status](https://github.com/synrc/kvs/workflows/mix/badge.svg)](https://github.com/synrc/kvs/actions)
 [![Build Status](https://travis-ci.com/synrc/kvs.svg?branch=master)](https://travis-ci.com/synrc/kvs)
