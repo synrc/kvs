@@ -80,14 +80,16 @@ add(M,#writer{id=Feed,count=S}=C) ->
    C#writer{cache={e(1,M),e(2,M),key(Feed)},count=NS}.
 
 remove(Rec,Feed) ->
-   kvs:ensure(#writer{id=Feed}),
-   W = #writer{count=C, cache=Ch} = kvs:writer(Feed),
-   Ch1 = case {e(1,Rec),e(2,Rec),key(Feed)} of Ch -> Ch;_ -> [] end, % need to keep reference for next element
-   case kvs:delete(Feed,id(Rec)) of
+  kvs:ensure(#writer{id=Feed}),
+  W = #writer{count=C, cache=Ch} = kvs:writer(Feed),
+  Ch1 = case {e(1,Rec),e(2,Rec),key(Feed)} of % need to keep reference for next element
+              Ch -> R = reader(Feed), e(4, prev(R#reader{cache=Ch}));
+              _ -> Ch end,
+  case kvs:delete(Feed,id(Rec)) of
         ok -> Count = C - 1,
               save(W#writer{count = Count, cache=Ch1}),
               Count;
-         _ -> C end.
+        _ -> C end.
 
 append(Rec,Feed) ->
    kvs:ensure(#writer{id=Feed}),
