@@ -27,6 +27,47 @@
    <p>FS is a <b>filesystem</b> backend implementation for KVS.
       Put the {dba,kvs_fs} property for the kvs application in your sys.config.</p>
    <br />
+
+   <h3>EXAMPLES</h3>
+
+   <blockquote>All examples can be executed in Erlang REPL. Only
+     requirement is to have kvs set in dependencies and kvs application
+     started.</blockquote>
+   
+   <p>Create a new kvs_fs table called test. When executed, this
+     function will create a new directory called test under data
+     directory in the current workspace.</p>
+   
+   <figure><code>
+       kvs_fs:create_table(test, []).
+       % will return:
+       % ok
+   </code></figure>
+
+   <p>Put a new key/value in table test. When executed, a new file is
+     created under test directory. Its name is based on the sha1 of
+     the key encoded in base64.</p>
+
+   <figure><code>
+       Table = test.
+       Key = key.
+       Value = <<"my_value">>.
+       kvs_fs:put({test, Key, Value}).
+       % will return:
+       % ok
+   </code></figure>
+
+   <p>Get a key from value test.</p>
+
+   <figure><code>
+       kvs_fs:get(test, key).
+       % will return:
+       % {ok, {test, key, <<"my_value">>}}
+   </code></figure>
+
+
+   <p>Delete a key</p>
+   
    </section>
     <section>
 <p>This module may refer to:

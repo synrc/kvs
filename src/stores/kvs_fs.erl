@@ -6,12 +6,19 @@
 -export(?BACKEND).
 
 start()    -> ok.
+
 stop()     -> ok.
+
 destroy()  -> ok.
+
 version()  -> {version,"KVS FS"}.
+
 leave()    -> ok.
+
 dir()      -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
-join(_Node) -> filelib:ensure_dir("data/"), initialize(). % should be rsync or smth
+
+join(_Node) -> filelib:ensure_dir(dir_name()), initialize(). % should be rsync or smth
+
 initialize() ->
     mnesia:create_schema([node()]),
     [ kvs:initialize(kvs_fs,Module) || Module <- kvs:modules() ],
@@ -19,29 +26,59 @@ initialize() ->
 
 index(_Tab,_Key,_Value) -> [].
 get(TableName, Key) ->
-    HashKey = encode(base64:encode(crypto:hash(sha, term_to_binary(Key)))),
-    Dir = lists:concat(["data/",TableName,"/"]),
-    case file:read_file(lists:concat([Dir,HashKey])) of
+    HashKey = hashkey(Key),
+    {ok, Dir} = dir(TableName),
+    File = filename:join([Dir,HashKey]),
+    case file:read_file(File) of
          {ok,Binary} -> {ok,binary_to_term(Binary,[safe])};
          {error,Reason} -> {error,Reason} end.
+
 put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
 put(Record) ->
     TableName = element(1,Record),
-    HashKey = encode(base64:encode(crypto:hash(sha, term_to_binary(element(2,Record))))),
+    HashKey = hashkey(element(2,Record)),
     BinaryValue = term_to_binary(Record),
-    Dir = lists:concat(["data/",TableName,"/"]),
-    filelib:ensure_dir(Dir),
-    File = lists:concat([Dir,HashKey]),
+    {ok, Dir} = dir(TableName),
+    File = filename:join([Dir,HashKey]),
+    filelib:ensure_dir(File),
     file:write_file(File,BinaryValue,[write,raw,binary,sync]).
 
-delete(_Tab, _Key) -> case kvs:get(_Tab,_Key) of {ok,_} -> ok; {error,X} -> {error,X} end.
-count(RecordName) -> length(filelib:fold_files(lists:concat(["data/",RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, [])).
+dir_name() -> "data".
+
+dir(TableName) ->
+    {ok, Cwd} = file:get_cwd(),
+    TablePath = filename:join([dir_name(),TableName]),
+    case filelib:safe_relative_path(TablePath, Cwd) of
+        unsafe -> {error, {unsafe, TablePath}};
+        Target -> {ok, Target}
+    end.
+
+hashkey(Key) -> encode(base64:encode(crypto:hash(sha, term_to_binary(Key)))).
+
+delete(TableName, Key) ->
+    case kvs_fs:get(TableName, Key) of
+        {ok,_} ->
+            {ok, Dir} = dir(TableName),
+            HashKey = hashkey(Key),
+            File = filename:join([Dir,HashKey]),
+            file:delete(File);
+        {error,X} -> {error,X}
+    end.
+
+count(RecordName) -> length(filelib:fold_files(filename:join([dir_name(), RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, [])).
+
 all(R) -> lists:flatten([ begin case file:read_file(File) of
                         {ok,Binary} -> binary_to_term(Binary,[safe]);
                         {error,_Reason} -> [] end end || File <-
-      filelib:fold_files(lists:concat(["data/",R]), "",true, fun(A,Acc)-> [A|Acc] end, []) ]).
+      filelib:fold_files(filename:join([dir_name(), R]), "",true, fun(A,Acc)-> [A|Acc] end, []) ]).
+
 seq(RecordName, Incr) -> kvs_mnesia:seq(RecordName, Incr).
-create_table(Name,_Options) -> filelib:ensure_dir(lists:concat(["data/",Name,"/"])).
+
+create_table(Name,_Options) ->
+    {ok, Dir} = dir(Name),
+    file:make_dir(Dir),
+    filelib:ensure_dir(Dir).
+
 add_table_index(_Record, _Field) -> ok.
 
 % URL ENCODE
