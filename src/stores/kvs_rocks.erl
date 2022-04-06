@@ -4,8 +4,8 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,bt/1,key/2,key/1,fd/1,tb/1,estimate/0]).
--export([seek_it/1, move_it/3, take_it/4]).
+-export([ref/0,ref/1,bt/1,key/2,key/1,fd/1,tb/1,estimate/0,estimate/1]).
+-export([seek_it/1, seek_it/2, move_it/3, move_it/4, take_it/4, take_it/5]).
 
 e(X,Y) -> element(X,Y).
 
@@ -50,15 +50,16 @@ fd(K) -> Key = tb(K),
   end,
   binary:part(Key,{0,S}).
 
-run(<<>>,SK,_,_) -> {ok,SK,[],[]};
+run(<<>>,SK,_,_,_) -> {ok,SK,[],[]};
 run(Key, % key
   SK,  % sup-key
   Dir, % direction next/prev
-  Compiled_Operations) ->
+  Compiled_Operations,
+  Db) ->
        % H is iterator reference
 
   S = sz(SK),
-  Initial_Object = {ref(), []},
+  Initial_Object = {ref(Db), []},
 
   Run = fun (F,K,H,V,Acc) when binary_part(K,{0,S}) == SK -> {F(H,Dir),H,[V|Acc]}; % continue +------------+
             (_,K,H,V,Acc) -> stop_it(H),                                           % fail-safe closing     |
@@ -90,17 +91,21 @@ run(Key, % key
 initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].
 index(_,_,_) -> [].
 
-start()    -> ok.
-stop()     -> ok.
-destroy()  -> rocksdb:destroy(application:get_env(kvs,rocks_name,"rocksdb"), []).
-version()  -> {version,"KVS ROCKSDB"}.
-dir()      -> [].
-ref()      -> application:get_env(kvs,rocks_ref,[]).
-leave()    -> case ref() of [] -> skip; X -> rocksdb:close(X), application:set_env(kvs,rocks_ref,[]), ok end.
-join(_)    -> application:start(rocksdb),
-              leave(), {ok, Ref} = rocksdb:open(application:get_env(kvs,rocks_name,"rocksdb"), [{create_if_missing, true}]),
+ref_env(Db)       -> list_to_atom("rocks_ref" ++ Db).
+db()              -> application:get_env(kvs,rocks_name,"rocksdb").
+start()           -> ok.
+stop()            -> ok.
+destroy(Db)       -> rocksdb:destroy(Db, []).
+version()         -> {version,"KVS ROCKSDB"}.
+dir()             -> [].
+ref()             -> ref(db()).
+ref(Db)           -> application:get_env(kvs,ref_env(Db),[]).
+leave(Db)         -> case ref(Db) of [] -> skip; X -> rocksdb:close(X), application:set_env(kvs,ref_env(Db),[]), ok end.
+join(_,Db)        ->
+              application:start(rocksdb),
+              leave(Db), {ok, Ref} = rocksdb:open(Db, [{create_if_missing, true}]),
               initialize(),
-              application:set_env(kvs,rocks_ref,Ref).
+              application:set_env(kvs,ref_env(Db),Ref).
 
 compile(seek) -> [fun rocksdb:iterator/2,fun rocksdb:iterator_move/2];
 compile(move) -> [fun rocksdb:iterator_move/2];
@@ -108,25 +113,29 @@ compile(close) -> [fun rocksdb:iterator_close/1].
 compile(take,N) -> lists:map(fun(_) -> fun rocksdb:iterator_move/2 end, lists:seq(1, N)).
 
 stop_it(H) -> try begin [F]=compile(close), F(H) end catch error:badarg -> ok end.
-seek_it(K) -> run(K,K,ok,compile(seek)).
-move_it(Key,SK,Dir) -> run(Key,SK,Dir,compile(seek) ++ compile(move)).
-take_it(Key,SK,Dir,N) when is_integer(N) andalso N >= 0 -> run(Key,SK,Dir,compile(seek) ++ compile(take,N));
-take_it(Key,SK,Dir,_) -> take_it(Key,SK,Dir,0).
+seek_it(K) -> seek_it(K,db()).
+seek_it(K,Db) -> run(K,K,ok,compile(seek),Db).
+move_it(Key,SK,Dir) -> move_it(Key,SK,Dir,db()).
+move_it(Key,SK,Dir,Db) -> run(Key,SK,Dir,compile(seek) ++ compile(move),Db).
+take_it(Key,SK,Dir,N) -> take_it(Key,SK,Dir,N,db()).
+take_it(Key,SK,Dir,N,Db) when is_integer(N) andalso N >= 0 -> run(Key,SK,Dir,compile(seek) ++ compile(take,N),Db);
+take_it(Key,SK,Dir,_,Db) -> take_it(Key,SK,Dir,0,Db).
 
-all(R) -> kvs_st:feed(R).
+all(R,Db) -> kvs_st:feed(R,Db).
 
-get(Tab, {step,N,[208|_]=Key}) -> get(Tab, {step,N,list_to_binary(Key)});
-get(Tab, [208|_]=Key) -> get(Tab, list_to_binary(Key));
-get(Tab, Key) ->
-    case rocksdb:get(ref(), key(Tab,Key), []) of
+get(Tab, {step,N,[208|_]=Key}, Db) -> get(Tab, {step,N,list_to_binary(Key)},Db);
+get(Tab, [208|_]=Key, Db) -> get(Tab, list_to_binary(Key), Db);
+get(Tab, Key, Db) ->
+    case rocksdb:get(ref(Db), key(Tab,Key), []) of
          not_found -> {error,not_found};
          {ok,Bin} -> {ok,bt(Bin)} end.
 
-put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
-put(Record) -> rocksdb:put(ref(), key(Record), term_to_binary(Record), [{sync,true}]).
-delete(Feed, Id) -> rocksdb:delete(ref(), key(Feed,Id), []).
+put(Records,Db) when is_list(Records) -> lists:map(fun(Record) -> put(Record,Db) end, Records);
+put(Record,Db) -> rocksdb:put(ref(Db), key(Record), term_to_binary(Record), [{sync,true}]).
+delete(Feed, Id, Db) -> rocksdb:delete(ref(Db), key(Feed,Id), []).
 count(_) -> 0.
-estimate() -> case rocksdb:get_property(ref(), <<"rocksdb.estimate-num-keys">>) of
+estimate()   -> estimate(db()).
+estimate(Db) -> case rocksdb:get_property(ref(Db), <<"rocksdb.estimate-num-keys">>) of
                 {ok, Est} when is_binary(Est)  -> binary_to_integer(Est);
                 {ok, Est} when is_list(Est)    -> list_to_integer(Est);
                 {ok, Est} when is_integer(Est) -> Est;

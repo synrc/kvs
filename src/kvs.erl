@@ -21,6 +21,7 @@
 -export([dump/0,
          metainfo/0,
          ensure/1,
+         ensure/2,
          seq_gen/0,
          fields/1,
          defined/2,
@@ -51,35 +52,37 @@ stop(_) -> ok.
 
 dba() -> application:get_env(kvs, dba, kvs_mnesia).
 
+db()  -> (dba()):db().
+
 kvs_stream() ->
     application:get_env(kvs, dba_st, kvs_stream).
 
 % kvs api
 
-all(Table) -> all(Table, #kvs{mod = dba()}).
+all(Table) -> all(Table, #kvs{mod = dba(), db = db()}).
 
 delete(Table, Key) ->
-    delete(Table, Key, #kvs{mod = dba()}).
+    delete(Table, Key, #kvs{mod = dba(), db = db()}).
 
 get(Table, Key) ->
-    (?MODULE):get(Table, Key, #kvs{mod = dba()}).
+    (?MODULE):get(Table, Key, #kvs{mod = dba(), db = db()}).
 
 index(Table, K, V) ->
     index(Table, K, V, #kvs{mod = dba()}).
 
-join() -> join([], #kvs{mod = dba()}).
+join() -> join([], #kvs{mod = dba(), db = db()}).
 
 dump() -> dump(#kvs{mod = dba()}).
 
-join(Node) -> join(Node, #kvs{mod = dba()}).
+join(Node) -> join(Node, #kvs{mod = dba(), db = db()}).
 
-leave() -> leave(#kvs{mod = dba()}).
+leave() -> leave(#kvs{mod = dba(), db = db()}).
 
-destroy() -> destroy(#kvs{mod = dba()}).
+destroy() -> destroy(#kvs{mod = dba(), db = db()}).
 
 count(Table) -> count(Table, #kvs{mod = dba()}).
 
-put(Record) -> (?MODULE):put(Record, #kvs{mod = dba()}).
+put(Record) -> (?MODULE):put(Record, #kvs{mod = dba(), db = db()}).
 
 stop() -> stop_kvs(#kvs{mod = dba()}).
 
@@ -90,22 +93,22 @@ ver() -> ver(#kvs{mod = dba()}).
 dir() -> dir(#kvs{mod = dba()}).
 
 feed(Key) ->
-    feed(Key, #kvs{mod = dba(), st = kvs_stream()}).
+    feed(Key, #kvs{mod = dba(), st = kvs_stream(), db = db()}).
 
 seq(Table, DX) -> seq(Table, DX, #kvs{mod = dba()}).
 
 remove(Rec, Feed) ->
-    remove(Rec, Feed, #kvs{mod = dba(), st = kvs_stream()}).
+    remove(Rec, Feed, #kvs{mod = dba(), st = kvs_stream(), db = db()}).
 
-put(Records, #kvs{mod = Mod}) when is_list(Records) ->
-    Mod:put(Records);
-put(Record, #kvs{mod = Mod}) -> Mod:put(Record).
+put(Records, #kvs{mod = Mod, db = Db}) when is_list(Records) ->
+    Mod:put(Records, Db);
+put(Record, #kvs{mod = Mod, db = Db}) -> Mod:put(Record, Db).
 
-get(RecordName, Key, #kvs{mod = Mod}) ->
-    Mod:get(RecordName, Key).
+get(RecordName, Key, #kvs{mod = Mod, db = Db}) ->
+    Mod:get(RecordName, Key, Db).
 
-delete(Tab, Key, #kvs{mod = Mod}) ->
-    Mod:delete(Tab, Key).
+delete(Tab, Key, #kvs{mod = Mod, db = Db}) ->
+    Mod:delete(Tab, Key, Db).
 
 count(Tab, #kvs{mod = DBA}) -> DBA:count(Tab).
 
@@ -116,22 +119,22 @@ seq(Tab, Incr, #kvs{mod = DBA}) -> DBA:seq(Tab, Incr).
 
 dump(#kvs{mod = Mod}) -> Mod:dump().
 
-feed(Tab, #kvs{st = Mod}) -> Mod:feed(Tab).
+feed(Tab, #kvs{st = Mod, db = Db}) -> Mod:feed(Tab, Db).
 
-remove(Rec, Feed, #kvs{st = Mod}) ->
-    Mod:remove(Rec, Feed).
+remove(Rec, Feed, #kvs{st = Mod, db = Db}) ->
+    Mod:remove(Rec, Feed, Db).
 
-all(Tab, #kvs{mod = DBA}) -> DBA:all(Tab).
+all(Tab, #kvs{mod = DBA, db = Db}) -> DBA:all(Tab, Db).
 
 start(#kvs{mod = DBA}) -> DBA:start().
 
 stop_kvs(#kvs{mod = DBA}) -> DBA:stop().
 
-join(Node, #kvs{mod = DBA}) -> DBA:join(Node).
+join(Node, #kvs{mod = DBA, db = Db}) -> DBA:join(Node, Db).
 
-leave(#kvs{mod = DBA}) -> DBA:leave().
+leave(#kvs{mod = DBA, db = Db}) -> DBA:leave(Db).
 
-destroy(#kvs{mod = DBA}) -> DBA:destroy().
+destroy(#kvs{mod = DBA, db = Db}) -> DBA:destroy(Db).
 
 ver(#kvs{mod = DBA}) -> DBA:version().
 
@@ -141,36 +144,59 @@ dir(#kvs{mod = DBA}) -> DBA:dir().
 
 top(X) -> (kvs_stream()):top(X).
 
+top(X,#kvs{db = Db}) -> (kvs_stream()):top(X,Db).
+
 bot(X) -> (kvs_stream()):bot(X).
 
-next(X) -> (kvs_stream()):next(X).
+bot(X,#kvs{db = Db})         -> (kvs_stream()):bot(X,Db).
 
-prev(X) -> (kvs_stream()):prev(X).
+next(X)                      -> (kvs_stream()):next(X).
 
-drop(X) -> (kvs_stream()):drop(X).
+next(X,#kvs{db = Db})        -> (kvs_stream()):next(X,Db).
 
-take(X) -> (kvs_stream()):take(X).
+prev(X)                      -> (kvs_stream()):prev(X).
 
-save(X) -> (kvs_stream()):save(X).
+prev(X,#kvs{db = Db})        -> (kvs_stream()):prev(X,Db).
 
-cut(X, Y) -> (kvs_stream()):cut(X, Y).
+drop(X)                      -> (kvs_stream()):drop(X).
 
-add(X) -> (kvs_stream()):add(X).
+drop(X,#kvs{db = Db})        -> (kvs_stream()):drop(X,Db).
 
-append(X, Y) -> (kvs_stream()):append(X, Y).
+take(X)                      -> (kvs_stream()):take(X).
 
-load_reader(X) -> (kvs_stream()):load_reader(X).
+take(X,#kvs{db = Db})        -> (kvs_stream()):take(X,Db).
 
-writer(X) -> (kvs_stream()):writer(X).
+save(X)                      -> (kvs_stream()):save(X).
 
-reader(X) -> (kvs_stream()):reader(X).
+cut(X, Y)                    -> (kvs_stream()):cut(X, Y).
+
+add(X)                       -> (kvs_stream()):add(X).
+
+add(X,#kvs{db = Db})         -> (kvs_stream()):add(X,Db).
+
+append(X, Y)                 -> (kvs_stream()):append(X, Y).
+
+append(X, Y, #kvs{db = Db})  -> (kvs_stream()):append(X, Y, Db).
+
+load_reader(X)               -> (kvs_stream()):load_reader(X).
+
+load_reader(X,#kvs{db = Db}) -> (kvs_stream()):load_reader(X,Db).
+
+writer(X)                    -> (kvs_stream()):writer(X).
+
+writer(X,#kvs{db = Db})      -> (kvs_stream()):writer(X,Db).
+
+reader(X)                    -> (kvs_stream()):reader(X).
+
+reader(X,#kvs{db = Db})      -> (kvs_stream()):reader(X,Db).
 
 % unrevisited
 
-ensure(#writer{id = Id}) ->
-    case kvs:get(writer, Id) of
+ensure(#writer{} = X) -> ensure(X,#kvs{db = db()}).
+ensure(#writer{id = Id},#kvs{} = X) ->
+    case kvs:get(writer, Id, X) of
         {error, _} ->
-            kvs:save(kvs:writer(Id)),
+            kvs:save(kvs:writer(Id, X)),
             ok;
         {ok, _} -> ok
     end.
