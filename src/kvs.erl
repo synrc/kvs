@@ -168,6 +168,8 @@ take(X,#kvs{db = Db})        -> (kvs_stream()):take(X,Db).
 
 save(X)                      -> (kvs_stream()):save(X).
 
+save(X,#kvs{db = Db})        -> (kvs_stream()):save(X,Db).
+
 cut(X, Y)                    -> (kvs_stream()):cut(X, Y).
 
 add(X)                       -> (kvs_stream()):add(X).
@@ -192,7 +194,7 @@ reader(X,#kvs{db = Db})      -> (kvs_stream()):reader(X,Db).
 
 % unrevisited
 
-ensure(#writer{} = X) -> ensure(X,#kvs{db = db()}).
+ensure(#writer{} = X) -> ensure(X,#kvs{mod = dba(), db = db()}).
 ensure(#writer{id = Id},#kvs{} = X) ->
     case kvs:get(writer, Id, X) of
         {error, _} ->

@@ -91,7 +91,7 @@ run(Key, % key
 initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].
 index(_,_,_) -> [].
 
-ref_env(Db)       -> list_to_atom("rocks_ref" ++ Db).
+ref_env(Db)       -> list_to_atom("rocks_ref_" ++ Db).
 db()              -> application:get_env(kvs,rocks_name,"rocksdb").
 start()           -> ok.
 stop()            -> ok.
