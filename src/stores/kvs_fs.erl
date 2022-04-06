@@ -11,11 +11,15 @@ start()     -> ok.
 
 stop()      -> ok.
 
+destroy()   -> ok.
+
 destroy(_)  -> ok.
 
 version()   -> {version,"KVS FS"}.
 
-leave(_)     -> ok.
+leave()     -> ok.
+
+leave(_)    -> ok.
 
 dir()       -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
 
@@ -35,6 +39,7 @@ get(TableName, Key, _) ->
          {ok,Binary} -> {ok,binary_to_term(Binary,[safe])};
          {error,Reason} -> {error,Reason} end.
 
+put(R) -> put(R,db()).
 put(Records,X) when is_list(Records) -> lists:map(fun(Record) -> put(Record,X) end, Records);
 put(Record,_) ->
     TableName = element(1,Record),

@@ -95,11 +95,13 @@ ref_env(Db)       -> list_to_atom("rocks_ref_" ++ Db).
 db()              -> application:get_env(kvs,rocks_name,"rocksdb").
 start()           -> ok.
 stop()            -> ok.
+destroy()         -> destroy(db()).
 destroy(Db)       -> rocksdb:destroy(Db, []).
 version()         -> {version,"KVS ROCKSDB"}.
 dir()             -> [].
 ref()             -> ref(db()).
 ref(Db)           -> application:get_env(kvs,ref_env(Db),[]).
+leave()           -> leave(db()).
 leave(Db)         -> case ref(Db) of [] -> skip; X -> rocksdb:close(X), application:set_env(kvs,ref_env(Db),[]), ok end.
 join(_,Db)        ->
               application:start(rocksdb),
@@ -130,6 +132,7 @@ get(Tab, Key, Db) ->
          not_found -> {error,not_found};
          {ok,Bin} -> {ok,bt(Bin)} end.
 
+put(Record) -> put(Record,db()).
 put(Records,Db) when is_list(Records) -> lists:map(fun(Record) -> put(Record,Db) end, Records);
 put(Record,Db) -> rocksdb:put(ref(Db), key(Record), term_to_binary(Record), [{sync,true}]).
 delete(Feed, Id, Db) -> rocksdb:delete(ref(Db), key(Feed,Id), []).
