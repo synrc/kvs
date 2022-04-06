@@ -26,7 +26,7 @@ defmodule KVS.Mixfile do
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev},
-      {:rocksdb, "~> 9.4.0", only: :test}
+      {:rocksdb, "~> 1.7.0", only: :test}
     ]
   end
 end
