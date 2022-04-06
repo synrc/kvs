@@ -5,7 +5,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
 
-db()        -> [].
+db()        -> "".
 
 start()     -> ok.
 

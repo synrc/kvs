@@ -51,8 +51,8 @@ feed(Feed,Db) ->
          end,
   feed(fun(#reader{}=R) -> take(R#reader{args=4},Db) end,Top,[],Halt).
 
-feed(F,#reader{},Acc,H) when H =< 0 -> Acc;
-feed(F,#reader{cache=C1,count=Cn}=R,Acc,H) ->
+feed(_F,#reader{},Acc,H) when H =< 0 -> Acc;
+feed(F,#reader{cache=C1}=R,Acc,H) ->
   #reader{args=A, cache=Ch, feed=Feed} = R1 = F(R),
   case Ch of
     C1 -> Acc ++ A;
@@ -63,21 +63,22 @@ feed(F,#reader{cache=C1,count=Cn}=R,Acc,H) ->
   end.
 
 load_reader(Id) -> load_reader(Id,db()).
-load_reader(Id,Db) -> case kvs:get(reader,Id,Db) of {ok,#reader{}=C} -> C; _ -> #reader{id=kvs:seq([],[])} end.
+load_reader(Id,Db) -> case kvs:get(reader,Id,#kvs{db=Db,mod=kvs_rocks}) of {ok,#reader{}=C} -> C; _ -> #reader{id=kvs:seq([],[])} end.
 
 writer(Id) -> writer(Id,db()).
-writer(Id,Db) -> case kvs:get(writer,Id,Db) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
+writer(Id,Db) -> case kvs:get(writer,Id,#kvs{db=Db,mod=kvs_rocks}) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
 reader(Id) -> reader(Id,db()).
-reader(Id,Db) -> case kvs:get(writer,Id,Db) of
+reader(Id,Db) -> case kvs:get(writer,Id,#kvs{db=Db,mod=kvs_rocks}) of
   {ok,#writer{id=Feed, count=Cn, cache=Ch}} ->
     read_it(#reader{id=kvs:seq([],[]),feed=key(Feed),count=Cn,cache=Ch},seek_it(key(Feed),Db));
   {error,_} ->
     read_it(#reader{id=kvs:seq([],[]),feed=key(Id),count=0,cache=[]},seek_it(key(Id),Db))
   end.
-save(C) ->
+save(C)    -> save(C,db()).
+save(C,Db) ->
   N1 = case id(C) of [] -> si(C,kvs:seq([],[])); _ -> C end,
   NC = c4(N1,[]),
-  kvs:put(NC), NC.
+  kvs:put(NC,#kvs{db=Db,mod=kvs_rocks}), NC.
 
 % add
 raw_append(M,Feed) -> raw_append(M,Feed,db()).
@@ -94,22 +95,22 @@ add(M,#writer{id=Feed,count=S}=C,Db) ->
 
 remove(Rec,Feed) -> remove(Rec,Feed,db()).
 remove(Rec,Feed,Db) ->
-  kvs:ensure(#writer{id=Feed},#kvs{db=Db}),
-  W = #writer{count=C, cache=Ch} = kvs:writer(Feed,Db),
+  kvs:ensure(#writer{id=Feed},#kvs{db=Db,mod=kvs_rocks}),
+  W = #writer{count=C, cache=Ch} = kvs:writer(Feed,#kvs{db=Db,mod=kvs_rocks}),
   Ch1 = case {e(1,Rec),e(2,Rec),key(Feed)} of % need to keep reference for next element
               Ch -> R = reader(Feed,Db), e(4, prev(R#reader{cache=Ch},Db));
               _ -> Ch end,
-  case kvs:delete(Feed,id(Rec),Db) of
+  case kvs:delete(Feed,id(Rec),#kvs{db=Db,mod=kvs_rocks}) of
         ok -> Count = C - 1,
-              save(W#writer{count = Count, cache=Ch1}),
+              save(W#writer{count = Count, cache=Ch1},Db),
               Count;
         _ -> C end.
 
 append(Rec,Feed) -> append(Rec,Feed,db()).
 append(Rec,Feed,Db) ->
-   kvs:ensure(#writer{id=Feed},#kvs{db=Db}),
+   kvs:ensure(#writer{id=Feed},#kvs{db=Db,mod=kvs_rocks}),
    Id = e(2,Rec),
    W = writer(Feed,Db),
-   case kvs:get(Feed,Id,Db) of
+   case kvs:get(Feed,Id,#kvs{db=Db,mod=kvs_rocks}) of
         {ok,_} -> raw_append(Rec,Feed,Db), Id;
-        {error,_} -> save(add(W#writer{args=Rec},Db)), Id end.
+        {error,_} -> save(add(W#writer{args=Rec},Db),Db), Id end.

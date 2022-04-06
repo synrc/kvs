@@ -7,7 +7,7 @@
 -export(?BACKEND).
 -export([info/1,exec/1,dump/1]).
 
-db()       -> [].
+db()       -> "".
 start()    -> mnesia:start().
 stop()     -> mnesia:stop().
 destroy(_)  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
