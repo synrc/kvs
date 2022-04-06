@@ -17,7 +17,7 @@ defmodule KVS.Mixfile do
 
   defp package do
     [
-      files: ~w(include man config test lib src LICENSE mix.exs README.md rebar.config sys.config),
+      files: ~w(include man config lib src LICENSE mix.exs README.md),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/synrc/kvs"}
     ]
@@ -25,7 +25,7 @@ defmodule KVS.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:ex_doc, "~> 0.19", only: :dev},
       {:rocksdb, "~> 1.7.0", only: :test}
     ]
   end
