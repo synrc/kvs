@@ -10,8 +10,10 @@
 db()       -> "".
 start()    -> mnesia:start().
 stop()     -> mnesia:stop().
-destroy(_)  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
-leave(_)    -> ok.
+destroy()  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
+destroy(_) -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
+leave()    -> ok.
+leave(_)   -> ok.
 version()  -> {version,"KVS MNESIA"}.
 dir()      -> [{table,T}||T<-mnesia:system_info(local_tables)].
 join([], _)   -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies), initialize();
@@ -34,6 +36,7 @@ index(Tab,Key,Value) ->
     lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Key) end)).
 
 get(RecordName, Key, _) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
+put(R)                  -> put(R,db()).
 put(Records, _) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
 put(Record, X) -> put([Record], X).
 delete(Tab, Key, _) ->
