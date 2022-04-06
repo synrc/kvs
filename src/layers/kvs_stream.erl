@@ -6,6 +6,8 @@
 -export(?STREAM).
 -export([metainfo/0]).
 
+db() -> kvs:db().
+
 % boot for sample
 
 metainfo() -> #schema { name = kvs,    tables = tables() }.
@@ -42,68 +44,81 @@ w({ok,#writer{cache=B,count=Size}},top,C) -> C#reader{cache={tab(B),id(B)},pos=S
 w({error,X},_,_)                          -> {error,X}.
 
 % next, prev, top, bot
+top(#reader{}=X)          -> top(X,db()).
+top(#reader{feed=F}=C,Db) -> w(kvs:get(writer,F,Db),top,C).
+bot(#reader{}=X)          -> bot(X,db()).
+bot(#reader{feed=F}=C,Db) -> w(kvs:get(writer,F,Db),bot,C).
 
-top(#reader{feed=F}=C) -> w(kvs:get(writer,F),top,C).
-bot(#reader{feed=F}=C) -> w(kvs:get(writer,F),bot,C).
+next(#reader{}=X)         -> next(X,db()).
+next(#reader{cache=[]},_) -> {error,empty};
+next(#reader{cache={T,R},pos=P}=C,Db) -> n(kvs:get(T,R,Db),C,P+1).
 
-next(#reader{cache=[]}) -> {error,empty};
-next(#reader{cache={T,R},pos=P}=C) -> n(kvs:get(T,R),C,P+1).
-
-prev(#reader{cache=[]}) -> {error,empty};
-prev(#reader{cache={T,R},pos=P}=C) -> p(kvs:get(T,R),C,P-1).
+prev(#reader{}=X)       -> prev(X,db()).
+prev(#reader{cache=[]},_) -> {error,empty};
+prev(#reader{cache={T,R},pos=P}=C,Db) -> p(kvs:get(T,R,Db),C,P-1).
 
 % take, drop, feed
 
-drop(#reader{cache=[]}=C) -> C#reader{args=[]};
-drop(#reader{dir=D,cache=B,args=N,pos=P}=C)  -> drop(acc(D),N,C,C,P,B).
-take(#reader{cache=[]}=C) -> C#reader{args=[]};
-take(#reader{dir=D,cache=_B,args=N,pos=P}=C)  -> take(acc(D),N,C,C,[],P).
+drop(#reader{}=X)           -> drop(X,db()).
+drop(#reader{cache=[]}=C,_) -> C#reader{args=[]};
+drop(#reader{dir=D,cache=B,args=N,pos=P}=C,Db)  -> drop(acc(D),N,C,C,P,B,Db).
+take(#reader{}=X)           -> take(X,db()).
+take(#reader{cache=[]}=C,_) -> C#reader{args=[]};
+take(#reader{dir=D,cache=_B,args=N,pos=P}=C,Db)  -> take(acc(D),N,C,C,[],P,Db).
 
-take(_,_,{error,_},C2,R,P) -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
-take(_,0,_,C2,R,P)         -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
-take(A,N,#reader{cache={T,I},pos=P}=C,C2,R,_) -> take(A,N-1,?MODULE:A(C),C2,[element(2,kvs:get(T,I))|R],P).
+take(_,_,{error,_},C2,R,P,_) -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
+take(_,0,_,C2,R,P,_)         -> C2#reader{args=lists:flatten(R),pos=P,cache={tab(hd(R)),en(hd(R))}};
+take(A,N,#reader{cache={T,I},pos=P}=C,C2,R,_,Db) -> take(A,N-1,?MODULE:A(C,Db),C2,[element(2,kvs:get(T,I,Db))|R],P,Db).
 
-drop(_,_,{error,_},C2,P,B)     -> C2#reader{pos=P,cache=B};
-drop(_,0,_,C2,P,B)             -> C2#reader{pos=P,cache=B};
-drop(A,N,#reader{cache=B,pos=P}=C,C2,_,_) -> drop(A,N-1,?MODULE:A(C),C2,P,B).
+drop(_,_,{error,_},C2,P,B,_)     -> C2#reader{pos=P,cache=B};
+drop(_,0,_,C2,P,B,_)             -> C2#reader{pos=P,cache=B};
+drop(A,N,#reader{cache=B,pos=P}=C,C2,_,_,Db) -> drop(A,N-1,?MODULE:A(C,Db),C2,P,B,Db).
 
-feed(Feed) -> #reader{args=Args} = take((reader(Feed))#reader{args=-1}), Args.
+feed(Feed)    -> feed(Feed,db()).
+feed(Feed,Db) -> #reader{args=Args} = take((reader(Feed,Db))#reader{args=-1},Db), Args.
 
 % new, save, load, writer, reader
 
-load_reader (Id) -> case kvs:get(reader,Id) of {ok,C} -> C; _ -> #reader{id=[]} end.
+load_reader (Id) -> load_reader(Id,db()).
+load_reader (Id,Db) -> case kvs:get(reader,Id,Db) of {ok,C} -> C; _ -> #reader{id=[]} end.
 
-save (C) -> NC = c4(C,[]), kvs:put(NC), NC.
-writer (Id) -> case kvs:get(writer,Id) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
-reader (Id) -> case kvs:get(writer,Id) of
+save (C) -> save(C,db()).
+save (C,Db) -> NC = c4(C,[]), kvs:put(NC,Db), NC.
+writer (Id) -> writer(Id,db()).
+writer (Id,Db) -> case kvs:get(writer,Id,Db) of {ok,W} -> W; {error,_} -> #writer{id=Id} end.
+reader (Id) -> reader(Id,db()).
+reader (Id,Db) -> case kvs:get(writer,Id,Db) of
          {ok,#writer{first=[]}} -> #reader{id=kvs:seq(reader,1),feed=Id,cache=[]};
          {ok,#writer{first=F}}  -> #reader{id=kvs:seq(reader,1),feed=Id,cache={tab(F),id(F)}};
-         {error,_} -> save(#writer{id=Id}), reader(Id) end.
+         {error,_} -> save(#writer{id=Id},Db), reader(Id,Db) end.
 
 % add, remove, append
 
-add(#writer{args=M}=C) when element(2,M) == [] -> add(si(M,kvs:seq(tab(M),1)),C);
-add(#writer{args=M}=C) -> add(M,C).
+add(#writer{}=X) -> add(X,db()).
+add(#writer{args=M}=C,Db) when element(2,M) == [] -> add(si(M,kvs:seq(tab(M),1)),C,Db);
+add(#writer{args=M}=C,Db) -> add(M,C,Db).
 
-add(M,#writer{cache=[]}=C) ->
-    _Id=id(M), N=sp(sn(M,[]),[]), kvs:put(N),
+add(M,#writer{cache=[]}=C,Db) ->
+    _Id=id(M), N=sp(sn(M,[]),[]), kvs:put(N,Db),
     C#writer{cache=N,count=1,first=N};
 
-add(M,#writer{cache=V1,count=S}=C) ->
-    {ok,V} = kvs:get(tab(V1),id(V1)),
-    N=sp(sn(M,[]),id(V)), P=sn(V,id(M)), kvs:put([N,P]),
+add(M,#writer{cache=V1,count=S}=C,Db) ->
+    {ok,V} = kvs:get(tab(V1),id(V1),Db),
+    N=sp(sn(M,[]),id(V)), P=sn(V,id(M)), kvs:put([N,P],Db),
     C#writer{cache=N,count=S+1}.
 
-remove(_Rec,Feed) ->
-   {ok,W=#writer{count=Count}} = kvs:get(writer,Feed),
+remove(Rec,Feed)  -> remove(Rec,Feed,db()).
+remove(_Rec,Feed,Db) ->
+   {ok,W=#writer{count=Count}} = kvs:get(writer,Feed,Db),
    NC = Count-1,
-   kvs:save(W#writer{count=NC}),
+   kvs:save(W#writer{count=NC},Db),
    NC.
 
-append(Rec,Feed) ->
-   kvs:ensure(#writer{id=Feed}),
+append(Rec,Feed)    -> append(Rec,Feed,db()).
+append(Rec,Feed,Db) ->
+   kvs:ensure(#writer{id=Feed},Db),
    Name = element(1,Rec),
    Id = element(2,Rec),
-   case kvs:get(Name,Id) of
+   case kvs:get(Name,Id,Db) of
         {ok,_}    -> Id;
-        {error,_} -> kvs:save(kvs:add((kvs:writer(Feed))#writer{args=Rec})), Id end.
+        {error,_} -> kvs:save(kvs:add((kvs:writer(Feed,Db))#writer{args=Rec},Db),Db), Id end.

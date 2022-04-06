@@ -2,8 +2,8 @@
 -define(STREAM_HRL, true).
 -include("kvs.hrl").
 -include("cursors.hrl").
--define(STREAM, [top/1, bot/1, next/1, prev/1, drop/1, take/1, append/2, feed/1,
-                 load_reader/1, writer/1, reader/1, save/1, add/1, remove/2]).
+-define(STREAM, [top/1, top/2, bot/1, bot/2, next/1, next/2, prev/1, prev/2, drop/1, drop/2, take/1, take/2, append/2, append/3, feed/1, feed/2,
+                 load_reader/1, load_reader/2, writer/1, writer/2, reader/1, reader/2, save/1, add/1, add/2, remove/2, remove/3]).
 
 -spec top(#reader{})  -> #reader{}.
 -spec bot(#reader{})  -> #reader{}.

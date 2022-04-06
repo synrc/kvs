@@ -7,15 +7,16 @@
 -export(?BACKEND).
 -export([info/1,exec/1,dump/1]).
 
+db()       -> [].
 start()    -> mnesia:start().
 stop()     -> mnesia:stop().
-destroy()  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
-leave()    -> ok.
+destroy(_)  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
+leave(_)    -> ok.
 version()  -> {version,"KVS MNESIA"}.
 dir()      -> [{table,T}||T<-mnesia:system_info(local_tables)].
-join([])   -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies), initialize();
+join([], _)   -> mnesia:start(), mnesia:change_table_copy_type(schema, node(), disc_copies), initialize();
 
-join(Node) ->
+join(Node, _) ->
     mnesia:start(),
     mnesia:change_config(extra_db_nodes, [Node]),
     mnesia:change_table_copy_type(schema, node(), disc_copies),
@@ -32,16 +33,16 @@ initialize() ->
 index(Tab,Key,Value) ->
     lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Key) end)).
 
-get(RecordName, Key) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
-put(Records) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
-put(Record) -> put([Record]).
-delete(Tab, Key) ->
+get(RecordName, Key, _) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
+put(Records, _) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
+put(Record, X) -> put([Record], X).
+delete(Tab, Key, _) ->
     case mnesia:activity(context(),fun()-> mnesia:delete({Tab, Key}) end) of
         {aborted,Reason} -> {error,Reason};
         {atomic,_Result} -> ok;
         _ -> ok end.
 count(RecordName) -> mnesia:table_info(RecordName, size).
-all(R) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end)).
+all(R, _) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end)).
 seq([],[]) ->
   case os:type() of
        {win32,nt} -> {Mega,Sec,Micro} = erlang:timestamp(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);

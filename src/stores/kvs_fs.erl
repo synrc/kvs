@@ -5,19 +5,21 @@
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
 
-start()    -> ok.
+db()        -> [].
 
-stop()     -> ok.
+start()     -> ok.
 
-destroy()  -> ok.
+stop()      -> ok.
 
-version()  -> {version,"KVS FS"}.
+destroy(_)  -> ok.
 
-leave()    -> ok.
+version()   -> {version,"KVS FS"}.
 
-dir()      -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
+leave(_)     -> ok.
 
-join(_Node) -> filelib:ensure_dir(dir_name()), initialize(). % should be rsync or smth
+dir()       -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
+
+join(_Node,_) -> filelib:ensure_dir(dir_name()), initialize(). % should be rsync or smth
 
 initialize() ->
     mnesia:create_schema([node()]),
@@ -25,7 +27,7 @@ initialize() ->
     mnesia:wait_for_tables([ T#table.name || T <- kvs:tables()],infinity).
 
 index(_Tab,_Key,_Value) -> [].
-get(TableName, Key) ->
+get(TableName, Key, _) ->
     HashKey = hashkey(Key),
     {ok, Dir} = dir(TableName),
     File = filename:join([Dir,HashKey]),
@@ -33,8 +35,8 @@ get(TableName, Key) ->
          {ok,Binary} -> {ok,binary_to_term(Binary,[safe])};
          {error,Reason} -> {error,Reason} end.
 
-put(Records) when is_list(Records) -> lists:map(fun(Record) -> put(Record) end, Records);
-put(Record) ->
+put(Records,X) when is_list(Records) -> lists:map(fun(Record) -> put(Record,X) end, Records);
+put(Record,_) ->
     TableName = element(1,Record),
     HashKey = hashkey(element(2,Record)),
     BinaryValue = term_to_binary(Record),
@@ -55,7 +57,7 @@ dir(TableName) ->
 
 hashkey(Key) -> encode(base64:encode(crypto:hash(sha, term_to_binary(Key)))).
 
-delete(TableName, Key) ->
+delete(TableName, Key, _) ->
     case kvs_fs:get(TableName, Key) of
         {ok,_} ->
             {ok, Dir} = dir(TableName),
@@ -67,7 +69,7 @@ delete(TableName, Key) ->
 
 count(RecordName) -> length(filelib:fold_files(filename:join([dir_name(), RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, [])).
 
-all(R) -> lists:flatten([ begin case file:read_file(File) of
+all(R,_) -> lists:flatten([ begin case file:read_file(File) of
                         {ok,Binary} -> binary_to_term(Binary,[safe]);
                         {error,_Reason} -> [] end end || File <-
       filelib:fold_files(filename:join([dir_name(), R]), "",true, fun(A,Acc)-> [A|Acc] end, []) ]).
