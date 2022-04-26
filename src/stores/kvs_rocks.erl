@@ -152,9 +152,7 @@ add_table_index(_, _) -> ok.
 dump() -> ok.
 
 seq(_,_) ->
-  Val =
-    case os:type() of
-       {win32,nt} -> {Mega,Sec,Micro} = erlang:timestamp(), integer_to_list((Mega*1000000+Sec)*1000000+Micro);
-                _ -> erlang:integer_to_list(element(2,hd(lists:reverse(erlang:system_info(os_monotonic_time_source)))))
-    end,
-  case 20 - length(Val) > 0 of true -> string:copies("0", 20 - length(Val)); _ -> "" end ++ Val.
+  case os:type() of
+    {win32,nt} -> {Mega,Sec,Micro} = erlang:timestamp(), (Mega*1000000+Sec)*1000000+Micro;
+    _ -> element(2,hd(lists:reverse(erlang:system_info(os_system_time_source))))
+  end.

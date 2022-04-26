@@ -52,6 +52,8 @@ stop(_) -> ok.
 
 dba() -> application:get_env(kvs, dba, kvs_mnesia).
 
+seq_dba() -> application:get_env(kvs, seq_dba, kvs_mnesia).
+
 db()  -> (dba()):db().
 
 kvs_stream() ->
@@ -95,7 +97,7 @@ dir() -> dir(#kvs{mod = dba()}).
 feed(Key) ->
     feed(Key, #kvs{mod = dba(), st = kvs_stream(), db = db()}).
 
-seq(Table, DX) -> seq(Table, DX, #kvs{mod = dba()}).
+seq(Table, DX) -> seq(Table, DX, #kvs{mod = seq_dba()}).
 
 remove(Rec, Feed) ->
     remove(Rec, Feed, #kvs{mod = dba(), st = kvs_stream(), db = db()}).
