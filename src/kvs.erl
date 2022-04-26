@@ -52,7 +52,7 @@ stop(_) -> ok.
 
 dba() -> application:get_env(kvs, dba, kvs_mnesia).
 
-seq_dba() -> application:get_env(kvs, seq_dba, kvs_mnesia).
+seq_dba() -> application:get_env(kvs, dba_seq, kvs_mnesia).
 
 db()  -> (dba()):db().
 
