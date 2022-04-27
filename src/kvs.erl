@@ -19,6 +19,7 @@
 -include("backend.hrl").
 
 -export([dump/0,
+         db/0,
          metainfo/0,
          ensure/1,
          ensure/2,
