@@ -97,6 +97,7 @@ dir() -> dir(#kvs{mod = dba()}).
 feed(Key) ->
     feed(Key, #kvs{mod = dba(), st = kvs_stream(), db = db()}).
 
+seq([], DX)    -> seq([], DX, #kvs{mod = kvs_rocks});
 seq(Table, DX) -> seq(Table, DX, #kvs{mod = seq_dba()}).
 
 remove(Rec, Feed) ->

@@ -8,6 +8,7 @@
 -export([info/1,exec/1,dump/1]).
 
 db()       -> "".
+seq_pad()  -> application:get_env(kvs, seq_pad, []).
 start()    -> mnesia:start().
 stop()     -> mnesia:stop().
 destroy()  -> [mnesia:delete_table(T)||{_,T}<-kvs:dir()], mnesia:delete_schema([node()]), ok.
@@ -46,8 +47,10 @@ delete(Tab, Key, _) ->
         _ -> ok end.
 count(RecordName) -> mnesia:table_info(RecordName, size).
 all(R, _) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R, G}) || G <- L ] end)).
-seq([],[]) -> seq(system, 1);
-seq(RecordName, Incr) -> mnesia:dirty_update_counter({id_seq, RecordName}, Incr).
+seq(RecordName, []) -> seq(RecordName, 1);
+seq(RecordName, Incr) ->
+  Val = mnesia:dirty_update_counter({id_seq, RecordName}, Incr),
+  case 20 - length(Val) > 0 and lists:member(RecordName, seq_pad()) of true -> string:copies("0", 20 - length(Val)); _ -> "" end ++ Val.
 
 many(Fun) -> case mnesia:activity(context(),Fun) of {atomic, [R]} -> R; {aborted, Error} -> {error, Error}; X -> X end.
 void(Fun) -> case mnesia:activity(context(),Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error}; X -> X end.
