@@ -50,7 +50,7 @@ all(R, _) -> lists:flatten(many(fun() -> L= mnesia:all_keys(R), [ mnesia:read({R
 seq(RecordName, []) -> seq(RecordName, 1);
 seq(RecordName, Incr) ->
   Val = integer_to_list(mnesia:dirty_update_counter({id_seq, RecordName}, Incr)),
-  case 20 - length(Val) > 0 and lists:member(RecordName, seq_pad()) of true -> string:copies("0", 20 - length(Val)); _ -> "" end ++ Val.
+  case (20 - length(Val) > 0) and lists:member(RecordName, seq_pad()) of true -> string:copies("0", 20 - length(Val)); _ -> "" end ++ Val.
 
 many(Fun) -> case mnesia:activity(context(),Fun) of {atomic, [R]} -> R; {aborted, Error} -> {error, Error}; X -> X end.
 void(Fun) -> case mnesia:activity(context(),Fun) of {atomic, ok} -> ok; {aborted, Error} -> {error, Error}; X -> X end.
