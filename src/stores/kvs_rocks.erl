@@ -91,19 +91,21 @@ run(Key, % key
 initialize() -> [ kvs:initialize(kvs_rocks,Module) || Module <- kvs:modules() ].
 index(_,_,_) -> [].
 
-ref_env(Db)       -> list_to_atom("rocks_ref_" ++ Db).
-db()              -> application:get_env(kvs,rocks_name,"rocksdb").
-start()           -> ok.
-stop()            -> ok.
-destroy()         -> destroy(db()).
-destroy(Db)       -> rocksdb:destroy(Db, []).
-version()         -> {version,"KVS ROCKSDB"}.
-dir()             -> [].
-ref()             -> ref(db()).
-ref(Db)           -> application:get_env(kvs,ref_env(Db),[]).
-leave()           -> leave(db()).
-leave(Db)         -> case ref(Db) of [] -> skip; X -> rocksdb:close(X), application:set_env(kvs,ref_env(Db),[]), ok end.
-join(_,Db)        ->
+ref_env(Db)      -> list_to_atom("rocks_ref_" ++ Db).
+db()             -> application:get_env(kvs,rocks_name,"rocksdb").
+start()          -> ok.
+stop()           -> ok.
+destroy()        -> destroy(db()).
+destroy(Db)      -> rocksdb:destroy(Db, []).
+version()        -> {version,"KVS ROCKSDB"}.
+dir()            -> [].
+match(_)         -> [].
+index_match(_,_) -> [].
+ref()            -> ref(db()).
+ref(Db)          -> application:get_env(kvs,ref_env(Db),[]).
+leave()          -> leave(db()).
+leave(Db)        -> case ref(Db) of [] -> skip; X -> rocksdb:close(X), application:set_env(kvs,ref_env(Db),[]), ok end.
+join(_,Db)       ->
               application:start(rocksdb),
               leave(Db), {ok, Ref} = rocksdb:open(Db, [{create_if_missing, true}]),
               initialize(),

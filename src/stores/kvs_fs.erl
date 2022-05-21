@@ -5,23 +5,27 @@
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
 
-db()        -> "".
+db()             -> "".
 
-start()     -> ok.
+start()          -> ok.
 
-stop()      -> ok.
+stop()           -> ok.
 
-destroy()   -> ok.
+destroy()        -> ok.
 
-destroy(_)  -> ok.
+destroy(_)       -> ok.
 
-version()   -> {version,"KVS FS"}.
+match(_)         -> [].
 
-leave()     -> ok.
+index_match(_,_) -> [].
 
-leave(_)    -> ok.
+version()        -> {version,"KVS FS"}.
 
-dir()       -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
+leave()          -> ok.
+
+leave(_)         -> ok.
+
+dir()            -> [ {table,F} || F <- filelib:wildcard("data/*"), filelib:is_dir(F) ].
 
 join(_Node,_) -> filelib:ensure_dir(dir_name()), initialize(). % should be rsync or smth
 

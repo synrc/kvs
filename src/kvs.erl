@@ -73,6 +73,12 @@ get(Table, Key) ->
 index(Table, K, V) ->
     index(Table, K, V, #kvs{mod = dba()}).
 
+match(Record) ->
+    match(Record, #kvs{mod = dba()}).
+
+index_match(Record, Index) ->
+    index_match(Record, Index, #kvs{mod = dba()}).
+
 join() -> join([], #kvs{mod = dba(), db = db()}).
 
 dump() -> dump(#kvs{mod = dba()}).
@@ -118,6 +124,12 @@ count(Tab, #kvs{mod = DBA}) -> DBA:count(Tab).
 
 index(Tab, Key, Value, #kvs{mod = DBA}) ->
     DBA:index(Tab, Key, Value).
+
+match(Record, #kvs{mod = DBA}) ->
+    DBA:match(Record).
+
+index_match(Record, Index, #kvs{mod = DBA}) ->
+    DBA:index_match(Record, Index).
 
 seq(Tab, Incr, #kvs{mod = DBA}) -> DBA:seq(Tab, Incr).
 
