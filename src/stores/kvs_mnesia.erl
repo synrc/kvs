@@ -36,6 +36,8 @@ initialize() ->
 index(Tab,Key,Value) ->
     lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Key) end)).
 
+keys(Tab,_) -> mnesia:all_keys(Tab).
+
 get(RecordName, Key, _) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(R)                  -> put(R,db()).
 put(Records, _) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);

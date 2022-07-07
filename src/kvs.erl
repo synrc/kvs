@@ -24,6 +24,7 @@
          ensure/1,
          ensure/2,
          seq_gen/0,
+         keys/1,
          fields/1,
          defined/2,
          field/2,
@@ -72,6 +73,9 @@ get(Table, Key) ->
 
 index(Table, K, V) ->
     index(Table, K, V, #kvs{mod = dba()}).
+
+keys(Feed) -> 
+    keys(Feed, #kvs{mod = dba(), db = db()}).
 
 match(Record) ->
     match(Record, #kvs{mod = dba()}).
@@ -124,6 +128,9 @@ count(Tab, #kvs{mod = DBA}) -> DBA:count(Tab).
 
 index(Tab, Key, Value, #kvs{mod = DBA}) ->
     DBA:index(Tab, Key, Value).
+
+keys(Feed, #kvs{mod = DBA, db = Db}) ->
+    DBA:keys(Feed, Db).        
 
 match(Record, #kvs{mod = DBA}) ->
     DBA:match(Record).

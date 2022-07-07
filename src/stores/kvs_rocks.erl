@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,ref/1,bt/1,key/2,key/1,fd/1,tb/1,estimate/0,estimate/1]).
+-export([ref/0,ref/1,bt/1,key/2,key/1,fd/1,tb/1,estimate/0,estimate/1,keys/2]).
 -export([seek_it/1, seek_it/2, move_it/3, move_it/4, take_it/4, take_it/5]).
 
 e(X,Y) -> element(X,Y).
@@ -26,6 +26,18 @@ key(writer,R) -> % allow old writers
               iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, erlang:atom_to_binary(writer, utf8), tb(R)]))]);
 key(Tab,R) -> Fd = case Tab of [] -> []; _ -> tb(Tab) end,
               iolist_to_binary([lists:join(<<"/">>, lists:flatten([<<>>, Fd, fmt(R)]))]).
+keys(Tab, Db) ->
+    Feed = key(Tab,[]),
+    {ok, H} = rocksdb:iterator(ref(Db), []),
+    Keys = fun KEY(K1,Acc) when binary_part(K1,{0,byte_size(Feed)}) =:= Feed ->
+                  case rocksdb:iterator_move(H, next) of
+                    {ok,K2,_} -> KEY(K2,[tb(K1)|Acc]);
+                            _ -> list:reverse([tb(K1)|Acc])
+                  end;
+               KEY(_,Acc) -> rocksdb:iterator_close(H), lists:reverse(Acc)
+           end,
+    {ok, K, _} = rocksdb:iterator_move(H, {seek, Feed}),
+    Keys(K,[]).
 
 fmt([]) -> [];
 fmt(K) -> Key = tb(K),
