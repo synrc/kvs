@@ -28,8 +28,7 @@
          fields/1,
          defined/2,
          field/2,
-         setfield/3,
-         cut/2]).
+         setfield/3]).
 
 -export([join/2, seq/3]).
 
@@ -124,13 +123,16 @@ get(RecordName, Key, #kvs{mod = Mod, db = Db}) ->
 delete(Tab, Key, #kvs{mod = Mod, db = Db}) ->
     Mod:delete(Tab, Key, Db).
 
+delete_range(Feed, Last, #kvs{mod=DBA, db=Db}) ->
+    DBA:delete_range(Feed,Last,Db).
+
 count(Tab, #kvs{mod = DBA}) -> DBA:count(Tab).
 
 index(Tab, Key, Value, #kvs{mod = DBA}) ->
     DBA:index(Tab, Key, Value).
 
 keys(Feed, #kvs{mod = DBA, db = Db}) ->
-    DBA:keys(Feed, Db).        
+    DBA:keys(Feed, Db).
 
 match(Record, #kvs{mod = DBA}) ->
     DBA:match(Record).
@@ -193,7 +195,9 @@ save(X)                      -> (kvs_stream()):save(X).
 
 save(X,#kvs{db = Db})        -> (kvs_stream()):save(X,Db).
 
-cut(X, Y)                    -> (kvs_stream()):cut(X, Y).
+cut(X)                       -> (kvs_stream()):cut(X).
+
+cut(X,#kvs{db = Db})         -> (kvs_stream()):cut(X, Db).
 
 add(X)                       -> (kvs_stream()):add(X).
 
