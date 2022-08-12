@@ -17,7 +17,7 @@ defmodule Fd.Test do
 
     defrecord(:msg, id: [], body: [])
 
-    setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
+    setup do: (on_exit(fn -> :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
     setup kvs, do: [
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/duck") end, :lists.seq(1,10)),
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/luck") end, :lists.seq(1,10)),
@@ -105,6 +105,28 @@ defmodule Fd.Test do
         assert KVS.reader(args: [^head]) = :kvs.take(KVS.reader(r1, args: 1000, dir: 1))
     end
 
+    test "cut the *uck", kvs do
+        log "1", kvs[:id0]
+        log "2", kvs[:id1]
+        log "3", kvs[:id2]
+
+        :kvs.cut("/crm/luck")
+
+        all = :kvs.all("/crm")
+        assert 20 = length(all)
+        assert all = :kvs.all("/crm/duck") ++ :kvs.all("/crm/truck")
+
+        :kvs.cut("/crm/duck")
+
+        all = :kvs.all("/crm")
+        assert 10 = length(all)
+        assert all = :kvs.all("/crm/truck")
+
+        :kvs.cut("/crm/truck")
+
+        all = :kvs.all("/crm")
+        assert 0 = length(all)
+    end
 
     @tag :skip # can`t manage this within current implementation. create correct keys!
     test "keys with feeds separator" do
