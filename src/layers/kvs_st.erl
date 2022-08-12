@@ -42,7 +42,7 @@ drop(#reader{}=X) -> drop(X,db()).
 drop(#reader{args=N}=C,_) when N =< 0 -> C;
 drop(#reader{}=C,Db) -> (take(C#reader{dir=0},Db))#reader{args=[]}.
 remove(#reader{}=C) -> remove(C, db()).
-remove(#reader{feed=Feed}=C,Db) -> read_it(C, delete_it(Feed,Db));
+remove(#reader{feed=Feed}=C,Db) -> R = read_it(C, delete_it(Feed,Db)), kvs:delete(writer, Feed), R;
 remove(Rec,Feed) -> remove(Rec,Feed,db()).
 
 feed(Feed) -> feed(Feed,db()).
