@@ -4,7 +4,7 @@
 -include("metainfo.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
--export([ref/0,ref/1,bt/1,key/2,key/1,fd/1,tb/1,estimate/0,estimate/1,keys/2]).
+-export([ref/0,ref/1,bt/1,key/2,key/1,fd/1,tb/1,estimate/0,estimate/1]).
 -export([seek_it/1, seek_it/2, move_it/3, move_it/4, take_it/4, take_it/5]).
 
 e(X,Y) -> element(X,Y).
@@ -150,6 +150,25 @@ put(Record) -> put(Record,db()).
 put(Records,Db) when is_list(Records) -> lists:map(fun(Record) -> put(Record,Db) end, Records);
 put(Record,Db) -> rocksdb:put(ref(Db), key(Record), term_to_binary(Record), [{sync,true}]).
 delete(Feed, Id, Db) -> rocksdb:delete(ref(Db), key(Feed,Id), []).
+delete_range(Feed,{Fd,Key},Db) ->
+  Last = key(key(fmt(Fd),Key)),
+  ReadOps = [{'prefix_same_as_start', true}],
+  CompactOps = [{change_level, true}],
+  Feed1 = key(Feed),
+  Sz = size(Feed1),
+  Reopen = case ref(Db) of [] -> skip; _ -> leave(Db), ok end,
+
+  {ok, R} = rocksdb:open(Db, [{prefix_extractor, {capped_prefix_transform, Sz}}]),
+  {ok, H} = rocksdb:iterator(R, ReadOps),
+  {ok, Start, _} = rocksdb:iterator_move(H, {seek, Feed1}),
+
+  ok = rocksdb:delete_range(R, Start, Last, []),
+  ok = rocksdb:delete(R, Last, []),
+  ok = rocksdb:delete(R, key(writer,Feed), []),
+  ok = rocksdb:compact_range(R, Start, undefined, CompactOps),
+  ok = rocksdb:iterator_close(H),
+  ok = rocksdb:close(R),
+  case Reopen of skip -> ok; ok -> join([],Db) end.
 count(_) -> 0.
 estimate()   -> estimate(db()).
 estimate(Db) -> case rocksdb:get_property(ref(Db), <<"rocksdb.estimate-num-keys">>) of
