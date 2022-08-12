@@ -3,7 +3,7 @@
 -include("stream.hrl").
 -include("metainfo.hrl").
 -export(?STREAM).
--import(kvs_rocks, [key/2, key/1, bt/1, tb/1, ref/0, ref/1, seek_it/1, seek_it/2, move_it/3, move_it/4, take_it/4, take_it/5, estimate/0, estimate/1]).
+-import(kvs_rocks, [fmt/1, key/2, key/1, bt/1, tb/1, ref/0, ref/1, seek_it/1, seek_it/2, move_it/3, move_it/4, take_it/4, take_it/5, estimate/0, estimate/1]).
 -export([raw_append/2,raw_append/3]).
 
 db() -> application:get_env(kvs,rocks_name,"rocksdb").
@@ -92,6 +92,14 @@ add(M,#writer{id=Feed,count=S}=C,Db) ->
    NS=S+1,
    raw_append(M,Feed,Db),
    C#writer{cache={e(1,M),e(2,M),key(Feed)},count=NS}.
+
+cut(Feed) -> cut(Feed,db()).
+cut(Feed,Db) ->
+  #writer{cache={_,Key,Fd}=Ch} = W = kvs:writer(Feed, #kvs{db=Db,mod=kvs_rocks}),
+  #reader{cache=Prev} = kvs:prev(reader(Feed, Db)),
+  #reader{cache=Next} = kvs:next(#reader{feed=key(Feed), cache=Ch}),
+
+  kvs:delete_range(Feed,{Fd,Key},#kvs{db=Db,mod=kvs_rocks}).
 
 remove(Rec,Feed) -> remove(Rec,Feed,db()).
 remove(Rec,Feed,Db) ->
