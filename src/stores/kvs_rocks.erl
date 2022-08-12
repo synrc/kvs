@@ -5,7 +5,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 -export(?BACKEND).
 -export([ref/0,ref/1,bt/1,key/2,key/1,fd/1,tb/1,estimate/0,estimate/1]).
--export([seek_it/1, seek_it/2, move_it/3, move_it/4, take_it/4, take_it/5]).
+-export([seek_it/1, seek_it/2, move_it/3, move_it/4, take_it/4, take_it/5, delete_it/1, delete_it/2]).
 
 e(X,Y) -> element(X,Y).
 
@@ -123,10 +123,27 @@ join(_,Db)       ->
               initialize(),
               application:set_env(kvs,ref_env(Db),Ref).
 
-compile(seek) -> [fun rocksdb:iterator/2,fun rocksdb:iterator_move/2];
-compile(move) -> [fun rocksdb:iterator_move/2];
-compile(close) -> [fun rocksdb:iterator_close/1].
+compile(it)     -> [fun rocksdb:iterator/2];
+compile(seek)   -> [fun rocksdb:iterator/2,fun rocksdb:iterator_move/2];
+compile(move)   -> [fun rocksdb:iterator_move/2];
+compile(close)  -> [fun rocksdb:iterator_close/1].
 compile(take,N) -> lists:map(fun(_) -> fun rocksdb:iterator_move/2 end, lists:seq(1, N)).
+compile(delete,_, {error,E},_) -> {error,E};
+compile(delete,SK,{ok,_,V1,_},Db) ->
+  F1 = key(key(fmt(SK),e(2,V1))), S = sz(SK),
+  [fun Del(H,Dir) ->
+    case rocksdb:delete(ref(Db), F1, []) of ok ->      
+      % {ok, K} case exist only in api, but never actually used
+      case rocksdb:iterator_move(H,Dir) of
+        {ok,K,_} when binary_part(K,{0,S}) == SK -> case rocksdb:delete(ref(Db), K, []) of ok -> Del(H,Dir); E -> E end;
+        {ok,K}   when binary_part(K,{0,S}) == SK -> case rocksdb:delete(ref(Db), K, []) of ok -> Del(H,Dir); E -> E end;
+        {ok,K,V} -> {ok,K,V};
+        {ok,K}   -> {ok, K};
+        E -> E
+      end;
+      E -> E
+    end
+  end].
 
 stop_it(H) -> try begin [F]=compile(close), F(H) end catch error:badarg -> ok end.
 seek_it(K) -> seek_it(K,db()).
@@ -136,6 +153,8 @@ move_it(Key,SK,Dir,Db) -> run(Key,SK,Dir,compile(seek) ++ compile(move),Db).
 take_it(Key,SK,Dir,N) -> take_it(Key,SK,Dir,N,db()).
 take_it(Key,SK,Dir,N,Db) when is_integer(N) andalso N >= 0 -> run(Key,SK,Dir,compile(seek) ++ compile(take,N),Db);
 take_it(Key,SK,Dir,_,Db) -> take_it(Key,SK,Dir,0,Db).
+delete_it(Fd) -> delete_it(Fd, db()).
+delete_it(Fd,Db) -> run(Fd,Fd,next,compile(seek) ++ compile(delete,Fd,seek_it(Fd),Db),Db).
 
 all(R,Db) -> kvs_st:feed(R,Db).
 

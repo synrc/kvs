@@ -106,10 +106,6 @@ defmodule Fd.Test do
     end
 
     test "cut the *uck", kvs do
-        log "1", kvs[:id0]
-        log "2", kvs[:id1]
-        log "3", kvs[:id2]
-
         :kvs.cut("/crm/luck")
 
         all = :kvs.all("/crm")
@@ -123,6 +119,25 @@ defmodule Fd.Test do
         assert all = :kvs.all("/crm/truck")
 
         :kvs.cut("/crm/truck")
+
+        all = :kvs.all("/crm")
+        assert 0 = length(all)
+    end
+
+    test "remove the *uck with readers", kvs do
+        :kvs.remove(:kvs.reader("/crm/luck"))
+
+        all = :kvs.all("/crm")
+        assert 20 = length(all)
+        assert all = :kvs.all("/crm/duck") ++ :kvs.all("/crm/truck")
+
+        :kvs.remove(:kvs.reader("/crm/duck"))
+
+        all = :kvs.all("/crm")
+        assert 10 = length(all)
+        assert all = :kvs.all("/crm/truck")
+
+        :kvs.remove(:kvs.reader("/crm/truck"))
 
         all = :kvs.all("/crm")
         assert 0 = length(all)

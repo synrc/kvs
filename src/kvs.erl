@@ -28,7 +28,8 @@
          fields/1,
          defined/2,
          field/2,
-         setfield/3]).
+         setfield/3,
+         remove/1]).
 
 -export([join/2, seq/3]).
 
@@ -194,6 +195,8 @@ take(X,#kvs{db = Db})        -> (kvs_stream()):take(X,Db).
 save(X)                      -> (kvs_stream()):save(X).
 
 save(X,#kvs{db = Db})        -> (kvs_stream()):save(X,Db).
+
+remove(X)                    -> (kvs_stream()):remove(X).
 
 cut(X)                       -> (kvs_stream()):cut(X).
 
