@@ -32,7 +32,7 @@ keys(Tab, Db) ->
     Keys = fun KEY(K1,Acc) when binary_part(K1,{0,byte_size(Feed)}) =:= Feed ->
                   case rocksdb:iterator_move(H, next) of
                     {ok,K2,_} -> KEY(K2,[tb(K1)|Acc]);
-                            _ -> list:reverse([tb(K1)|Acc])
+                            _ -> lists:reverse([tb(K1)|Acc])
                   end;
                KEY(_,Acc) -> rocksdb:iterator_close(H), lists:reverse(Acc)
            end,
