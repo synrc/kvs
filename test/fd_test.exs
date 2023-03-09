@@ -91,10 +91,10 @@ defmodule Fd.Test do
             end)
         r = :kvs.load_reader(rid)
         assert r = :kvs.prev(r)
-        assert r = KVS.reader(:kvs.prev(:kvs.top(r)), args: [])                 
+        assert r = KVS.reader(:kvs.prev(:kvs.top(r)), args: [])
     end
 
-    test "prev to empty" do        
+    test "prev to empty" do
         :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/aco") end, :lists.seq(1,2))
         all = :kvs.all("/aco")
         head = Enum.at(all,0)
@@ -152,17 +152,17 @@ defmodule Fd.Test do
 
     test "corrupted writers doesn't affect all" do
         prev = :kvs.all("/crm/duck")
-        
+
         KVS.writer(cache: ch) = w = :kvs.writer("/crm/duck")
         w1 = KVS.writer(w, cache: {:msg, "unknown", "/corrupted"})
-        
+
         :ok = :kvs_rocks.put(w1)
         w2 = :kvs.writer("/crm/duck")
         assert {:ok, ^w2} = :kvs.get(:writer, "/crm/duck")
         assert w1 == w2
 
         assert prev = :kvs.all("/crm/duck")
-        
+
         {:ok,_} = :kvs.get(:writer, "/crm/duck")
         :ok = :kvs.delete(:writer, "/crm/duck")
         {:error, :not_found} = :kvs.get(:writer, "/crm/duck")

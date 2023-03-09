@@ -38,6 +38,8 @@ index(Tab,Key,Value) ->
 
 keys(Tab,_) -> mnesia:all_keys(Tab).
 
+match(_Tab,_Id,_) -> [].
+
 get(RecordName, Key, _) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(R)                  -> put(R,db()).
 put(Records, _) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);

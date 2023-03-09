@@ -39,6 +39,23 @@ keys(Tab, Db) ->
     {ok, K, _} = rocksdb:iterator_move(H, {seek, Feed}),
     Keys(K,[]).
 
+ match(Tab, Id, Db) ->
+  Feed = key(Tab,[]),
+  {ok, H} = rocksdb:iterator(ref(Db), []),
+  Keys = fun KEY(K1) when 
+              binary_part(K1,{0,byte_size(Feed)}) =:= Feed andalso
+              binary_part(K1,{byte_size(K1), -byte_size(Id)}) =:= Id ->
+              rocksdb:iterator_close(H), [K1];
+             KEY(K1) when binary_part(K1,{0,byte_size(Feed)}) =:= Feed ->
+                case rocksdb:iterator_move(H, next) of
+                  {ok,K2,_} -> KEY(K2);
+                          _ -> []
+                end;
+             KEY(_) -> rocksdb:iterator_close(H), []
+         end,
+  {ok, K, _} = rocksdb:iterator_move(H, {seek, Feed}),
+  Keys(K).
+
 fmt([]) -> [];
 fmt(K) -> Key = tb(K),
   End = sz(Key),
