@@ -77,7 +77,7 @@ delete(TableName, Key, _) ->
     end.
 delete_range(_,_,_) -> {error, not_found}.
 keys(_,_) -> [].
-match(_,_,_) -> [].
+key_match(_,_,_) -> [].
 
 count(RecordName) -> length(filelib:fold_files(filename:join([dir_name(), RecordName]), "",true, fun(A,Acc)-> [A|Acc] end, [])).
 

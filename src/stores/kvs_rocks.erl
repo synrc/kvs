@@ -39,7 +39,7 @@ keys(Tab, Db) ->
     {ok, K, _} = rocksdb:iterator_move(H, {seek, Feed}),
     Keys(K,[]).
 
- match(Tab, Id, Db) ->
+ key_match(Tab, Id, Db) ->
   Feed = key(Tab,[]),
   {ok, H} = rocksdb:iterator(ref(Db), []),
   Keys = fun KEY(K1) when 

@@ -38,7 +38,7 @@ index(Tab,Key,Value) ->
 
 keys(Tab,_) -> mnesia:all_keys(Tab).
 
-match(_Tab,_Id,_) -> [].
+key_match(_Tab,_Id,_) -> [].
 
 get(RecordName, Key, _) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(R)                  -> put(R,db()).
