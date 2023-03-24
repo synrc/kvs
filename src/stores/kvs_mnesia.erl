@@ -36,6 +36,10 @@ initialize() ->
 index(Tab,Key,Value) ->
     lists:flatten(many(fun() -> mnesia:index_read(Tab,Value,Key) end)).
 
+keys(Tab,_) -> mnesia:all_keys(Tab).
+
+key_match(_Tab,_Id,_) -> [].
+
 get(RecordName, Key, _) -> just_one(fun() -> mnesia:read(RecordName, Key) end).
 put(R)                  -> put(R,db()).
 put(Records, _) when is_list(Records) -> void(fun() -> lists:foreach(fun mnesia:write/1, Records) end);
@@ -45,6 +49,7 @@ delete(Tab, Key, _) ->
         {aborted,Reason} -> {error,Reason};
         {atomic,_Result} -> ok;
         _ -> ok end.
+delete_range(_,_,_) -> {error, not_found}.
 match(Record) -> lists:flatten(many(fun() -> mnesia:match_object(Record) end)).
 index_match(Record, Index) -> lists:flatten(many(fun() -> mnesia:index_match_object(Record, Index) end)).
 count(RecordName) -> mnesia:table_info(RecordName, size).

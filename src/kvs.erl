@@ -24,11 +24,12 @@
          ensure/1,
          ensure/2,
          seq_gen/0,
+         keys/1,
          fields/1,
          defined/2,
          field/2,
          setfield/3,
-         cut/2]).
+         remove/1]).
 
 -export([join/2, seq/3]).
 
@@ -72,6 +73,12 @@ get(Table, Key) ->
 
 index(Table, K, V) ->
     index(Table, K, V, #kvs{mod = dba()}).
+
+keys(Feed) ->
+    keys(Feed, #kvs{mod = dba(), db = db()}).
+
+key_match(Feed, Id) ->
+  key_match(Feed, Id, #kvs{mod = dba(), db=db()}).
 
 match(Record) ->
     match(Record, #kvs{mod = dba()}).
@@ -120,10 +127,19 @@ get(RecordName, Key, #kvs{mod = Mod, db = Db}) ->
 delete(Tab, Key, #kvs{mod = Mod, db = Db}) ->
     Mod:delete(Tab, Key, Db).
 
+delete_range(Feed, Last, #kvs{mod=DBA, db=Db}) ->
+    DBA:delete_range(Feed,Last,Db).
+
 count(Tab, #kvs{mod = DBA}) -> DBA:count(Tab).
 
 index(Tab, Key, Value, #kvs{mod = DBA}) ->
     DBA:index(Tab, Key, Value).
+
+keys(Feed, #kvs{mod = DBA, db = Db}) ->
+    DBA:keys(Feed, Db).
+
+key_match(Feed, Id, #kvs{mod = DBA, db = Db}) ->
+    DBA:key_match(Feed, Id, Db).
 
 match(Record, #kvs{mod = DBA}) ->
     DBA:match(Record).
@@ -186,7 +202,11 @@ save(X)                      -> (kvs_stream()):save(X).
 
 save(X,#kvs{db = Db})        -> (kvs_stream()):save(X,Db).
 
-cut(X, Y)                    -> (kvs_stream()):cut(X, Y).
+remove(X)                    -> (kvs_stream()):remove(X).
+
+cut(X)                       -> (kvs_stream()):cut(X).
+
+cut(X,#kvs{db = Db})         -> (kvs_stream()):cut(X, Db).
 
 add(X)                       -> (kvs_stream()):add(X).
 

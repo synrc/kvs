@@ -7,3 +7,4 @@ rocksdb/
 deps/
 _build/
 *.lock
+doc/

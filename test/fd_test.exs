@@ -17,7 +17,7 @@ defmodule Fd.Test do
 
     defrecord(:msg, id: [], body: [])
 
-    setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
+    setup do: (on_exit(fn -> :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
     setup kvs, do: [
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/duck") end, :lists.seq(1,10)),
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/luck") end, :lists.seq(1,10)),
@@ -91,10 +91,10 @@ defmodule Fd.Test do
             end)
         r = :kvs.load_reader(rid)
         assert r = :kvs.prev(r)
-        assert r = KVS.reader(:kvs.prev(:kvs.top(r)), args: [])                 
+        assert r = KVS.reader(:kvs.prev(:kvs.top(r)), args: [])
     end
 
-    test "prev to empty" do        
+    test "prev to empty" do
         :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/aco") end, :lists.seq(1,2))
         all = :kvs.all("/aco")
         head = Enum.at(all,0)
@@ -105,6 +105,43 @@ defmodule Fd.Test do
         assert KVS.reader(args: [^head]) = :kvs.take(KVS.reader(r1, args: 1000, dir: 1))
     end
 
+    test "cut the *uck", kvs do
+        :kvs.cut("/crm/luck")
+
+        all = :kvs.all("/crm")
+        assert 20 = length(all)
+        assert all = :kvs.all("/crm/duck") ++ :kvs.all("/crm/truck")
+
+        :kvs.cut("/crm/duck")
+
+        all = :kvs.all("/crm")
+        assert 10 = length(all)
+        assert all = :kvs.all("/crm/truck")
+
+        :kvs.cut("/crm/truck")
+
+        all = :kvs.all("/crm")
+        assert 0 = length(all)
+    end
+
+    test "remove the *uck with readers", kvs do
+        :kvs.remove(:kvs.reader("/crm/luck"))
+
+        all = :kvs.all("/crm")
+        assert 20 = length(all)
+        assert all = :kvs.all("/crm/duck") ++ :kvs.all("/crm/truck")
+
+        :kvs.remove(:kvs.reader("/crm/duck"))
+
+        all = :kvs.all("/crm")
+        assert 10 = length(all)
+        assert all = :kvs.all("/crm/truck")
+
+        :kvs.remove(:kvs.reader("/crm/truck"))
+
+        all = :kvs.all("/crm")
+        assert 0 = length(all)
+    end
 
     @tag :skip # can`t manage this within current implementation. create correct keys!
     test "keys with feeds separator" do
@@ -115,17 +152,17 @@ defmodule Fd.Test do
 
     test "corrupted writers doesn't affect all" do
         prev = :kvs.all("/crm/duck")
-        
+
         KVS.writer(cache: ch) = w = :kvs.writer("/crm/duck")
         w1 = KVS.writer(w, cache: {:msg, "unknown", "/corrupted"})
-        
+
         :ok = :kvs_rocks.put(w1)
         w2 = :kvs.writer("/crm/duck")
         assert {:ok, ^w2} = :kvs.get(:writer, "/crm/duck")
         assert w1 == w2
 
         assert prev = :kvs.all("/crm/duck")
-        
+
         {:ok,_} = :kvs.get(:writer, "/crm/duck")
         :ok = :kvs.delete(:writer, "/crm/duck")
         {:error, :not_found} = :kvs.get(:writer, "/crm/duck")
