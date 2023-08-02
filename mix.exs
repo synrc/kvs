@@ -4,7 +4,7 @@ defmodule KVS.Mixfile do
   def project do
     [
       app: :kvs,
-      version: "10.3.0",
+      version: "10.8.2",
       description: "KVS Abstract Chain Database",
       package: package(),
       deps: deps()
@@ -12,7 +12,7 @@ defmodule KVS.Mixfile do
   end
 
   def application do
-    [mod: {:kvs, []}]
+    [mod: {:kvs, []}, applications: [:mnesia,:ex_doc]]
   end
 
   defp package do
@@ -25,7 +25,7 @@ defmodule KVS.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.19", only: :dev},
+      {:ex_doc, ">= 0.0.0", only: :dev},
       {:rocksdb, "~> 1.6.0", only: :test}
     ]
   end
