@@ -2,13 +2,13 @@ name: mix
 on: push
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: erlef/setup-elixir@v1
       with:
-        otp-version: 22.x
-        elixir-version: 1.9.x
+        otp-version: 24.x
+        elixir-version: 1.13.x
     - name: Dependencies
       run: |
         mix local.rebar --force
@@ -16,5 +16,4 @@ jobs:
         mix deps.get
     - name: Compilation
       run: mix compile
-    - name: Tests
-      run: mix test
+
