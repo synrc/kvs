@@ -27,6 +27,7 @@ Release Notes
 
 [1]. <a href="https://tonpa.guru/stream/2018/2018-11-13%20Новая%20версия%20KVS.htm">2018-11-13 Нова версія KVS 5.11</a><br>
 [2]. <a href="https://tonpa.guru/stream/2019/2019-04-13%20Новая%20версия%20KVS.htm">2019-04-13 Нова версія KVS 6.4</a>
+[3]. <a href="https://github.com/synrc/kvs/blob/main/README.md">2026-02-01 Про доречність використання KVS в Документообігах, CRM, чатах та телеком системах</a>
 
 Credits
 -------
