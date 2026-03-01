@@ -1,6 +1,6 @@
 defmodule KVS do
   require Record
-  @moduledoc "KVS Abstract Chain Database"
+  @moduledoc "KVS: Abstraction Layer"
   Record.defrecord(:schema, name: nil, tables: [])
   Record.defrecord(:table, name: nil, container: false, type: :set, fields: [], keys: [], copy_type: :disc_copies, instance: {}, mappings: [])
   Record.defrecord(:writer, id: [], count: 0, args: [], cache: [], first: [])
