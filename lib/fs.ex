@@ -73,11 +73,8 @@ defmodule :kvs_fs do
   end
 
   def hashkey(key) do
-    key
-    |> :erlang.term_to_binary()
-    |> :crypto.hash(:sha)
-    |> :base64.encode()
-    |> encode()
+    bin = :erlang.term_to_binary(key)
+    :crypto.hash(:sha, bin) |> :base64.encode() |> encode()
   end
 
   def delete(table_name, key, _) do
