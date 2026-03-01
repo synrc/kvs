@@ -30,7 +30,7 @@ Release Notes
 [3]. <a href="https://tonpa.guru/stream/2016/2016-09-24%20KVS%20STREAMS.txt">2016-09-24 KVS STREAMS</a><br>
 [4]. <a href="https://tonpa.guru/stream/2018/2018-11-13%20Новая%20версия%20KVS.htm">2018-11-13 Нова версія KVS 5.11</a><br>
 [5]. <a href="https://tonpa.guru/stream/2019/2019-04-13%20Новая%20версия%20KVS.htm">2019-04-13 Нова версія KVS 6.4</a><br>
-[6]. <a href="https://tonpa.guru/stream/2019/2019-07-08%20ERP%20BOOT.htm">2019-07-08 KVS Ланцюжки</a>
+[6]. <a href="https://tonpa.guru/stream/2019/2019-07-08%20ERP%20BOOT.htm">2019-07-08 KVS Ланцюжки</a><br>
 [6]. <a href="https://gist.github.com/5HT/310ed0d5f3982fb6d7572fbaa263109b">2026-03-01 Про доречність використання KVS</a>
 
 Credits
