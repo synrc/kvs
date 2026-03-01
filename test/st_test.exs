@@ -5,9 +5,9 @@ defmodule St.Test do
     import Record
     require KVS
 
-    defrecord(:msg, id: [], body: [])
+    defrecord(:msg, id: [], next: [], prev: [], user: [], msg: [])
 
-    setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs_rocks.destroy() end);:kvs.join())
+    setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs_rocks.destroy() end);:kvs.join();:ok)
     setup kvs, do: [
         ids: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), :feed) end, :lists.seq(1,10)),
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/personal/Реєстратор А1/in/directory/duck") end, :lists.seq(1,10)),

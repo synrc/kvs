@@ -15,9 +15,9 @@ defmodule Fd.Test do
        assert "/erp/orgs"  = :kvs_rocks.key "erp/orgs"
     end
 
-    defrecord(:msg, id: [], body: [])
+    defrecord(:msg, id: [], next: [], prev: [], user: [], msg: [])
 
-    setup do: (on_exit(fn -> :kvs.leave();:ok = :kvs.destroy() end);:kvs.join())
+    setup do: (on_exit(fn -> :kvs.leave();:ok = :kvs.destroy() end);:kvs.join();:ok)
     setup kvs, do: [
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/duck") end, :lists.seq(1,10)),
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/luck") end, :lists.seq(1,10)),
