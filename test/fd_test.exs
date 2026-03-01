@@ -31,19 +31,19 @@ defmodule Fd.Test do
         ltop = Enum.at(kvs[:id1],0)
         dtop = Enum.at(kvs[:id0],0)
         ttop = Enum.at(kvs[:id2],0)
-        res = :kvs.get_reader("/crm/luck")
+        res = :kvs.reader("/crm/luck")
         assert Record.is_record(res, :reader)
-        res = :kvs.get_reader("/crm/duck")
+        res = :kvs.reader("/crm/duck")
         assert Record.is_record(res, :reader)
-        res = :kvs.get_reader("/crm/truck")
+        res = :kvs.reader("/crm/truck")
         assert Record.is_record(res, :reader)
-        # res = :kvs.get_reader("/crm")
+        # res = :kvs.reader("/crm")
         assert Record.is_record(res, :reader)
-        # res = :kvs.get_reader("/noroute")
+        # res = :kvs.reader("/noroute")
         assert Record.is_record(res, :reader)
-        # res = :kvs.get_reader("/")
+        # res = :kvs.reader("/")
         assert Record.is_record(res, :reader)
-        res = :kvs.get_reader([])
+        res = :kvs.reader([])
         assert Record.is_record(res, :reader)
     end
 
@@ -52,24 +52,24 @@ defmodule Fd.Test do
         dtop = Enum.at(kvs[:id0],0)
         lbot = Enum.at(kvs[:id1],9)
 
-        res = :kvs.top(:kvs.get_reader("/crm/luck"))
+        res = :kvs.top(:kvs.reader("/crm/luck"))
         assert Record.is_record(res, :reader)
-        # res = :kvs.top(:kvs.get_reader("/crm"))
+        # res = :kvs.top(:kvs.reader("/crm"))
         assert Record.is_record(res, :reader)
-        # res = :kvs.top(:kvs.get_reader("/"))
+        # res = :kvs.top(:kvs.reader("/"))
         assert Record.is_record(res, :reader)
 
-        res = :kvs.bot(:kvs.get_reader("/crm/luck"))
+        res = :kvs.bot(:kvs.reader("/crm/luck"))
         assert Record.is_record(res, :reader)
-        res = :kvs.bot(:kvs.get_reader("/crm"))
+        res = :kvs.bot(:kvs.reader("/crm"))
         assert Record.is_record(res, :reader)
-        res = :kvs.bot(:kvs.get_reader("/"))
+        res = :kvs.bot(:kvs.reader("/"))
         assert Record.is_record(res, :reader)
     end
 
     test "next", kvs do
         last = msg(id: Enum.at(kvs[:id1],9))
-        r0 = KVS.reader(id: rid) = :kvs.save(:kvs.bot(:kvs.get_reader("/crm/luck")))
+        r0 = KVS.reader(id: rid) = :kvs.save(:kvs.bot(:kvs.reader("/crm/luck")))
         kvs[:id1] |> Enum.with_index
                   |> Enum.each(fn {_id, i} when i < 9 ->
                 r = :kvs.load_reader(rid)
@@ -88,7 +88,7 @@ defmodule Fd.Test do
     end
 
     test "prev", kvs do
-        KVS.reader(id: rid) = :kvs.save(:kvs.top(:kvs.get_reader("/crm/luck")))
+        KVS.reader(id: rid) = :kvs.save(:kvs.top(:kvs.reader("/crm/luck")))
         ids = kvs[:id1] |> Enum.reverse
         ids |> Enum.with_index
             |> Enum.each(fn {_id, i} when i < 9 ->
@@ -110,7 +110,7 @@ defmodule Fd.Test do
         all = :kvs.all("/aco")
         head = Enum.at(all,0)
 
-        r = :kvs.bot(:kvs.get_reader("/aco"))
+        r = :kvs.bot(:kvs.reader("/aco"))
         r1 = KVS.reader(args: args) = :kvs.take(KVS.reader(r, args: 2, dir: 1))
         assert length(all) >= length(args)
         res = :kvs.take(KVS.reader(r1, args: 1000, dir: 1))
@@ -122,14 +122,14 @@ defmodule Fd.Test do
     #     all = KVS.all("/crm")
     #     assert 20 == length(all)
     #     assert false == Enum.member?(all, KVS.get(:msg, "0"))
-    #     assert Enum.at(KVS.get_reader("/crm/luck"),2) == []
+    #     assert Enum.at(KVS.reader("/crm/luck"),2) == []
     #     assert 0 == KVS.count("/crm/luck")
     # end
 
     test "remove the *uck with readers", kvs do
-        n1 = :kvs.remove(:kvs.get_reader("/crm/duck"))
+        n1 = :kvs.remove(:kvs.reader("/crm/duck"))
         assert is_integer(n1)
-        n2 = :kvs.remove(:kvs.get_reader("/crm/truck"))
+        n2 = :kvs.remove(:kvs.reader("/crm/truck"))
         assert is_integer(n2)
     end
 
@@ -137,18 +137,18 @@ defmodule Fd.Test do
     test "keys with feeds separator" do
         :kvs.append(msg(id: "1/1"), "/one/two")
         :kvs.append(msg(id: "1/2"), "/one/two")
-        res = :kvs.get_reader("/one/two")
+        res = :kvs.reader("/one/two")
         assert Record.is_record(res, :reader)
     end
 
     test "corrupted writers doesn't affect all" do
         prev = :kvs.all("/crm/duck")
 
-        KVS.writer(cache: _ch) = w = :kvs.get_writer("/crm/duck")
+        KVS.writer(cache: _ch) = w = :kvs.writer("/crm/duck")
         w1 = KVS.writer(w, cache: {:msg, "unknown"})
 
         :ok = :kvs_mnesia.put(w1, :kvs.db())
-        w2 = :kvs.get_writer("/crm/duck")
+        w2 = :kvs.writer("/crm/duck")
         assert {:ok, _} = :kvs.get(:writer, "/crm/duck")
         assert KVS.writer(w1, :count) == KVS.writer(w2, :count)
 

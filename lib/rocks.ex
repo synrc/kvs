@@ -288,7 +288,7 @@ defmodule :kvs_rocks do
     run(fd, fd, :next, compile(:seek) ++ compile(:delete, fd, seek_it(fd), db), db)
   end
 
-  def all(r, db), do: KVS.St.feed(r, db)
+  def all(r, db), do: :kvs_st.feed(r, db)
 
   def get(tab, {:step, n, [208 | _] = key}, db), do: get(tab, {:step, n, :erlang.list_to_binary(key)}, db)
   def get(tab, [208 | _] = key, db), do: get(tab, :erlang.list_to_binary(key), db)
@@ -300,10 +300,10 @@ defmodule :kvs_rocks do
     end
   end
 
-  def put(record), do: KVS.Rocks.put(record, db())
+  def put(record), do: :kvs_rocks.put(record, db())
 
   def put(records, db) when is_list(records) do
-    Enum.map(records, &KVS.Rocks.put(&1, db))
+    Enum.map(records, &:kvs_rocks.put(&1, db))
   end
 
   def put(record, db) do

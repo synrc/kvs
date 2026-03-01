@@ -24,7 +24,7 @@ defmodule St.Test do
     end
 
     test "take-ø", kvs do
-        r = KVS.reader() = :kvs.get_reader("/empty-feed")
+        r = KVS.reader() = :kvs.reader("/empty-feed")
         r1 = :kvs.take(KVS.reader(r, args: 1))
         assert Record.is_record(r1, :reader)
         r1 = :kvs.take(KVS.reader(r, args: 1, dir: 1))
@@ -56,7 +56,7 @@ defmodule St.Test do
 
     test "take-0", kvs do
         feed = "/crm/personal/Реєстратор А1/in/doc"
-        r = :kvs.get_reader("/crm/personal/Реєстратор А1/in/doc")
+        r = :kvs.reader("/crm/personal/Реєстратор А1/in/doc")
         assert Record.is_record(r, :reader)
 
         res = :kvs.take(KVS.reader(r, args: 0, dir: 0))
@@ -92,7 +92,7 @@ defmodule St.Test do
         bot = Enum.at(kvs[:id1],9)
         tpm = Enum.take(kvs[:id1],1) |> Enum.map(&msg(id: &1))
 
-        r = :kvs.get_reader("/crm/personal/Реєстратор А1/in/mail")
+        r = :kvs.reader("/crm/personal/Реєстратор А1/in/mail")
         assert Record.is_record(r, :reader)
         assert KVS.reader(r, :id) == KVS.reader(:kvs.top(r), :id)
         res = :kvs.take(KVS.reader(r, args: 1, dir: 1))
@@ -119,7 +119,7 @@ defmodule St.Test do
 
     test "drop", kvs do
         feed = :feed
-        r = :kvs.save(:kvs.get_reader(:feed))
+        r = :kvs.save(:kvs.reader(:feed))
         assert Record.is_record(r, :reader)
         r1 = :kvs.drop(KVS.reader(r,  args: 10, dir: 0))
         assert Record.is_record(r1, :reader)

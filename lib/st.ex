@@ -63,13 +63,13 @@ defmodule :kvs_st do
   def take(_dir, _n, [], _reader, acc, _f2, _db), do: acc
   def take(1, n, {t, i, _f}, KVS.reader(feed: feed), acc, f2, db) do
     case :kvs_rocks.get(t, i, db) do
-      {:ok, val} -> take(1, n - 1, :kvs_rocks.prev(val), KVS.reader(feed: feed), [val | acc], f2, db)
+      {:ok, val} -> take(1, n - 1, prev(val), KVS.reader(feed: feed), [val | acc], f2, db)
       _ -> acc
     end
   end
   def take(0, n, {t, i, _f}, KVS.reader(feed: feed), acc, f2, db) do
     case :kvs_rocks.get(t, i, db) do
-      {:ok, val} -> take(0, n - 1, :kvs_rocks.next(val), KVS.reader(feed: feed), [val | acc], f2, db)
+      {:ok, val} -> take(0, n - 1, next(val), KVS.reader(feed: feed), [val | acc], f2, db)
       _ -> acc
     end
   end
@@ -172,7 +172,7 @@ defmodule :kvs_st do
 
   def cut(feed), do: cut(feed, db())
   def cut(feed, db) do
-    KVS.writer(cache: {_, key, fd} = ch) = :kvs.get_writer(feed, KVS.kvs(db: db, mod: :kvs_rocks))
+    KVS.writer(cache: {_, key, fd} = ch) = :kvs.writer(feed, KVS.kvs(db: db, mod: :kvs_rocks))
     KVS.reader() = :kvs.prev(get_reader(feed, db))
     KVS.reader() = :kvs.next(KVS.reader(feed: key(feed), cache: ch))
 
@@ -181,7 +181,7 @@ defmodule :kvs_st do
 
   def remove(rec, feed, db) do
     :kvs.ensure(KVS.writer(id: feed), KVS.kvs(db: db, mod: :kvs_rocks))
-    w = KVS.writer(count: c, cache: ch) = :kvs.get_writer(feed, KVS.kvs(db: db, mod: :kvs_rocks))
+    w = KVS.writer(count: c, cache: ch) = :kvs.writer(feed, KVS.kvs(db: db, mod: :kvs_rocks))
 
     ch1 =
       case {elem(rec, 0), elem(rec, 1), key(feed)} do

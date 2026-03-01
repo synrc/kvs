@@ -19,11 +19,11 @@ defmodule Sc.Test do
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/duck") end, :lists.seq(1,10)),
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/luck") end, :lists.seq(1,10)),
         id2: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/truck") end, :lists.seq(1,10)),
-        id3: :lists.map(fn _ -> :kvs.save(:kvs.add(KVS.writer(:kvs.get_writer(:sym),
+        id3: :lists.map(fn _ -> :kvs.save(:kvs.add(KVS.writer(:kvs.writer(:sym),
                                         args: msg(id: :kvs.seq([],[]))))) end, :lists.seq(1,10))]
     test "basic", kvs do
-        KVS.reader(id: rid1) = :kvs.save(:kvs.get_reader("/crm/luck"))
-        KVS.reader(id: rid2) = :kvs.save(:kvs.get_reader("/crm/truck"))
+        KVS.reader(id: rid1) = :kvs.save(:kvs.reader("/crm/luck"))
+        KVS.reader(id: rid2) = :kvs.save(:kvs.reader("/crm/truck"))
         x1 = :kvs.take(KVS.reader(:kvs.load_reader(rid1), args: 20))
         x2 = :kvs.take(KVS.reader(:kvs.load_reader(rid2), args: 20))
         b = :kvs.feed("/crm/luck")
@@ -42,7 +42,7 @@ defmodule Sc.Test do
     test "take back full" do
         feed = "/crm/duck"
         :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), feed) end, :lists.seq(1,10))
-        KVS.reader(id: rid) = :kvs.save(:kvs.get_reader(feed))
+        KVS.reader(id: rid) = :kvs.save(:kvs.reader(feed))
         t = KVS.reader(args: a1) = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 10))
         assert 10 == length(a1)
         :kvs.save(KVS.reader(t, dir: 1))
@@ -53,7 +53,7 @@ defmodule Sc.Test do
     test "partial take back" do
         feed = "/crm/luck"
         :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), feed) end, :lists.seq(1,10))
-        KVS.reader(id: rid) = :kvs.save(:kvs.get_reader(feed))
+        KVS.reader(id: rid) = :kvs.save(:kvs.reader(feed))
         r = KVS.reader(args: t) = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 2))
         :kvs.save(KVS.reader(r, dir: 1))
         KVS.reader(args: _n) = :kvs.take(KVS.reader(:kvs.load_reader(rid), args: 3))

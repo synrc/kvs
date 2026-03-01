@@ -67,7 +67,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "get_reader and take" do
     ids = :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/take") end, :lists.seq(1, 10))
-    r = :kvs.get_reader("/rb/take")
+    r = :kvs.reader("/rb/take")
     assert Record.is_record(r, :reader)
     r1 = :kvs.take(KVS.reader(r, args: 10, dir: 0))
     assert Record.is_record(r1, :reader)
@@ -79,7 +79,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "take partial and resume" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/partial") end, :lists.seq(1, 10))
-    r = :kvs.get_reader("/rb/partial")
+    r = :kvs.reader("/rb/partial")
 
     r1 = :kvs.take(KVS.reader(r, args: 3, dir: 0))
     assert Record.is_record(r1, :reader)
@@ -93,7 +93,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "drop cursor" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/drop") end, :lists.seq(1, 10))
-    r = :kvs.save(:kvs.get_reader("/rb/drop"))
+    r = :kvs.save(:kvs.reader("/rb/drop"))
     assert Record.is_record(r, :reader)
 
     r1 = :kvs.drop(KVS.reader(r, args: 3, dir: 0))
@@ -107,7 +107,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "save and load reader" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/save") end, :lists.seq(1, 5))
-    r = :kvs.get_reader("/rb/save")
+    r = :kvs.reader("/rb/save")
     KVS.reader(id: rid) = :kvs.save(r)
     rs = :kvs.load_reader(rid)
     assert Record.is_record(rs, :reader)
@@ -118,7 +118,7 @@ defmodule Rb.Test do
   test "writer count" do
     n = 7
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/writer") end, :lists.seq(1, n))
-    w = :kvs.get_writer("/rb/writer")
+    w = :kvs.writer("/rb/writer")
     assert Record.is_record(w, :writer)
     assert KVS.writer(w, :count) == n
   end
@@ -126,7 +126,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "top and bot" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/topbot") end, :lists.seq(1, 5))
-    r = :kvs.get_reader("/rb/topbot")
+    r = :kvs.reader("/rb/topbot")
 
     rt = :kvs.top(r)
     assert Record.is_record(rt, :reader)
@@ -138,7 +138,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "next traversal" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/next") end, :lists.seq(1, 5))
-    KVS.reader(id: rid) = :kvs.save(:kvs.bot(:kvs.get_reader("/rb/next")))
+    KVS.reader(id: rid) = :kvs.save(:kvs.bot(:kvs.reader("/rb/next")))
 
     Enum.each(1..4, fn _ ->
       cur = :kvs.load_reader(rid)
@@ -155,7 +155,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "prev traversal" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/prev") end, :lists.seq(1, 5))
-    KVS.reader(id: rid) = :kvs.save(:kvs.top(:kvs.get_reader("/rb/prev")))
+    KVS.reader(id: rid) = :kvs.save(:kvs.top(:kvs.reader("/rb/prev")))
 
     Enum.each(1..4, fn _ ->
       cur = :kvs.load_reader(rid)
@@ -172,7 +172,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "bidirectional take-back (dir:1)" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/bidir") end, :lists.seq(1, 10))
-    r = :kvs.get_reader("/rb/bidir")
+    r = :kvs.reader("/rb/bidir")
     KVS.reader(id: rid) = :kvs.save(r)
 
     forward = KVS.reader(:kvs.take(KVS.reader(:kvs.load_reader(rid), args: 10, dir: 0)), :args)
@@ -232,7 +232,7 @@ defmodule Rb.Test do
   @tag :rocks
   test "remove decrements writer count" do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/rm") end, :lists.seq(1, 5))
-    n = :kvs.remove(:kvs.get_reader("/rb/rm"))
+    n = :kvs.remove(:kvs.reader("/rb/rm"))
     assert is_integer(n)
     assert n == 4
   end
@@ -242,7 +242,7 @@ defmodule Rb.Test do
     :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([], [])), "/rb/corrupt") end, :lists.seq(1, 5))
     prev = :kvs.all("/rb/corrupt")
 
-    w = :kvs.get_writer("/rb/corrupt")
+    w = :kvs.writer("/rb/corrupt")
     w1 = KVS.writer(w, cache: {:msg, "nonexistent"})
     :kvs_rocks.put(w1, :kvs.db())
 

@@ -38,7 +38,7 @@ defmodule :kvs_stream do
   def r({:ok, val}, c, p), do: KVS.reader(c, cache: {tab(val), id(val)}, pos: p, args: List.flatten([val]))
   def r({:error, x}, _, _), do: {:error, x}
 
-  def w({:ok, w = KVS.writer(first: [])}, :bot, c), do: KVS.reader(c, cache: [], pos: 1, dir: 0)
+  def w({:ok, _w = KVS.writer(first: [])}, :bot, c), do: KVS.reader(c, cache: [], pos: 1, dir: 0)
   def w({:ok, w = KVS.writer(first: b)}, :bot, c), do: KVS.reader(c, cache: {tab(w), id(b)}, pos: 1, dir: 0)
   def w({:ok, w = KVS.writer(cache: b, count: size)}, :top, c), do: KVS.reader(c, cache: {tab(w), id(b)}, pos: size, dir: 1)
   def w({:error, x}, _, _), do: {:error, x}
