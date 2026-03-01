@@ -2,7 +2,7 @@ defmodule :kvs_st do
   require KVS
   import :kvs_rocks, except: [db: 0]
 
-  def db, do: Application.get_env(:kvs, :rocks_name, "rocksdb")
+  def db, do: Application.get_env(:kvs, :rocks_name, 'rocksdb')
 
   def c4(r, v), do: KVS.reader(r, args: v)
   def si(m, t), do: put_elem(m, 1, t)
