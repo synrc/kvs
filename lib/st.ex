@@ -103,7 +103,8 @@ defmodule :kvs_st do
 
       tuple_size(ch) == 3 ->
         {_, _, k} = ch
-        if binary_part(k, 0, byte_size(feed_id)) == feed_id and length(a) == 4 do
+        if is_binary(k) and byte_size(k) >= byte_size(feed_id) and
+           binary_part(k, 0, byte_size(feed_id)) == feed_id and length(a) == 4 do
           feed(f, r1, acc ++ a, h - 4)
         else
           acc ++ a

@@ -154,6 +154,7 @@ defmodule :kvs_rocks do
           {{:ok, k, v}, h} -> run_fn.(f, k, h, v, [])
           {{:ok, k, v}, h, a} -> run_fn.(f, k, h, v, a)
           {{:error, e}, h, acc} -> {{:error, e}, h, acc}
+          {{:error, _}, h} -> {{:error, :stop}, h}
           {i, o} -> f.(i, o)
         end
     end
@@ -220,7 +221,8 @@ defmodule :kvs_rocks do
   def compile(:seek), do: [&:rocksdb.iterator/2, &:rocksdb.iterator_move/2]
   def compile(:move), do: [&:rocksdb.iterator_move/2]
   def compile(:close), do: [&:rocksdb.iterator_close/1]
-  def compile(:take, n), do: for(_ <- 1..n, do: &:rocksdb.iterator_move/2)
+  def compile(:take, 0), do: []
+  def compile(:take, n), do: for(_ <- 1..n//1, do: &:rocksdb.iterator_move/2)
 
   def compile(:delete, _, {:error, e}, _), do: {:error, e}
 
