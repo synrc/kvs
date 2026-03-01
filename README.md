@@ -33,7 +33,7 @@ Release Notes
 [6]. <a href="https://tonpa.guru/stream/2019/2019-07-08%20ERP%20BOOT.htm">2019-07-08 KVS Ланцюжки</a><br>
 [7]. <a href="https://gist.github.com/5HT/310ed0d5f3982fb6d7572fbaa263109b">2026-03-01 Про доречність використання KVS</a>
 
-Credits
+Authors
 -------
 
 * Maksym Sokhatskyi
