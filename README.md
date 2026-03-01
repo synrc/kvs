@@ -19,18 +19,6 @@ Usage
 $ mix deps.get
 $ iex -S mix
 iex(1)> :kvs.join
-[
-  [
-    {:table, :id_seq, false, :set, [:thing, :id], [:thing], :disc_copies, {}, []},
-    {:table, :reader, false, :set, [:id, :pos, :cache, :args, :feed, :seek, :count, :dir], [], :disc_copies, {}, []},
-    {:table, :writer, false, :set, [:id, :count, :args, :cache, :first], [], :disc_copies, {}, []},
-    {:table, :msg, false, :set, [:id, :next, :prev, :user, :msg], [], :disc_copies, {}, []}
-  ],
-  [
-    {:table, :writer, false, :set, [:id, :count, :args, :cache, :first], [], :disc_copies, {}, []},
-    {:table, :reader, false, :set, [:id, :pos, :cache, :args, :feed, :seek, :count, :dir], [], :disc_copies, {}, []}
-  ]
-]
 :ok
 ```
 
