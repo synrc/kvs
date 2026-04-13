@@ -4,8 +4,8 @@ defmodule KVS.Mixfile do
   def project do
     [
       app: :kvs,
-      version: "13.3.1",
-      description: "KVS Chain Database Abstraction Layer",
+      version: "13.4.13",
+      description: "KVS Key-Value Store Abstraction Layer",
       package: package(),
       deps: deps()
     ]
@@ -19,7 +19,7 @@ defmodule KVS.Mixfile do
     [
       files: ~w(include man config lib LICENSE mix.exs README.md),
       licenses: ["MIT"],
-      maintainers: ["Ihor Horobets"],
+      maintainers: ["Namdak Tonpa"],
       links: %{"GitHub" => "https://github.com/synrc/kvs"}
     ]
   end

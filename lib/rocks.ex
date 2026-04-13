@@ -186,7 +186,7 @@ defmodule :kvs_rocks do
   def index(_, _, _), do: []
 
   def ref_env(db), do: String.to_atom("rocks_ref_" <> to_string(db))
-  def db, do: Application.get_env(:kvs, :rocks_name, 'rocksdb')
+  def db, do: Application.get_env(:kvs, :rocks_name, ~c"rocksdb")
   def start, do: :ok
   def stop, do: :ok
   def destroy, do: destroy(db())
