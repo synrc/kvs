@@ -4,7 +4,7 @@ defmodule KVS.Mixfile do
   def project do
     [
       app: :kvs,
-      version: "13.4.14",
+      version: "13.4.15",
       description: "KVS Key-Value Store Abstraction Layer",
       package: package(),
       deps: deps(),
