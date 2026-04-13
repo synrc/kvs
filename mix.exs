@@ -13,7 +13,7 @@ defmodule KVS.Mixfile do
   end
 
   def application do
-    [mod: {:kvs, []}, extra_applications: [:mnesia]]
+    [mod: {:kvs, []}, extra_applications: [:mnesia, :crypto]]
   end
 
   defp package do
