@@ -3,6 +3,11 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        backend: [mnesia, rocksdb]
+    env:
+      KVS_BACKEND: ${{ matrix.backend }}
     steps:
     - uses: actions/checkout@v4
     - name: Install system dependencies
@@ -18,6 +23,7 @@ jobs:
         mix local.rebar --force
         mix local.hex --force
         mix deps.get
+        mix deps.clean --unused
     - name: Compilation
       run: mix compile
     - name: Test

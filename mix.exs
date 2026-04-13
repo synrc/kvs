@@ -4,7 +4,7 @@ defmodule KVS.Mixfile do
   def project do
     [
       app: :kvs,
-      version: "13.4.13",
+      version: "13.4.14",
       description: "KVS Key-Value Store Abstraction Layer",
       package: package(),
       deps: deps()
@@ -12,7 +12,7 @@ defmodule KVS.Mixfile do
   end
 
   def application do
-     [ mod: {:kvs, []}, extra_applications: [ :mnesia ] ]
+    [mod: {:kvs, []}, extra_applications: [:mnesia]]
   end
 
   defp package do
@@ -25,9 +25,14 @@ defmodule KVS.Mixfile do
   end
 
   defp deps do
-    [
-      {:ex_doc, ">= 0.0.0", only: :dev},
-      {:rocksdb, "~> 2.5.0", optional: true}
+    deps = [
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
+
+    if System.get_env("KVS_BACKEND") == "rocksdb" do
+      deps ++ [{:rocksdb, "~> 2.5.0", optional: true}]
+    else
+      deps
+    end
   end
 end
