@@ -2,6 +2,7 @@ ExUnit.start()
 
 defmodule Sc.Test do
     use ExUnit.Case, async: false
+    @moduletag :rocksdb
     require KVS
     import Record
     @moduledoc """
@@ -11,13 +12,13 @@ defmodule Sc.Test do
     defrecord(:msg, id: [], next: [], prev: [], user: [], msg: [])
 
     setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs.destroy() end);:kvs.join();:ok)
-    setup kvs, do: [
+    setup _kvs, do: [
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/duck") end, :lists.seq(1,10)),
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/luck") end, :lists.seq(1,10)),
         id2: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/truck") end, :lists.seq(1,10)),
         id3: :lists.map(fn _ -> :kvs.save(:kvs.add(KVS.writer(:kvs.writer(:sym),
                                         args: msg(id: :kvs.seq([],[]))))) end, :lists.seq(1,10))]
-    test "basic", kvs do
+    test "basic", _kvs do
         KVS.reader(id: rid1) = :kvs.save(:kvs.reader("/crm/luck"))
         KVS.reader(id: rid2) = :kvs.save(:kvs.reader("/crm/truck"))
         x1 = :kvs.take(KVS.reader(:kvs.load_reader(rid1), args: 20))
@@ -29,9 +30,9 @@ defmodule Sc.Test do
         assert length(KVS.reader(x1, :args)) == length(KVS.reader(x2, :args))
     end
 
-    test "sym",kvs do
-        KVS.writer(args: last) = Enum.at(kvs[:id3],-1)
-        {:ok, KVS.writer(id: :sym, count: 10, cache: last)} = :kvs.get(:writer, :sym)
+    test "sym", kvs do
+        KVS.writer(args: _last) = Enum.at(kvs[:id3],-1)
+        {:ok, KVS.writer(id: :sym, count: 10, cache: _cache)} = :kvs.get(:writer, :sym)
     end
 
     test "take back full" do
@@ -52,6 +53,4 @@ defmodule Sc.Test do
         assert :lists.reverse(t) == tl(n)
     end
 
-    defp log(x), do: IO.puts '#{inspect(x)}'
-    defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
 end

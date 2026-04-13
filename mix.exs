@@ -7,7 +7,8 @@ defmodule KVS.Mixfile do
       version: "13.4.14",
       description: "KVS Key-Value Store Abstraction Layer",
       package: package(),
-      deps: deps()
+      deps: deps(),
+      xref: [exclude: [:rocksdb]]
     ]
   end
 

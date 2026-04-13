@@ -2,28 +2,29 @@ ExUnit.start()
 
 defmodule St.Test do
     use ExUnit.Case, async: false
+    @moduletag :rocksdb
     import Record
     require KVS
 
     defrecord(:msg, id: [], next: [], prev: [], user: [], msg: [])
 
     setup do: (on_exit(fn -> :ok = :kvs.leave();:ok = :kvs_rocks.destroy() end);:kvs.join();:ok)
-    setup kvs, do: [
+    setup _kvs, do: [
         ids: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), :feed) end, :lists.seq(1,10)),
         id0: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/personal/Реєстратор А1/in/directory/duck") end, :lists.seq(1,10)),
         id1: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/personal/Реєстратор А1/in/mail") end, :lists.seq(1,10)),
         id2: :lists.map(fn _ -> :kvs.append(msg(id: :kvs.seq([],[])), "/crm/personal/Реєстратор А1/in/doc") end, :lists.seq(1,10))]
 
-    test "take-ø", kvs do
+    test "take-ø", _kvs do
         r = KVS.reader() = :kvs.reader("/empty-feed")
-        assert r1 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1))
-        assert r1 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1, dir: 1))
-        assert r2 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.next(r)
-        assert r3 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.prev(r)
-        assert r1 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100))
-        assert r1 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100, dir: 1))
-        KVS.reader(id: rid) = :kvs.save(r1)
-        assert rs1 = KVS.reader(id: rid) = :kvs.load_reader(rid)
+        assert _r1 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1))
+        assert _r1a = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 1, dir: 1))
+        assert _r2 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.next(r)
+        assert _r3 = KVS.reader(feed: "//empty-feed", args: []) = :kvs.prev(r)
+        assert _r1b = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100))
+        assert r1c = KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(r, args: 100, dir: 1))
+        KVS.reader(id: rid) = :kvs.save(r1c)
+        assert rs1 = KVS.reader(id: ^rid) = :kvs.load_reader(rid)
         assert KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 5))
         assert KVS.reader(feed: "//empty-feed", args: []) = :kvs.take(KVS.reader(rs1, args: 5, dir: 1))
         assert KVS.reader(feed: "//empty-feed", args: []) = :kvs.next(rs1)
@@ -87,7 +88,7 @@ defmodule St.Test do
 
         kvs[:ids] |> Enum.map(&msg(id: &1)) 
                   |> Enum.each(&assert(
-                    KVS.reader(id: rid, feed: ^feed, args: [], cache: &1) =
+                    KVS.reader(id: ^rid, feed: ^feed, args: [], cache: &1) =
                         :kvs.save(:kvs.drop(KVS.reader(:kvs.load_reader(rid), args: 1, dir: 0)))))
 
         assert r2 = KVS.reader(id: ^rid, feed: ^feed, args: [], cache: c1) = :kvs.drop(KVS.reader(r, args: 1, dir: 0))
@@ -98,7 +99,7 @@ defmodule St.Test do
         assert KVS.reader(id: ^rid, feed: ^feed, args: []) = :kvs.drop(KVS.reader(r1, args: 100))
     end
 
-    test "feed",kvs do
+    test "feed", _kvs do
         docs  = :kvs.all("/crm/personal/Реєстратор А1/in/doc")
         ducks = :kvs.all("/crm/personal/Реєстратор А1/in/directory/duck")
         mail  = :kvs.all("/crm/personal/Реєстратор А1/in/mail")
@@ -106,17 +107,14 @@ defmodule St.Test do
 
         assert ducks++docs++mail == total
 
-        assert docs  = :kvs.feed("/crm/personal/Реєстратор А1/in/doc")
-        assert ducks = :kvs.feed("/crm/personal/Реєстратор А1/in/directory/duck")
-        assert mail  = :kvs.feed("/crm/personal/Реєстратор А1/in/mail")
-        assert total = :kvs.feed("/crm/personal/Реєстратор А1/in")
+        assert ^docs  = :kvs.feed("/crm/personal/Реєстратор А1/in/doc")
+        assert ^ducks = :kvs.feed("/crm/personal/Реєстратор А1/in/directory/duck")
+        assert ^mail  = :kvs.feed("/crm/personal/Реєстратор А1/in/mail")
+        assert ^total = :kvs.feed("/crm/personal/Реєстратор А1/in")
 
         assert :kvs.feed("/crm/personal/Реєстратор А1/in/directory/duck") 
             ++ :kvs.feed("/crm/personal/Реєстратор А1/in/doc")
             ++ :kvs.feed("/crm/personal/Реєстратор А1/in/mail") == :kvs.feed("/crm/personal/Реєстратор А1/in")
     end
-
-    defp log(x), do: IO.puts '#{inspect(x)}'
-    defp log(m, x), do: IO.puts '#{m} #{inspect(x)}'
 
 end
