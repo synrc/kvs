@@ -2,6 +2,7 @@ ExUnit.start()
 
 defmodule Mnesia.Test do
   use ExUnit.Case, async: false
+  @moduletag :mnesia
   import Record
   require KVS
 
