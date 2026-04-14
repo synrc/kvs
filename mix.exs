@@ -27,7 +27,7 @@ defmodule KVS.Mixfile do
 
   defp deps do
     deps = [
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
 
     if System.get_env("KVS_BACKEND") == "rocksdb" do
