@@ -1,4 +1,4 @@
-name: mix
+name: zen
 on: push
 jobs:
   build:
