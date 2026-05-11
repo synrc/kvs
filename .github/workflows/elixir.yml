@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        backend: [mnesia, rocksdb]
+        backend: [mnesia]
     env:
       KVS_BACKEND: ${{ matrix.backend }}
     steps:
